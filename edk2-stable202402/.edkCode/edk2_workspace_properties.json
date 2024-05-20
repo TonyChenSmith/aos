@@ -1,0 +1,9 @@
+{
+    "packagePaths": [],
+    "dscPaths": [
+        "MdeModulePkg\\MdeModulePkg.dsc"
+    ],
+    "buildDefines": [
+        "ARCH=X64"
+    ]
+}

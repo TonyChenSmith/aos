@@ -1,0 +1,16 @@
+# Mirror tools statement
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = MirrorTool
+  PACKAGE_UNI_FILE               = MirrorTool.uni
+  PACKAGE_GUID                   = CA2CC8AA-EEC3-3002-B1F5-41576D18E587 #UUID.nameUUIDFromBytes("MirrorTool".getBytes())
+  PACKAGE_VERSION                = 0.1
+
+[Includes]
+  Include
+
+[Guids]
+
+[Protocols]
+
+[LibraryClasses]

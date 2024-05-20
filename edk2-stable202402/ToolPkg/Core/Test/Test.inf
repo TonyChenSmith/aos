@@ -1,0 +1,20 @@
+# Test Application
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Test
+  MODULE_UNI_FILE                = Test.uni
+  FILE_GUID                      = 6F800BC9-BB2C-33F6-9D2A-8AF65B4399E6 #UUID.nameUUIDFromBytes("ToolPkg_Test".getBytes())
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 0.1
+  ENTRY_POINT                    = UefiMain
+
+[Sources]
+  Test.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib

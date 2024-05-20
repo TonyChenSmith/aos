@@ -1,0 +1,21 @@
+# Shell command:info
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Info
+  MODULE_UNI_FILE                = Info.uni
+  FILE_GUID                      = D17425FE-02C4-309E-8DCE-8095CE31B28F #UUID.nameUUIDFromBytes("mirror.tools.shell.command.info".getBytes("UTF-8"))
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 0.1
+  ENTRY_POINT                    = CommandEntry
+
+[Sources]
+  Info.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiLib
+  UefiApplicationEntryPoint
+  UefiBootServicesTableLib

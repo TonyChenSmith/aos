@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"edk2code.logLevel": "Info",
+		"files.associations": {
+			"windows.h": "c",
+			"uefilib.h": "c",
+			"uefiapplicationentrypoint.h": "c",
+			"uefibootservicestablelib.h": "c",
+			"devicepathlib.h": "c",
+			"uefi.h": "c",
+			"displayprotocol.h": "c",
+			"uefibasetype.h": "c",
+			"*.inc": "c",
+			"uefispec.h": "c",
+			"uefimultiphase.h": "c",
+			"base.h": "c",
+			"baselib.h": "c"
+		},
+		"terminal.integrated.shellIntegration.enabled": false,
+		"edk2-vscode.build.compiler": "CLANGPDB",
+		"edk2-vscode.build.project": "OvmfX64",
+	}
+}
