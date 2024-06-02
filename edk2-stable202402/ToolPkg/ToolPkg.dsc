@@ -6,7 +6,7 @@
   DSC_SPECIFICATION              = 0x00010005
   OUTPUT_DIRECTORY               = Build/MirrorTool
   SUPPORTED_ARCHITECTURES        = IA32|X64
-  BUILD_TARGETS                  = DEBUG|RELEASE
+  BUILD_TARGETS                  = DEBUG|RELEASE|NOOPT
   RFC_LANGUAGES                  = "en-us"
   SKUID_IDENTIFIER               = DEFAULT
 
@@ -18,6 +18,7 @@
   # Basic
   BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
   BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
+  CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
   PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
   RegisterFilterLib|MdePkg/Library/RegisterFilterLibNull/RegisterFilterLibNull.inf
   # UEFI & PI
@@ -34,10 +35,13 @@
 [LibraryClasses.common.UEFI_APPLICATION]
   MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
 
-[Components]
-  ToolPkg/Core/Test/Test.inf
-  ToolPkg/Application/Info/Info.inf
-  ToolPkg/Application/DisplayAdapter/DisplayAdapter.inf
+[Components.X64]
+  #ToolPkg/Core/Test/Test.inf
+  #ToolPkg/Application/Info/Info.inf
+  #ToolPkg/Application/DisplayAdapter/DisplayAdapter.inf
+
+  # Use the package directly without creating a new one.
+  ToolPkg/Core/AOSLoader/AOSLoader.inf
 
 [PcdsFixedAtBuild]
   gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x07

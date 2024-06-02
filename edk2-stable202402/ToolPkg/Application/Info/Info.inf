@@ -19,3 +19,6 @@
   UefiLib
   UefiApplicationEntryPoint
   UefiBootServicesTableLib
+
+[BuildOptions]
+  #GCC:*_*_X64_CC_FLAGS=-S

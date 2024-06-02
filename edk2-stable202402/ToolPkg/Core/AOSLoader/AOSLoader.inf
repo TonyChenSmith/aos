@@ -1,0 +1,37 @@
+# AOS Loader
+# AOS UEFI Bootloader X64
+[Defines]
+	INF_VERSION                    = 0x00010005
+	BASE_NAME                      = AOSLoader
+	MODULE_UNI_FILE                = AOSLoader.uni
+	# UUID.nameUUIDFromBytes("AOS.AOSLoader".getBytes())
+	FILE_GUID                      = 2A514AF1-6CCC-3922-A8B4-3FFD53D0A80C
+	MODULE_TYPE                    = UEFI_APPLICATION
+	# Major.Minor.Patch Before the official launch, do not increment the major version number.
+	VERSION_STRING                 = 0.0.1
+	ENTRY_POINT                    = aos_uefi_entry
+
+[Sources]
+	aosloader.h
+	aosdefine.h
+	main.c
+	memory/aosmemory.h
+	memory/memory.c
+	graphics/aosgraphics.h
+	graphics/graphics.c
+
+[Packages]
+	MdePkg/MdePkg.dec
+	MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+	UefiLib
+	UefiApplicationEntryPoint
+
+[Protocols]
+	gEfiEdidActiveProtocolGuid
+	gEfiEdidDiscoveredProtocolGuid
+	gEfiGraphicsOutputProtocolGuid
+
+[Guids]
+	gEfiConsoleOutDeviceGuid
