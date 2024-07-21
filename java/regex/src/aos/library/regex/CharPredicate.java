@@ -1,7 +1,5 @@
 package aos.library.regex;
 
-import java.util.Arrays;
-
 /**
  * 字符谓词类。
  * <p>
@@ -19,6 +17,11 @@ import java.util.Arrays;
 abstract class CharPredicate
 {
 	/**
+	 * 空谓词。
+	 */
+	static final CharPredicate EPSILON=new Single(0);
+	
+	/**
 	 * 匹配码元。
 	 * 
 	 * @param codePoint 码元。
@@ -34,7 +37,7 @@ abstract class CharPredicate
 	 */
 	static CharPredicate create(int matched)
 	{
-		return new Single(matched);
+		return matched==0?EPSILON:new Single(matched);
 	}
 	
 	/**
@@ -114,15 +117,9 @@ abstract class CharPredicate
 		}
 		
 		@Override
-		public int hashCode()
-		{
-			return Integer.hashCode(matched);
-		}
-		
-		@Override
 		public String toString()
 		{
-			return Character.toString(matched);
+			return Character.isAlphabetic(matched)?Character.toString(matched):"U+%04X".formatted(matched);
 		}
 	}
 	
@@ -163,12 +160,6 @@ abstract class CharPredicate
 		}
 		
 		@Override
-		public int hashCode()
-		{
-			return Arrays.hashCode(new int[]{lower,upper});
-		}
-		
-		@Override
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
@@ -178,7 +169,7 @@ abstract class CharPredicate
 			}
 			else
 			{
-				result.append("U+%04H".formatted(lower));
+				result.append("U+%04X".formatted(lower));
 			}
 			result.append('-');
 			if(Character.isAlphabetic(upper))
@@ -187,7 +178,7 @@ abstract class CharPredicate
 			}
 			else
 			{
-				result.append("U+%04H".formatted(upper));
+				result.append("U+%04X".formatted(upper));
 			}
 			return result.toString();
 		}
@@ -227,12 +218,6 @@ abstract class CharPredicate
 		boolean match(int codePoint)
 		{
 			return left.match(codePoint)&&right.match(codePoint);
-		}
-		
-		@Override
-		public int hashCode()
-		{
-			return Arrays.hashCode(new Object[]{left,right});
 		}
 		
 		@Override
@@ -281,12 +266,6 @@ abstract class CharPredicate
 		}
 		
 		@Override
-		public int hashCode()
-		{
-			return Arrays.hashCode(new Object[]{left,right});
-		}
-		
-		@Override
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
@@ -322,12 +301,6 @@ abstract class CharPredicate
 		boolean match(int codePoint)
 		{
 			return !right.match(codePoint);
-		}
-		
-		@Override
-		public int hashCode()
-		{
-			return Arrays.hashCode(new Object[]{right});
 		}
 		
 		@Override
