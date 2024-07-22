@@ -1,13 +1,12 @@
 package aos.library.regex;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * 不确定有穷自动机。
@@ -41,13 +40,13 @@ final class NFA
 	@SuppressWarnings("unchecked")
 	private NFA(List<Transform>[] transforms)
 	{
-		this.transforms=(List<Transform>[])new List<?>[transforms.length];
-		this.epsilons=(Set<Integer>[])new Set<?>[transforms.length];
+		this.transforms=(List<Transform>[])new List<?>[transforms.length+1];
+		this.epsilons=(Set<Integer>[])new Set<?>[transforms.length+1];
 		List<Transform> nonull=new LinkedList<>();
 		Deque<Integer> stack=new LinkedList<>();
 		for(int index=0;index<transforms.length;index++)
 		{
-			this.epsilons[index]=new TreeSet<>();
+			this.epsilons[index]=new HashSet<>();
 			for(Transform trans:transforms[index])
 			{
 				if(trans.isEpsilonTransform())
@@ -93,13 +92,70 @@ final class NFA
 			nonull.clear();
 			stack.clear();
 		}
+		//构造尾结点
+		epsilons[transforms.length]=Set.of(transforms.length);
+		this.transforms[transforms.length]=Collections.emptyList();
+	}
+	
+	/**
+	 * 获得指定结点可达结点集。
+	 * 
+	 * @param node 指定结点。
+	 * @return 可达集。
+	 */
+	private Set<Integer> get(int node)
+	{
+		if(node>=epsilons.length)
+		{
+			//异常情况，返回空集。
+			return Collections.emptySet();
+		}
+		else
+		{
+			return epsilons[node];
+		}
+	}
+	
+	/**
+	 * 获得指定结点对指定码元的变换结果，结果为一个可达集。
+	 * 
+	 * @param node 指定结点。
+	 * @param codePoint 码元。
+	 * @return 变换后结点的可达集。
+	 */
+	private Set<Integer> transform(int node,int codePoint)
+	{
+		if(node>=epsilons.length)
+		{
+			//异常情况，返回空集。
+			return Collections.emptySet();
+		}
+		for(Transform trans:transforms[node])
+		{
+			if(trans.match(codePoint))
+			{
+				return epsilons[trans.transform(node)];
+			}
+		}
+		//按照构造规则，每个结点至多有一个非epsilon谓词，此处直接返回空集即可。
+		return Collections.emptySet();
+	}
+	
+	/**
+	 * 初始化一个状态用于匹配。
+	 * 
+	 * @return 状态对象。
+	 */
+	State init()
+	{
+		return new State();
 	}
 	
 	@Override
 	public String toString()
 	{
 		StringBuilder result=new StringBuilder();
-		result.append("Node:").append(transforms.length+1).append('\n');
+		result.append("Node:").append(transforms.length).append('\n');
 		for(int i=0;i<transforms.length;i++)
 		{
 			result.append(i).append(":({");
@@ -432,6 +488,182 @@ final class NFA
 		private static Transform offset(Transform transform,int index,int dest)
 		{
 			return new Transform(transform.predicate,dest-index);
+		}
+	}
+	
+	/**
+	 * 状态机的状态类。
+	 * <p>
+	 * 在2024-07-22时生成。<br>
+	 * @author Tony Chen Smith
+	 */
+	final class State
+	{	
+		/**
+		 * 尾结点索引。
+		 */
+		private final int tail;
+		
+		/**
+		 * 当前状态所在结点。
+		 */
+		private Set<Integer> current;
+		
+		/**
+		 * 已获得码元。
+		 */
+		private List<Integer> codePoints;
+		
+		/**
+		 * 可能结尾。
+		 */
+		private Deque<Integer> ends;
+		
+		/**
+		 * 初始化状态类。对于所有正常构造的NFA，均有结点0和无对象对应的尾结点。
+		 */
+		private State()
+		{
+			tail=NFA.this.epsilons.length-1;
+			current=NFA.this.get(0);
+			codePoints=new LinkedList<>();
+			ends=new LinkedList<>();
+		}
+		
+		/**
+		 * 扫描码元。若可继续匹配码元即返回真。当前可达集变为空时返回假。
+		 * 
+		 * @param codePoint 码元。
+		 * @return 可继续扫描返回真。
+		 */
+		boolean scan(int codePoint)
+		{
+			Set<Integer> reachables=new HashSet<>();
+			for(int node:current)
+			{
+				reachables.addAll(NFA.this.transform(node,codePoint));
+			}
+			if(reachables.isEmpty())
+			{
+				//还是正常更新当前结点状态。
+				current=Collections.emptySet();
+				return false;
+			}
+			else
+			{
+				current=Set.copyOf(reachables);
+				codePoints.add(codePoint);
+				if(current.contains(tail))
+				{
+					//包含尾结点，为一可能结点。该列表自然有序。
+					ends.add(codePoints.size());
+				}
+				return true;
+			}
+		}
+		
+		/**
+		 * 获得当前所有匹配结果。
+		 * 
+		 * @return 已匹配成功的字符串数组。
+		 */
+		String[] get()
+		{
+			List<String> result=new LinkedList<>();
+			int[] text=codePoints.stream().mapToInt(Integer::intValue).toArray();
+			for(int end:ends)
+			{
+				result.add(new String(text,0,end));
+			}
+			return result.toArray(String[]::new);
+		}
+		
+		/**
+		 * 获取最后的有效结果。即最大匹配。
+		 * 
+		 * @return 最大匹配结果。
+		 */
+		String getLast()
+		{
+			Integer end=ends.peekLast();
+			if(end==null)
+			{
+				return null;
+			}
+			else
+			{
+				int[] text=codePoints.stream().mapToInt(Integer::intValue).toArray();
+				return new String(text,0,end);
+			}
+		}
+		
+		/**
+		 * 获取最先的有效结果。即最小匹配。
+		 * 
+		 * @return 最小匹配结果。
+		 */
+		String getFirst()
+		{
+			Integer end=ends.peekFirst();
+			if(end==null)
+			{
+				return null;
+			}
+			else
+			{
+				int[] text=codePoints.stream().mapToInt(Integer::intValue).toArray();
+				return new String(text,0,end);
+			}
+		}
+		
+		/**
+		 * 重置状态。
+		 */
+		void reset()
+		{
+			current=NFA.this.get(0);
+			codePoints.clear();
+			ends.clear();
+		}
+		
+		@Override
+		public String toString()
+		{
+			StringBuilder result=new StringBuilder("currnt:[");
+			Iterator<Integer> itr=current.stream().sorted().iterator();
+			while(itr.hasNext())
+			{
+				result.append(itr.next());
+				if(itr.hasNext())
+				{
+					result.append(',');
+				}
+			}
+			result.append("]\ntext:{");
+			itr=codePoints.iterator();
+			while(itr.hasNext())
+			{
+				int codePoint=itr.next();
+				if(Character.isAlphabetic(codePoint))
+				{
+					result.appendCodePoint(codePoint);
+				}
+				else
+				{
+					result.append("[U+%04X]".formatted(codePoint));
+				}
+			}
+			result.append("}\nend:[");
+			itr=ends.iterator();
+			while(itr.hasNext())
+			{
+				result.append(itr.next());
+				if(itr.hasNext())
+				{
+					result.append(',');
+				}
+			}
+			return result.append(']').toString();
 		}
 	}
 }
