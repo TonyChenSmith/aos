@@ -1,5 +1,6 @@
 package aos.library.regex;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -10,18 +11,24 @@ import java.util.Set;
 
 /**
  * 不确定有穷自动机。
- * <p>
- * 该类封装了所有不确定有穷自动机实现的功能，但仅对其他类公开图搜索功能。
- * <p>
- * 由于进行了优化，从有向图生成NFA的过程不可逆。优化程度本质上将NFA优化成了DFA。
- * <p>
- * 其中，所有对象具有不可比较的特性。仅epsilon因为唯一的谓词可以进行判断。
- * <p>
- * 在2024-06-17时生成。<br>
+ * 
+ * <p>该类封装了所有不确定有穷自动机实现的功能，但仅对其他类公开图搜索功能。
+ * 
+ * <p>由于进行了优化，从有向图生成NFA的过程不可逆。优化程度本质上将NFA优化成了DFA。
+ * 
+ * <p>其中，所有对象具有不可比较的特性。仅epsilon因为唯一的谓词可以进行判断。
+ * 
+ * <p>在2024-06-17时生成。
+ * 
  * @author Tony Chen Smith
  */
-final class NFA
+final class NFA implements Serializable
 {
+	/**
+	 * 序列化号。
+	 */
+	private static final long serialVersionUID=3712940752704856484L;
+
 	/**
 	 * 非空变换数组。
 	 */
@@ -130,14 +137,16 @@ final class NFA
 			//异常情况，返回空集。
 			return Collections.emptySet();
 		}
-		for(Transform trans:transforms[node])
+		if(!transforms[node].isEmpty())
 		{
+			Transform trans=transforms[node].get(0);
 			if(trans.match(codePoint))
 			{
 				return epsilons[trans.transform(node)];
 			}
+			
 		}
-		//按照构造规则，每个结点至多有一个非epsilon谓词，此处直接返回空集即可。
+		//按照构造规则，每个结点要不有非epsilon谓词，要不为空，此处直接返回空集即可。
 		return Collections.emptySet();
 	}
 	
@@ -189,8 +198,9 @@ final class NFA
 	
 	/**
 	 * NFA有向图。用于NFA的构造，其构造出NFA后不可逆。
-	 * <p>
-	 * 在2024-07-16时生成。<br>
+	 * 
+	 * <p>在2024-07-16时生成。
+	 * 
 	 * @author Tony Chen Smith
 	 */
 	final static class Digraph
@@ -284,6 +294,38 @@ final class NFA
 				}
 			}
 			return result.toString();
+		}
+		
+		/**
+		 * 将该有向图与另一有向图连接。
+		 * 
+		 * @param digraph 另一个有向图。
+		 * @return 连接后的有向图。
+		 */
+		Digraph concat(Digraph digraph)
+		{
+			return concat(this,digraph);
+		}
+		
+		/**
+		 * 将该有向图与另一有向图并联。
+		 * 
+		 * @param digraph 另一个有向图。
+		 * @return 并联后的有向图。
+		 */
+		Digraph union(Digraph digraph)
+		{
+			return union(this,digraph);
+		}
+		
+		/**
+		 * 构造该有向图的零边界闭包。
+		 * 
+		 * @return 具有闭包结构的有向图。
+		 */
+		Digraph closure()
+		{
+			return closure(this);
 		}
 		
 		/**
@@ -388,12 +430,18 @@ final class NFA
 	
 	/**
 	 * 变换类。实现将谓词判断转换为结点变换。
-	 * <p>
-	 * 在2024-07-16时生成。<br>
+	 * 
+	 * <p>在2024-07-16时生成。
+	 * 
 	 * @author Tony Chen Smith
 	 */
-	private final static class Transform
+	private final static class Transform implements Serializable
 	{
+		/**
+		 * 序列化号。
+		 */
+		private static final long serialVersionUID=9028317573007151542L;
+
 		/**
 		 * 谓词。
 		 */
@@ -493,8 +541,9 @@ final class NFA
 	
 	/**
 	 * 状态机的状态类。
-	 * <p>
-	 * 在2024-07-22时生成。<br>
+	 * 
+	 * <p>在2024-07-22时生成。
+	 * 
 	 * @author Tony Chen Smith
 	 */
 	final class State
@@ -614,6 +663,31 @@ final class NFA
 				int[] text=codePoints.stream().mapToInt(Integer::intValue).toArray();
 				return new String(text,0,end);
 			}
+		}
+		
+		/**
+		 * 是否有有效结果。
+		 * 
+		 * @return 结尾队列不为空则返回真。
+		 */
+		boolean hasResult()
+		{
+			return !ends.isEmpty();
+		}
+		
+		/**
+		 * 是否匹配。当有结果的时候最长结果与当前列表长度一致时为匹配。
+		 * 
+		 * @return
+		 */
+		boolean match()
+		{
+			Integer end=ends.peekLast();
+			if(end!=null)
+			{
+				return end==codePoints.size();
+			}
+			return false;
 		}
 		
 		/**

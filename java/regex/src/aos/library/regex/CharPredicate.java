@@ -1,25 +1,66 @@
 package aos.library.regex;
 
+import java.io.Serializable;
+
 /**
  * 字符谓词类。
- * <p>
- * 可以通过三种方式构造谓词：
+ * 
+ * <p>可以通过三种方式构造谓词：
  * <ol>
  * <li>单码元构造</li>
  * <li>码元范围构造</li>
  * <li>逻辑运算组合构造</li>
  * </ol>
  * 设计模式参考外观模式。隐藏三种构造对内部的细节。
- * <p>
- * 在2024-06-16时生成。<br>
+ * 
+ * <p>在2024-06-16时生成。
+ * 
  * @author Tony Chen Smith
  */
-abstract class CharPredicate
+abstract class CharPredicate implements Serializable
 {
 	/**
-	 * 空谓词。
+	 * 序列化号。
 	 */
-	static final CharPredicate EPSILON=new Single(0);
+	private static final long serialVersionUID=8550723343181471879L;
+
+	/**
+	 * 结构空谓词。
+	 */
+	static final CharPredicate EPSILON;
+	
+	/**
+	 * 全字符谓词，从最小码元到最大码元。
+	 */
+	static final CharPredicate ALL;
+	
+	/**
+	 * 通配符谓词，去掉一个换行符。
+	 */
+	static final CharPredicate DOT;
+	
+	/**
+	 * 十六进制数字字符。
+	 */
+	static final CharPredicate HEX;
+	
+	/**
+	 * 十进制数字字符。
+	 */
+	static final CharPredicate NUMBER;
+	
+	/**
+	 * 初始化常量。
+	 */
+	static
+	{
+		EPSILON=new Single(0);
+		ALL=new Range(Character.MIN_CODE_POINT,Character.MAX_CODE_POINT);
+		DOT=CharPredicate.and(ALL,not(create('\n')));
+		NUMBER=new Range('0','9');
+		CharPredicate phex=CharPredicate.or(new Range('a','f'),new Range('A','F'));
+		HEX=CharPredicate.or(NUMBER,phex);
+	}
 	
 	/**
 	 * 匹配码元。
@@ -30,6 +71,13 @@ abstract class CharPredicate
 	abstract boolean match(int codePoint);
 	
 	/**
+	 * 谓词是否为一个范围。
+	 * 
+	 * @return 如果结果为一个范围，返回真。
+	 */
+	abstract boolean isRange();
+	
+	/**
 	 * 创建单字符谓词。
 	 * 
 	 * @param matched 被匹配码元。
@@ -37,7 +85,19 @@ abstract class CharPredicate
 	 */
 	static CharPredicate create(int matched)
 	{
-		return matched==0?EPSILON:new Single(matched);
+		return create(matched,true);
+	}
+	
+	/**
+	 * 创建单字符谓词。
+	 * 
+	 * @param matched 被匹配码元。
+	 * @param input 是否为正则表达式输入码元。
+	 * @return 构造出的谓词。
+	 */
+	static CharPredicate create(int matched,boolean input)
+	{
+		return matched==0&&!input?EPSILON:new Single(matched);
 	}
 	
 	/**
@@ -50,6 +110,25 @@ abstract class CharPredicate
 	static CharPredicate create(int lower,int upper)
 	{
 		return new Range(lower,upper);
+	}
+	
+	/**
+	 * 创建范围字符谓词。
+	 * 
+	 * @param lower 范围下限谓词。
+	 * @param upper 范围上限谓词。
+	 * @return 构造出的谓词。
+	 */
+	static CharPredicate create(CharPredicate lower,CharPredicate upper)
+	{
+		if(lower instanceof Single low&&upper instanceof Single up)
+		{
+			return new Range(low.matched,up.matched);
+		}
+		else
+		{
+			throw new ClassCastException("构造范围时输入的谓词类型不正确。");
+		}
 	}
 	
 	/**
@@ -89,12 +168,18 @@ abstract class CharPredicate
 	
 	/**
 	 * 单字符谓词类。
-	 * <p>
-	 * 在2024-06-16时生成。<br>
+	 * 
+	 * <p>在2024-06-16时生成。
+	 * 
 	 * @author Tony Chen Smith
 	 */
 	private static class Single extends CharPredicate
 	{
+		/**
+		 * 序列化号。
+		 */
+		private static final long serialVersionUID=-6054468537224131496L;
+		
 		/**
 		 * 被匹配码元。
 		 */
@@ -117,6 +202,12 @@ abstract class CharPredicate
 		}
 		
 		@Override
+		boolean isRange()
+		{
+			return false;
+		}
+		
+		@Override
 		public String toString()
 		{
 			return Character.isAlphabetic(matched)?Character.toString(matched):"U+%04X".formatted(matched);
@@ -125,12 +216,18 @@ abstract class CharPredicate
 	
 	/**
 	 * 范围字符谓词类。
-	 * <p>
-	 * 在2024-06-16时生成。<br>
+	 * 
+	 * <p>在2024-06-16时生成。
+	 * 
 	 * @author Tony Chen Smith
 	 */
 	private static class Range extends CharPredicate
 	{
+		/**
+		 * 序列化号。
+		 */
+		private static final long serialVersionUID=-8850683211376552654L;
+
 		/**
 		 * 范围下限。
 		 */
@@ -160,6 +257,13 @@ abstract class CharPredicate
 		}
 		
 		@Override
+		boolean isRange()
+		{
+			//有且仅有a-b形式会构建该类。默认为一个范围。
+			return true;
+		}
+		
+		@Override
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
@@ -186,12 +290,18 @@ abstract class CharPredicate
 	
 	/**
 	 * 与运算字符谓词类。
-	 * <p>
-	 * 在2024-06-16时生成。<br>
+	 * 
+	 * <p>在2024-06-16时生成。
+	 * 
 	 * @author Tony Chen Smith
 	 */
 	private static class And extends CharPredicate
 	{
+		/**
+		 * 序列化号。
+		 */
+		private static final long serialVersionUID=6658173815371247278L;
+
 		/**
 		 * 左值。
 		 */
@@ -221,6 +331,13 @@ abstract class CharPredicate
 		}
 		
 		@Override
+		boolean isRange()
+		{
+			//逻辑运算均视为范围。本质是逻辑运算的该方法不重要。
+			return true;
+		}
+		
+		@Override
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
@@ -231,12 +348,18 @@ abstract class CharPredicate
 	
 	/**
 	 * 或运算字符谓词类。
-	 * <p>
-	 * 在2024-06-16时生成。<br>
+	 * 
+	 * <p>在2024-06-16时生成。
+	 * 
 	 * @author Tony Chen Smith
 	 */
 	private static class Or extends CharPredicate
 	{
+		/**
+		 * 序列化号。
+		 */
+		private static final long serialVersionUID=7547941211030867183L;
+
 		/**
 		 * 左值。
 		 */
@@ -266,6 +389,12 @@ abstract class CharPredicate
 		}
 		
 		@Override
+		boolean isRange()
+		{
+			return true;
+		}
+		
+		@Override
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
@@ -276,12 +405,18 @@ abstract class CharPredicate
 	
 	/**
 	 * 非运算字符谓词类。
-	 * <p>
-	 * 在2024-06-16时生成。<br>
+	 * 
+	 * <p>在2024-06-16时生成。
+	 * 
 	 * @author Tony Chen Smith
 	 */
 	private static class Not extends CharPredicate
 	{
+		/**
+		 * 序列化号。
+		 */
+		private static final long serialVersionUID=-5870870430255508834L;
+		
 		/**
 		 * 右值。
 		 */
@@ -301,6 +436,12 @@ abstract class CharPredicate
 		boolean match(int codePoint)
 		{
 			return !right.match(codePoint);
+		}
+		
+		@Override
+		boolean isRange()
+		{
+			return true;
 		}
 		
 		@Override

@@ -8,7 +8,9 @@ import aos.library.regex.NFA.State;
 
 /**
  * 测试用。
- * 在2024-07-17时生成。<br>
+ * 
+ * <p>在2024-07-17时生成。
+ * 
  * @author Tony Chen Smith
  */
 public class Test
@@ -19,6 +21,8 @@ public class Test
 	 */
 	public static void main(String[] args)
 	{
+		System.out.println(Pattern.compile("[a-c]*acc"));
+		System.out.println(Pattern.compile("a{4,6}"));
 		//构造[a-c]*acc
 		Digraph a=Digraph.transform(CharPredicate.create('a','c'));
 		a=Digraph.closure(a);
@@ -27,7 +31,7 @@ public class Test
 		c=Digraph.concat(c,c);
 		b=Digraph.concat(b,c);
 		a=Digraph.concat(a,b);
-		NFA test=a.build();
+		NFA test=new Parser("[^a-c&e-f-d]{0,}acc").parse().build();
 		System.out.println("NFA");
 		System.out.println(test);
 		@SuppressWarnings("resource")
