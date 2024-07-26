@@ -1,5 +1,10 @@
 package aos.library.regex;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -21,8 +26,24 @@ public class Test
 	 */
 	public static void main(String[] args)
 	{
-		System.out.println(Pattern.compile("[a-c]*acc"));
-		System.out.println(Pattern.compile("a{4,6}"));
+		System.out.println(Pattern.compile("\\w\\S\\d\\h\\V"));
+		System.out.println(Pattern.compile("[abc[^def]]+(0)"));
+		System.exit(0);
+		ByteArrayOutputStream stream=new ByteArrayOutputStream();
+		try
+		{
+			ObjectOutputStream ts=new ObjectOutputStream(stream);
+			ts.writeObject(Pattern.compile("[a-c]*acc"));
+			ts.writeObject(Pattern.compile("a{4,6}"));
+			ByteArrayInputStream content=new ByteArrayInputStream(stream.toByteArray());
+			ObjectInputStream rs=new ObjectInputStream(content);
+			System.out.println(rs.readObject());
+			System.out.println(rs.readObject());
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
 		//构造[a-c]*acc
 		Digraph a=Digraph.transform(CharPredicate.create('a','c'));
 		a=Digraph.closure(a);

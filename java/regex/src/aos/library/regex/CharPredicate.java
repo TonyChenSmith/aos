@@ -50,6 +50,26 @@ abstract class CharPredicate implements Serializable
 	static final CharPredicate NUMBER;
 	
 	/**
+	 * 水平空白符。
+	 */
+	static final CharPredicate HSPACE;
+	
+	/**
+	 * 竖直空白符。
+	 */
+	static final CharPredicate VSPACE;
+	
+	/**
+	 * 空白符。
+	 */
+	static final CharPredicate SPACE;
+	
+	/**
+	 * 单词字符。
+	 */
+	static final CharPredicate WORD;
+	
+	/**
 	 * 初始化常量。
 	 */
 	static
@@ -60,6 +80,10 @@ abstract class CharPredicate implements Serializable
 		NUMBER=new Range('0','9');
 		CharPredicate phex=CharPredicate.or(new Range('a','f'),new Range('A','F'));
 		HEX=CharPredicate.or(NUMBER,phex);
+		HSPACE=or(or(or(or(new Single(' '),new Single('\t')),or(new Single('\u00A0'),new Single('\u1680'))),or(or(new Single('\u180E'),new Range('\u2000','\u200A')),or(new Single('\u202F'),new Single('\u205F')))),new Single('\u3000'));
+		VSPACE=or(or(or(new Single('\n'),new Single('\u000B')),or(new Single('\u000C'),new Single('\r'))),or(or(new Single('\u0085'),new Single('\u2028')),new Single('\u2029')));
+		SPACE=or(or(or(new Single(' '),new Single('\t')),or(new Single('\n'),new Single('\u000B'))),or(new Single('\u000C'),new Single('\r')));
+		WORD=or(or(new Range('a','z'),new Range('A','Z')),or(new Single('_'),NUMBER));
 	}
 	
 	/**

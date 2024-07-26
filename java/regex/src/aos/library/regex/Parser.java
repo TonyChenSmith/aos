@@ -4,7 +4,11 @@ import static aos.library.regex.CharPredicate.ALL;
 import static aos.library.regex.CharPredicate.DOT;
 import static aos.library.regex.CharPredicate.EPSILON;
 import static aos.library.regex.CharPredicate.HEX;
+import static aos.library.regex.CharPredicate.HSPACE;
 import static aos.library.regex.CharPredicate.NUMBER;
+import static aos.library.regex.CharPredicate.SPACE;
+import static aos.library.regex.CharPredicate.VSPACE;
+import static aos.library.regex.CharPredicate.WORD;
 
 import java.util.LinkedList;
 
@@ -400,6 +404,18 @@ final class Parser
 				//回车。
 				next();
 				return CharPredicate.create('\r');
+			case 'a':
+				//警铃。
+				next();
+				return CharPredicate.create('\u0007');
+			case 'f':
+				//竖直制表。
+				next();
+				return CharPredicate.create('\u000C');
+			case 'e':
+				//退出。
+				next();
+				return CharPredicate.create('\u001B');
 			case EOS:
 				//错误结尾。
 				throw new IllegalArgumentException("分析转义序列时，在下标%d发现不期望的结束。".formatted(cursor));
@@ -411,6 +427,49 @@ final class Parser
 				//变长码元。
 				next();
 				return xnumber();
+			case 'c':
+				next();
+				return control();
+			case 'd':
+				//十进制数字。
+				next();
+				return NUMBER;
+			case 'D':
+				//非十进制数字。
+				next();
+				return CharPredicate.not(NUMBER);
+			case 'h':
+				//水平空白。
+				next();
+				return HSPACE;
+			case 'H':
+				//非水平空白。
+				next();
+				return CharPredicate.not(HSPACE);
+			case 'v':
+				//竖直空白。
+				next();
+				return VSPACE;
+			case 'V':
+				//非竖直空白。
+				next();
+				return CharPredicate.not(VSPACE);
+			case 's':
+				//一般空白。
+				next();
+				return SPACE;
+			case 'S':
+				//非一般空白。
+				next();
+				return CharPredicate.not(SPACE);
+			case 'w':
+				//单词。
+				next();
+				return WORD;
+			case 'W':
+				//非单词。
+				next();
+				return CharPredicate.not(WORD);
 			default:
 				//默认转义一切字符。
 				c=lookahead();
@@ -533,6 +592,22 @@ final class Parser
 			}
 		}
 		throw new IllegalArgumentException("分析转义序列[\\x{X}]时，在下标%d发现不期望的情况[%s]。".formatted(cursor,toString(lookahead())));
+	}
+	
+	/**
+	 * 产生式：control。将可见字符转义为前32个控制字符。
+	 * 
+	 * @return 对应谓词。
+	 */
+	private CharPredicate control()
+	{
+		if(lookahead()!=-1)
+		{
+			int a=lookahead();
+			next();
+			return CharPredicate.create(a&0x1F);
+		}
+		throw new IllegalArgumentException("分析转义序列[\\\\cX]时，在下标%d发现不期望的结尾。");
 	}
 	
 	/**
