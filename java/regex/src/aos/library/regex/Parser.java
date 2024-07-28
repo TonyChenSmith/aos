@@ -8,7 +8,7 @@ import static aos.library.regex.CharPredicate.HSPACE;
 import static aos.library.regex.CharPredicate.NUMBER;
 import static aos.library.regex.CharPredicate.SPACE;
 import static aos.library.regex.CharPredicate.VSPACE;
-import static aos.library.regex.CharPredicate.WORD;
+import static aos.library.regex.CharPredicate.*;
 
 import java.util.LinkedList;
 
@@ -379,7 +379,7 @@ final class Parser
 	}
 	
 	/**
-	 * 产生式：escape。转义序列。
+	 * 产生式：escape。转义序列。正则库默认Unicode范围。
 	 * 
 	 * @return 对应谓词。用于后续处理。
 	 */
@@ -470,6 +470,14 @@ final class Parser
 				//非单词。
 				next();
 				return CharPredicate.not(WORD);
+			case 'p':
+				//POSIX字符类。
+				next();
+				return posix();
+			case 'U':
+				//Unicode字符类。
+				next();
+				return unicode();
 			default:
 				//默认转义一切字符。
 				c=lookahead();
@@ -551,6 +559,126 @@ final class Parser
 			}
 		}
 		throw new IllegalArgumentException("分析转义序列[\\N{name}]时，在下标%d发现不期望的情况[%s]。".formatted(cursor,toString(lookahead())));
+	}
+	
+	/**
+	 * 产生式：posix。POSIX定义字符类，仅限于US-ASCII。
+	 * 
+	 * @return 对应谓词。
+	 */
+	private CharPredicate posix()
+	{
+		if(lookahead()=='{')
+		{
+			StringBuilder n=new StringBuilder();
+			next();
+			while(true)
+			{
+				switch(lookahead())
+				{
+					case EOS:
+						throw new IllegalArgumentException("分析转义序列[\\p{name}]时，在下标%d发现不期望的情况[%s]。".formatted(cursor,toString(lookahead())));
+					case '}':
+						next();
+						switch(n.toString())
+						{
+							case "Lower":
+								return LOWER;
+							case "Upper":
+								return UPPER;
+							case "ASCII":
+								return ASCII;
+							case "Alpha":
+								return ALPHA;
+							case "Digit":
+								return NUMBER;
+							case "Alnum":
+								return ALNUM;
+							case "Punct":
+								return PUNCT;
+							case "Graph":
+								return GRAPH;
+							case "Print":
+								return PRINT;
+							case "Blank":
+								return BLANK;
+							case "Cntrl":
+								return CNTRL;
+							case "XDigit":
+								return HEX;
+							case "Space":
+								return SPACE;
+							default:
+								throw new IllegalArgumentException("分析转义序列[\\p{name}]，在下标%d时发现不存在的字符类名[%s]。".formatted(cursor,n.toString()));
+						}
+					default:
+						n.appendCodePoint(lookahead());
+						next();
+						break;
+				}
+			}
+		}
+		throw new IllegalArgumentException("分析转义序列[\\p{name}]时，在下标%d发现不期望的情况[%s]。".formatted(cursor,toString(lookahead())));
+	}
+	
+	/**
+	 * 产生式：unicode。Unicode定义字符类。
+	 * 
+	 * @return 对应谓词。
+	 */
+	private CharPredicate unicode()
+	{
+		if(lookahead()=='{')
+		{
+			StringBuilder n=new StringBuilder();
+			next();
+			while(true)
+			{
+				switch(lookahead())
+				{
+					case EOS:
+						throw new IllegalArgumentException("分析转义序列[\\U{name}]时，在下标%d发现不期望的情况[%s]。".formatted(cursor,toString(lookahead())));
+					case '}':
+						next();
+						switch(n.toString())
+						{
+							case "Lower":
+								return LOWERCASE;
+							case "Upper":
+								return UPPERCASE;
+							case "ASCII":
+								return ASCII;
+							case "Alpha":
+								return ALPHABETIC;
+							case "Digit":
+								return DIGIT;
+							case "Alnum":
+								return UALNUM;
+							case "Punct":
+								return PUNCTUATION;
+							case "Graph":
+								return UGRAPH;
+							case "Print":
+								return null;
+							case "Blank":
+								return null;
+							case "Cntrl":
+								return null;
+							case "XDigit":
+								return null;
+							case "Space":
+								return null;
+							default:
+								throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不存在的字符类名[%s]。".formatted(cursor,n.toString()));
+						}
+					default:
+						n.appendCodePoint(lookahead());
+						next();
+						break;
+				}
+			}
+		}
+		throw new IllegalArgumentException("分析转义序列[\\U{name}]时，在下标%d发现不期望的情况[%s]。".formatted(cursor,toString(lookahead())));
 	}
 	
 	/**
@@ -743,7 +871,7 @@ final class Parser
 	 * @param value 字符。
 	 * @return 对应的数字。
 	 */
-	private static int toNumber(int value)
+	static int toNumber(int value)
 	{
 		if(NUMBER.match(value))
 		{
@@ -765,19 +893,19 @@ final class Parser
 	 * @param value 字符。
 	 * @return 字符串。
 	 */
-	private static String toString(int value)
+	static String toString(int value)
 	{
 		if(value==EOS)
 		{
 			return "EOS";
 		}
-		else if(Character.isAlphabetic(value))
+		else if(UGRAPH.match(value))
 		{
 			return Character.toString(value);
 		}
 		else
 		{
-			return "U+%04X".formatted(value);
+			return "\\x{%04X}".formatted(value);
 		}
 	}
 }

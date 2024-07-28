@@ -14,4 +14,8 @@
  */
 module aos.library.regex
 {
+	/**
+	 * 导出正则库。
+	 */
+	exports aos.library.regex;
 }

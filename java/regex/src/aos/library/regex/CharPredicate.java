@@ -1,6 +1,7 @@
 package aos.library.regex;
 
 import java.io.Serializable;
+import java.util.function.IntPredicate;
 
 /**
  * 字符谓词类。
@@ -70,11 +71,100 @@ abstract class CharPredicate implements Serializable
 	static final CharPredicate WORD;
 	
 	/**
+	 * 小写字母。
+	 */
+	static final CharPredicate LOWER;
+	
+	/**
+	 * 大写字母。
+	 */
+	static final CharPredicate UPPER;
+	
+	/**
+	 * ASCII码。
+	 */
+	static final CharPredicate ASCII;
+	
+	/**
+	 * 字母。
+	 */
+	static final CharPredicate ALPHA;
+	
+	/**
+	 * 字母数字。
+	 */
+	static final CharPredicate ALNUM;
+	
+	/**
+	 * 标点。
+	 */
+	static final CharPredicate PUNCT;
+	
+	/**
+	 * 可见字符。
+	 */
+	static final CharPredicate GRAPH;
+	
+	/**
+	 * 可打印字符。
+	 */
+	static final CharPredicate PRINT;
+	
+	/**
+	 * 空白和制表符。
+	 */
+	static final CharPredicate BLANK;
+	
+	/**
+	 * 控制字符。
+	 */
+	static final CharPredicate CNTRL;
+	
+	/**
+	 * Unicode小写。
+	 */
+	static final CharPredicate LOWERCASE;
+	
+	/**
+	 * Unicode大写。
+	 */
+	static final CharPredicate UPPERCASE;
+	
+	/**
+	 * Unicode字母表。
+	 */
+	static final CharPredicate ALPHABETIC;
+	
+	/**
+	 * Unicode数字。
+	 */
+	static final CharPredicate DIGIT;
+	
+	/**
+	 * Unicode字母数字。
+	 */
+	static final CharPredicate UALNUM;
+	
+	/**
+	 * Unicode标点。
+	 */
+	static final CharPredicate PUNCTUATION;
+	
+	/**
+	 * Unicode可见字符。
+	 */
+	static final CharPredicate UGRAPH;
+	
+	/**
 	 * 初始化常量。
 	 */
 	static
 	{
 		EPSILON=new Single(0);
+		LOWER=new Range('a','z');
+		UPPER=new Range('A','Z');
+		ALPHA=or(LOWER,UPPER);
+		ASCII=new Range(0,0x7F);
 		ALL=new Range(Character.MIN_CODE_POINT,Character.MAX_CODE_POINT);
 		DOT=CharPredicate.and(ALL,not(create('\n')));
 		NUMBER=new Range('0','9');
@@ -83,7 +173,36 @@ abstract class CharPredicate implements Serializable
 		HSPACE=or(or(or(or(new Single(' '),new Single('\t')),or(new Single('\u00A0'),new Single('\u1680'))),or(or(new Single('\u180E'),new Range('\u2000','\u200A')),or(new Single('\u202F'),new Single('\u205F')))),new Single('\u3000'));
 		VSPACE=or(or(or(new Single('\n'),new Single('\u000B')),or(new Single('\u000C'),new Single('\r'))),or(or(new Single('\u0085'),new Single('\u2028')),new Single('\u2029')));
 		SPACE=or(or(or(new Single(' '),new Single('\t')),or(new Single('\n'),new Single('\u000B'))),or(new Single('\u000C'),new Single('\r')));
-		WORD=or(or(new Range('a','z'),new Range('A','Z')),or(new Single('_'),NUMBER));
+		WORD=or(ALPHA,or(new Single('_'),NUMBER));
+		ALNUM=or(ALPHA,NUMBER);
+		CNTRL=or(new Range(0,0x1F),new Single(0x7F));
+		PUNCT=or(or(new Range(0x20,0x2F),new Range(0x3A,0x40)),or(new Range(0x5B,0x60),new Range(0x7B,0x7E)));
+		GRAPH=or(ALNUM,PUNCT);
+		PRINT=or(GRAPH,new Single(0x20));
+		BLANK=or(new Single(' '),new Single('\t'));
+		
+		//下面为Unicode区。
+		LOWERCASE=new Caller(Character::isLowerCase,"\\U{IsLowercase}");
+		UPPERCASE=new Caller(Character::isUpperCase,"\\U{IsUppercase}");
+		ALPHABETIC=new Caller(Character::isAlphabetic,"\\U{IsAlphabetic}");
+		DIGIT=new Caller(Character::isDigit,"\\U{IsDigit}");
+		UALNUM=or(ALPHABETIC,DIGIT);
+		PUNCTUATION=new Caller(codePoint->{
+			switch(Character.getType(codePoint))
+			{
+				case Character.CONNECTOR_PUNCTUATION,Character.DASH_PUNCTUATION,Character.START_PUNCTUATION,
+					Character.END_PUNCTUATION,Character.OTHER_PUNCTUATION,Character.INITIAL_QUOTE_PUNCTUATION,Character.FINAL_QUOTE_PUNCTUATION->{return true;}
+				default->{return false;}
+			}
+		},"\\U{IsPunctuation}");
+		UGRAPH=new Caller(codePoint->{
+			switch(Character.getType(codePoint))
+			{
+				case Character.SPACE_SEPARATOR,Character.LINE_SEPARATOR,Character.PARAGRAPH_SEPARATOR,
+					Character.CONTROL,Character.SURROGATE,Character.UNASSIGNED->{return false;}
+				default->{return true;}
+			}
+		},"[^\\U{IsWhite_Space}\\U{gc=Cc}\\U{gc=Cs}\\U{gc=Cn}]");
 	}
 	
 	/**
@@ -153,6 +272,18 @@ abstract class CharPredicate implements Serializable
 		{
 			throw new ClassCastException("构造范围时输入的谓词类型不正确。");
 		}
+	}
+	
+	/**
+	 * 创造方法引用实现的范围字符谓词。
+	 * 
+	 * @param predicate 方法引用。
+	 * @param text 对应的字符类表示。
+	 * @return 对应谓词。
+	 */
+	static CharPredicate create(CallerPredicate predicate,String text)
+	{
+		return new Caller(predicate,text);
 	}
 	
 	/**
@@ -234,7 +365,7 @@ abstract class CharPredicate implements Serializable
 		@Override
 		public String toString()
 		{
-			return Character.isAlphabetic(matched)?Character.toString(matched):"U+%04X".formatted(matched);
+			return Parser.toString(matched);
 		}
 	}
 	
@@ -291,24 +422,78 @@ abstract class CharPredicate implements Serializable
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
-			if(Character.isAlphabetic(lower))
-			{
-				result.appendCodePoint(lower);
-			}
-			else
-			{
-				result.append("U+%04X".formatted(lower));
-			}
+			result.append(Parser.toString(lower));
 			result.append('-');
-			if(Character.isAlphabetic(upper))
-			{
-				result.appendCodePoint(upper);
-			}
-			else
-			{
-				result.append("U+%04X".formatted(upper));
-			}
+			result.append(Parser.toString(upper));
 			return result.toString();
+		}
+	}
+	
+	/**
+	 * 可序列化的函数式接口。
+	 * 
+	 * <p>在2024-07-28时生成。
+	 * 
+	 * @author Tony Chen Smith
+	 */
+	private static interface CallerPredicate extends Serializable,IntPredicate
+	{
+		
+	}
+	
+	/**
+	 * 方法引用谓词类。
+	 * 
+	 * <p>在2024-07-28时生成。
+	 * 
+	 * @author Tony Chen Smith
+	 */
+	private static class Caller extends CharPredicate
+	{
+		/**
+		 * 序列化号。
+		 */
+		private static final long serialVersionUID=-2015631955863210638L;
+		
+		/**
+		 * 方法引用谓词。
+		 */
+		private final CallerPredicate predicate;
+		
+		/**
+		 * 字符类表示。
+		 */
+		private final String text;
+		
+		/**
+		 * 使用方法引用构造该谓词。
+		 * 
+		 * @param predicate 方法引用。
+		 * @param text 对应的字符类表示。
+		 */
+		private Caller(CallerPredicate predicate,String text)
+		{
+			this.predicate=predicate;
+			this.text=text;
+		}
+		
+		@Override
+		boolean match(int codePoint)
+		{
+			return predicate.test(codePoint);
+		}
+
+		@Override
+		boolean isRange()
+		{
+			//方法调用视为范围。
+			return true;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return text;
 		}
 	}
 	
@@ -365,7 +550,7 @@ abstract class CharPredicate implements Serializable
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
-			result.append('(').append(left).append(")&(").append(right).append(')');
+			result.append('[').append(left).append("&").append(right).append(']');
 			return result.toString();
 		}
 	}
@@ -422,7 +607,7 @@ abstract class CharPredicate implements Serializable
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
-			result.append('(').append(left).append(")|(").append(right).append(')');
+			result.append('[').append(left).append(right).append(']');
 			return result.toString();
 		}
 	}
@@ -472,7 +657,7 @@ abstract class CharPredicate implements Serializable
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
-			result.append("!(").append(right).append(')');
+			result.append("[^").append(right).append(']');
 			return result.toString();
 		}
 	}
