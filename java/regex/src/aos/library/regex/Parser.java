@@ -1,14 +1,44 @@
 package aos.library.regex;
 
 import static aos.library.regex.CharPredicate.ALL;
+import static aos.library.regex.CharPredicate.ALNUM;
+import static aos.library.regex.CharPredicate.ALPHA;
+import static aos.library.regex.CharPredicate.ALPHABETIC;
+import static aos.library.regex.CharPredicate.ASCII;
+import static aos.library.regex.CharPredicate.ASSIGNED;
+import static aos.library.regex.CharPredicate.BLANK;
+import static aos.library.regex.CharPredicate.CC;
+import static aos.library.regex.CharPredicate.CNTRL;
+import static aos.library.regex.CharPredicate.DIGIT;
 import static aos.library.regex.CharPredicate.DOT;
 import static aos.library.regex.CharPredicate.EPSILON;
+import static aos.library.regex.CharPredicate.GRAPH;
 import static aos.library.regex.CharPredicate.HEX;
+import static aos.library.regex.CharPredicate.HEX_DIGIT;
 import static aos.library.regex.CharPredicate.HSPACE;
+import static aos.library.regex.CharPredicate.IDEOGRAPHIC;
+import static aos.library.regex.CharPredicate.JOIN_CONTROL;
+import static aos.library.regex.CharPredicate.LETTER;
+import static aos.library.regex.CharPredicate.LOWER;
+import static aos.library.regex.CharPredicate.LOWERCASE;
+import static aos.library.regex.CharPredicate.NONCHARACTER_CODE_POINT;
 import static aos.library.regex.CharPredicate.NUMBER;
+import static aos.library.regex.CharPredicate.PRINT;
+import static aos.library.regex.CharPredicate.PUNCT;
+import static aos.library.regex.CharPredicate.PUNCTUATION;
 import static aos.library.regex.CharPredicate.SPACE;
+import static aos.library.regex.CharPredicate.TITLECASE;
+import static aos.library.regex.CharPredicate.UALNUM;
+import static aos.library.regex.CharPredicate.UBLANK;
+import static aos.library.regex.CharPredicate.UGRAPH;
+import static aos.library.regex.CharPredicate.UPPER;
+import static aos.library.regex.CharPredicate.UPPERCASE;
+import static aos.library.regex.CharPredicate.UPRINT;
+import static aos.library.regex.CharPredicate.UWORD;
+import static aos.library.regex.CharPredicate.UXDIGIT;
 import static aos.library.regex.CharPredicate.VSPACE;
-import static aos.library.regex.CharPredicate.*;
+import static aos.library.regex.CharPredicate.WHITE_SPACE;
+import static aos.library.regex.CharPredicate.WORD;
 
 import java.util.LinkedList;
 
@@ -90,6 +120,7 @@ final class Parser
 		LinkedList<Digraph> unions=new LinkedList<>();
 		LinkedList<Digraph> concats=new LinkedList<>();
 		Digraph d;
+		CharPredicate p;
 		while(true)
 		{
 			switch(lookahead()){
@@ -155,6 +186,53 @@ final class Parser
 						}
 						return d;
 					}
+				case '~':
+					//直到下一字符或字符类。
+					next();
+					switch(lookahead())
+					{
+						case '(':
+						case ')':
+						case '|':
+						case EOS:
+							//无事发生，作为正常字符加入。
+							d=Digraph.transform(CharPredicate.create('~'));
+							concats.add(d);
+							break;
+						case '[':
+							//字符类。
+							next();
+							p=clazz();
+							d=Digraph.transform(CharPredicate.not(p)).closure();
+							d=d.concat(closure(Digraph.transform(p)));
+							concats.add(d);
+							break;
+						case '.':
+							//通配符。
+							next();
+							p=DOT;
+							d=Digraph.transform(CharPredicate.not(p)).closure();
+							d=d.concat(closure(Digraph.transform(p)));
+							concats.add(d);
+							break;
+						case '\\':
+							//转义序列。
+							next();
+							p=escape();
+							d=Digraph.transform(CharPredicate.not(p)).closure();
+							d=d.concat(closure(Digraph.transform(p)));
+							concats.add(d);
+							break;
+						default:
+							//一般字符。
+							p=CharPredicate.create(lookahead());
+							next();
+							d=Digraph.transform(CharPredicate.not(p)).closure();
+							d=d.concat(closure(Digraph.transform(p)));
+							concats.add(d);
+							break;
+					}
+					break;
 				case EOS:
 					if(isStart)
 					{
@@ -433,11 +511,11 @@ final class Parser
 			case 'd':
 				//十进制数字。
 				next();
-				return NUMBER;
+				return DIGIT;
 			case 'D':
 				//非十进制数字。
 				next();
-				return CharPredicate.not(NUMBER);
+				return CharPredicate.not(DIGIT);
 			case 'h':
 				//水平空白。
 				next();
@@ -457,19 +535,19 @@ final class Parser
 			case 's':
 				//一般空白。
 				next();
-				return SPACE;
+				return WHITE_SPACE;
 			case 'S':
 				//非一般空白。
 				next();
-				return CharPredicate.not(SPACE);
+				return CharPredicate.not(WHITE_SPACE);
 			case 'w':
 				//单词。
 				next();
-				return WORD;
+				return UWORD;
 			case 'W':
 				//非单词。
 				next();
-				return CharPredicate.not(WORD);
+				return CharPredicate.not(UWORD);
 			case 'p':
 				//POSIX字符类。
 				next();
@@ -608,6 +686,18 @@ final class Parser
 								return HEX;
 							case "Space":
 								return SPACE;
+							case "d":
+								return NUMBER;
+							case "D":
+								return CharPredicate.not(NUMBER);
+							case "s":
+								return SPACE;
+							case "S":
+								return CharPredicate.not(SPACE);
+							case "w":
+								return WORD;
+							case "W":
+								return CharPredicate.not(WORD);
 							default:
 								throw new IllegalArgumentException("分析转义序列[\\p{name}]，在下标%d时发现不存在的字符类名[%s]。".formatted(cursor,n.toString()));
 						}
@@ -631,6 +721,10 @@ final class Parser
 		if(lookahead()=='{')
 		{
 			StringBuilder n=new StringBuilder();
+			String text;
+			Character.UnicodeBlock block;
+			Character.UnicodeScript script;
+			CharPredicate p;
 			next();
 			while(true)
 			{
@@ -640,7 +734,8 @@ final class Parser
 						throw new IllegalArgumentException("分析转义序列[\\U{name}]时，在下标%d发现不期望的情况[%s]。".formatted(cursor,toString(lookahead())));
 					case '}':
 						next();
-						switch(n.toString())
+						text=n.toString();
+						switch(text)
 						{
 							case "Lower":
 								return LOWERCASE;
@@ -659,17 +754,173 @@ final class Parser
 							case "Graph":
 								return UGRAPH;
 							case "Print":
-								return null;
+								return UPRINT;
 							case "Blank":
-								return null;
+								return UBLANK;
 							case "Cntrl":
-								return null;
+								return CC;
 							case "XDigit":
-								return null;
+								return UXDIGIT;
 							case "Space":
-								return null;
+								return WHITE_SPACE;
 							default:
-								throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不存在的字符类名[%s]。".formatted(cursor,n.toString()));
+								p=getPredicate(text);
+								if(p!=null)
+								{
+									return p;
+								}
+								if(text.startsWith("Is"))
+								{
+									text=text.substring(2);
+									//不同于Java。这里区分大小写。
+									switch(text)
+									{
+										case "Alphabetic":
+											return ALPHABETIC;
+										case "Ideographic":
+											return IDEOGRAPHIC;
+										case "Letter":
+											return LETTER;
+										case "Lowercase":
+											return LOWERCASE;
+										case "Uppercase":
+											return UPPERCASE;
+										case "Titlecase":
+											return TITLECASE;
+										case "Punctuation":
+											return PUNCTUATION;
+										case "Control":
+											return CC;
+										case "White_Space":
+										case "WhiteSpace":
+											return WHITE_SPACE;
+										case "Digit":
+											return DIGIT;
+										case "Hex_Digit":
+										case "HexDigit":
+											return HEX_DIGIT;
+										case "Join_Control":
+										case "JoinControl":
+											return JOIN_CONTROL;
+										case "Noncharacter_Code_Point":
+										case "NoncharacterCodePoint":
+											return NONCHARACTER_CODE_POINT;
+										case "Assigned":
+											return ASSIGNED;
+							            default:
+							            	p=getPredicate(text);
+											if(p!=null)
+											{
+												return p;
+											}
+							            	//默认为书写系统。
+							            	try
+											{
+												script=Character.UnicodeScript.forName(text);
+												return CharPredicate.create(codePoint->Character.UnicodeScript.of(codePoint)==script,"\\U{Is%s}".formatted(text));
+											}
+											catch(Exception e)
+											{
+												throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不存在的Unicode书写系统[%s]。".formatted(cursor,text));
+											}
+									}
+								}
+								else if(text.startsWith("In"))
+								{
+									//代码区段。
+									text=text.substring(2);
+									try
+									{
+										block=Character.UnicodeBlock.forName(text);
+										return CharPredicate.create(codePoint->Character.UnicodeBlock.of(codePoint)==block,"\\U{In%s}".formatted(text));
+									}
+									catch(Exception e)
+									{
+										throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不存在的Unicode代码区段[%s]。".formatted(cursor,text));
+									}
+								}
+								else if(text.startsWith("script="))
+								{
+									//书写系统。
+									text=text.substring(7);
+									try
+									{
+										script=Character.UnicodeScript.forName(text);
+										return CharPredicate.create(codePoint->Character.UnicodeScript.of(codePoint)==script,"\\U{Is%s}".formatted(text));
+									}
+									catch(Exception e)
+									{
+										throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不存在的Unicode书写系统[%s]。".formatted(cursor,text));
+									}
+								}
+								else if(text.startsWith("sc="))
+								{
+									//书写系统。
+									text=text.substring(3);
+									try
+									{
+										script=Character.UnicodeScript.forName(text);
+										return CharPredicate.create(codePoint->Character.UnicodeScript.of(codePoint)==script,"\\U{Is%s}".formatted(text));
+									}
+									catch(Exception e)
+									{
+										throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不存在的Unicode书写系统[%s]。".formatted(cursor,text));
+									}
+								}
+								else if(text.startsWith("block="))
+								{
+									//代码区段。
+									text=text.substring(6);
+									try
+									{
+										block=Character.UnicodeBlock.forName(text);
+										return CharPredicate.create(codePoint->Character.UnicodeBlock.of(codePoint)==block,"\\U{In%s}".formatted(text));
+									}
+									catch(Exception e)
+									{
+										throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不存在的Unicode代码区段[%s]。".formatted(cursor,text));
+									}
+								}
+								else if(text.startsWith("blk="))
+								{
+									//代码区段。
+									text=text.substring(4);
+									try
+									{
+										block=Character.UnicodeBlock.forName(text);
+										return CharPredicate.create(codePoint->Character.UnicodeBlock.of(codePoint)==block,"\\U{In%s}".formatted(text));
+									}
+									catch(Exception e)
+									{
+										throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不存在的Unicode代码区段[%s]。".formatted(cursor,text));
+									}
+								}
+								else if(text.startsWith("general_category="))
+								{
+									//属性。
+									text=text.substring(17);
+									p=getPredicate(text);
+									if(p!=null)
+									{
+										return p;
+									}
+									throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不存在的Unicode属性[%s]。".formatted(cursor,text));
+								}
+								else if(text.startsWith("gc="))
+								{
+									//属性。
+									text=text.substring(3);
+									p=getPredicate(text);
+									if(p!=null)
+									{
+										return p;
+									}
+									throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不存在的Unicode属性[%s]。".formatted(cursor,text));
+								}
+								else
+								{
+									throw new IllegalArgumentException("分析转义序列[\\U{name}]，在下标%d时发现不可理解参数[%s]。".formatted(cursor,text));
+								}
 						}
 					default:
 						n.appendCodePoint(lookahead());
@@ -847,6 +1098,11 @@ final class Parser
 						}
 						return p;
 					}
+				case '.':
+					//通配符。
+					next();
+					or.add(DOT);
+					break;
 				default:
 					or.add(CharPredicate.create(lookahead()));
 					next();
@@ -899,6 +1155,10 @@ final class Parser
 		{
 			return "EOS";
 		}
+		else if(value=='['||value==']'||value=='^'||value=='-'||value=='&')
+		{
+			return "\\u%04X".formatted(value);
+		}
 		else if(UGRAPH.match(value))
 		{
 			return Character.toString(value);
@@ -906,6 +1166,147 @@ final class Parser
 		else
 		{
 			return "\\x{%04X}".formatted(value);
+		}
+	}
+	
+	/**
+	 * 在谓词转字符串过程中获取下属谓词参数。
+	 * 
+	 * @param text 下属谓词字符串。
+	 * @param type 当前谓词类型。0非1与2或。
+	 * @return
+	 */
+	static String getParam(String text,int type)
+	{
+		switch(type)
+		{
+			case 0:
+				if(text.startsWith("["))
+				{
+					return text.substring(1,text.length()-1);
+				}
+				else
+				{
+					return text;
+				}
+			case 1:
+				if(text.startsWith("[^"))
+				{
+					return text;
+				}
+				else if(text.startsWith("["))
+				{
+					return text.substring(1,text.length()-1);
+				}
+				else
+				{
+					return text;
+				}
+			case 2:
+				if(text.startsWith("[^")||text.contains("&"))
+				{
+					return text;
+				}
+				else if(text.startsWith("["))
+				{
+					return text.substring(1,text.length()-1);
+				}
+				else
+				{
+					return text;
+				}
+			default:
+				//不可达。
+				return null;
+		}
+	}
+	
+	/**
+	 * 获得属性对应谓词。
+	 * 
+	 * @param category 属性。
+	 * @return 对应谓词。
+	 */
+	static CharPredicate getPredicate(String category)
+	{
+		switch(category)
+		{
+			case "Cn":
+				return CharPredicate.create(1<<Character.UNASSIGNED,"Cn");
+            case "Lu":
+            	return CharPredicate.create(1<<Character.UPPERCASE_LETTER,"Lu");
+            case "Ll":
+            	return CharPredicate.create(1<<Character.LOWERCASE_LETTER,"Ll");
+            case "Lt":
+            	return CharPredicate.create(1<<Character.TITLECASE_LETTER,"Lt");
+            case "Lm":
+            	return CharPredicate.create(1<<Character.MODIFIER_LETTER,"Lm");
+            case "Lo":
+            	return CharPredicate.create(1<<Character.OTHER_LETTER,"Lo");
+            case "Mn":
+            	return CharPredicate.create(1<<Character.NON_SPACING_MARK,"Mn");
+            case "Me":
+            	return CharPredicate.create(1<<Character.ENCLOSING_MARK,"Me");
+            case "Mc":
+            	return CharPredicate.create(1<<Character.COMBINING_SPACING_MARK,"Mc");
+            case "Nd":
+            	return CharPredicate.create(1<<Character.DECIMAL_DIGIT_NUMBER,"Nd");
+            case "Nl":
+            	return CharPredicate.create(1<<Character.LETTER_NUMBER,"Nl");
+            case "No":
+            	return CharPredicate.create(1<<Character.OTHER_NUMBER,"No");
+            case "Zs":
+            	return CharPredicate.create(1<<Character.SPACE_SEPARATOR,"Zs");
+            case "Zl":
+            	return CharPredicate.create(1<<Character.LINE_SEPARATOR,"Zl");
+            case "Zp":
+            	return CharPredicate.create(1<<Character.PARAGRAPH_SEPARATOR,"Zp");
+            case "Cc":
+            	return CharPredicate.create(1<<Character.CONTROL,"Cc");
+            case "Cf":
+            	return CharPredicate.create(1<<Character.FORMAT,"Cf");
+            case "Co":
+            	return CharPredicate.create(1<<Character.PRIVATE_USE,"Co");
+            case "Cs":
+            	return CharPredicate.create(1<<Character.SURROGATE,"Cs");
+            case "Pd":
+            	return CharPredicate.create(1<<Character.DASH_PUNCTUATION,"Pd");
+            case "Ps":
+            	return CharPredicate.create(1<<Character.START_PUNCTUATION,"Ps");
+            case "Pe":
+            	return CharPredicate.create(1<<Character.END_PUNCTUATION,"Pe");
+            case "Pc":
+            	return CharPredicate.create(1<<Character.CONNECTOR_PUNCTUATION,"Pc");
+            case "Po":
+            	return CharPredicate.create(1<<Character.OTHER_PUNCTUATION,"Po");
+            case "Sm":
+            	return CharPredicate.create(1<<Character.MATH_SYMBOL,"Sm");
+            case "Sc":
+            	return CharPredicate.create(1<<Character.CURRENCY_SYMBOL,"Sc");
+            case "Sk":
+            	return CharPredicate.create(1<<Character.MODIFIER_SYMBOL,"Sk");
+            case "So":
+            	return CharPredicate.create(1<<Character.OTHER_SYMBOL,"So");
+            case "Pi":
+            	return CharPredicate.create(1<<Character.INITIAL_QUOTE_PUNCTUATION,"Pi");
+            case "Pf":
+            	return CharPredicate.create(1<<Character.FINAL_QUOTE_PUNCTUATION,"Pf");
+            case "L":
+            	return CharPredicate.create((1<<Character.UPPERCASE_LETTER)|(1<<Character.LOWERCASE_LETTER)|(1<<Character.TITLECASE_LETTER)|(1<<Character.MODIFIER_LETTER)|(1<<Character.OTHER_LETTER),"L");
+            case "M":
+            	return CharPredicate.create((1<<Character.NON_SPACING_MARK)|(1<<Character.ENCLOSING_MARK)|(1<<Character.COMBINING_SPACING_MARK),"M");
+            case "N":
+            	return CharPredicate.create((1<<Character.DECIMAL_DIGIT_NUMBER)|(1<<Character.LETTER_NUMBER)|(1<<Character.OTHER_NUMBER),"N");
+            case "Z":
+            	return CharPredicate.create((1<<Character.SPACE_SEPARATOR)|(1<<Character.LINE_SEPARATOR)|(1<<Character.PARAGRAPH_SEPARATOR),"Z");
+            case "C":
+            	return CharPredicate.create((1<<Character.CONTROL)|(1<<Character.FORMAT)|(1<<Character.PRIVATE_USE)|(1<<Character.SURROGATE)|(1<<Character.UNASSIGNED),"C");
+            case "P":
+            	return CharPredicate.create((1<<Character.DASH_PUNCTUATION)|(1<<Character.START_PUNCTUATION)|(1<<Character.END_PUNCTUATION)|(1<<Character.CONNECTOR_PUNCTUATION)|(1<<Character.OTHER_PUNCTUATION)|(1<<Character.INITIAL_QUOTE_PUNCTUATION)|(1<<Character.FINAL_QUOTE_PUNCTUATION),"P");
+            case "S":
+            	return CharPredicate.create((1<<Character.MATH_SYMBOL)|(1<<Character.CURRENCY_SYMBOL)|(1<<Character.MODIFIER_SYMBOL)|(1<<Character.OTHER_SYMBOL),"S");
+            default:
+            	return null;
 		}
 	}
 }

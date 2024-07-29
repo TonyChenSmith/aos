@@ -121,6 +121,11 @@ abstract class CharPredicate implements Serializable
 	static final CharPredicate CNTRL;
 	
 	/**
+	 * Unicode单词字符。
+	 */
+	static final CharPredicate UWORD;
+	
+	/**
 	 * Unicode小写。
 	 */
 	static final CharPredicate LOWERCASE;
@@ -154,6 +159,66 @@ abstract class CharPredicate implements Serializable
 	 * Unicode可见字符。
 	 */
 	static final CharPredicate UGRAPH;
+	
+	/**
+	 * Unicode可打印字符。
+	 */
+	static final CharPredicate UPRINT;
+	
+	/**
+	 * Unicode空白制表。
+	 */
+	static final CharPredicate UBLANK;
+	
+	/**
+	 * Unicode控制字符。
+	 */
+	static final CharPredicate CC;
+	
+	/**
+	 * Unicode16进制字符。
+	 */
+	static final CharPredicate UXDIGIT;
+	
+	/**
+	 * Unicode表意文字。
+	 */
+	static final CharPredicate IDEOGRAPHIC;
+	
+	/**
+	 * Unicode字母。
+	 */
+	static final CharPredicate LETTER;
+	
+	/**
+	 * Unicode标题。
+	 */
+	static final CharPredicate TITLECASE;
+	
+	/**
+	 * Unicode空白。
+	 */
+	static final CharPredicate WHITE_SPACE;
+	
+	/**
+	 * Unicode16进制数。
+	 */
+	static final CharPredicate HEX_DIGIT;
+	
+	/**
+	 * Unicode连接控制。
+	 */
+	static final CharPredicate JOIN_CONTROL;
+	
+	/**
+	 * Unicode非字符码元。
+	 */
+	static final CharPredicate NONCHARACTER_CODE_POINT;
+	
+	/**
+	 * Unicode已分配字符。
+	 */
+	static final CharPredicate ASSIGNED;
 	
 	/**
 	 * 初始化常量。
@@ -202,7 +267,38 @@ abstract class CharPredicate implements Serializable
 					Character.CONTROL,Character.SURROGATE,Character.UNASSIGNED->{return false;}
 				default->{return true;}
 			}
-		},"[^\\U{IsWhite_Space}\\U{gc=Cc}\\U{gc=Cs}\\U{gc=Cn}]");
+		},"[^\\U{Graph]");
+		IDEOGRAPHIC=new Caller(Character::isIdeographic,"\\U{IsIdeographic}");
+		LETTER=new Caller(Character::isLetter,"\\U{IsLetter}");
+		TITLECASE=new Caller(Character::isTitleCase,"\\U{IsTitleCase");
+		CC=new Caller(codePoint->Character.getType(codePoint)==Character.CONTROL,"\\U{gc=Cc}");
+		WHITE_SPACE=new Caller(codePoint->{
+			switch(Character.getType(codePoint))
+			{
+				case Character.SPACE_SEPARATOR,Character.LINE_SEPARATOR,Character.PARAGRAPH_SEPARATOR->{return true;}
+			}
+			if((codePoint>=0x9&&codePoint<=0xD)||codePoint==0x85)
+			{
+				return true;
+			}
+			return false;
+		},"\\U{IsWhite_Space}");
+		CharPredicate up2=or(or(DIGIT,or(new Range(0x30,0x39),new Range(0x41,0x46))),or(or(new Range(0x61,0x66),new Range(0xFF10,0xFF19)),or(new Range(0xFF21,0xFF26),new Range(0xFF41,0xFF46))));
+		HEX_DIGIT=new Caller(codePoint->up2.match(codePoint),"\\U{IsHex_Digit}");
+		JOIN_CONTROL=new Range(0x200C,0x200D);
+		NONCHARACTER_CODE_POINT=new Caller(codePoint->{
+			return (codePoint&0xFFFE)==0xFFFE||(codePoint<=0xFDEF&&codePoint>=0xFDD0);
+		},"\\U{IsNoncharacter_Code_Point}");
+		ASSIGNED=new Caller(codePoint->Character.getType(codePoint)!=Character.UNASSIGNED,"\\U{Assigned}");
+		UPRINT=new Caller(codePoint->{
+			return false;
+		},"\\U{Print}");
+		CharPredicate up=and(WHITE_SPACE,not(or(or(Parser.getPredicate("Zl"),Parser.getPredicate("Zp")),or(new Range(0xA,0xD),new Single(0x85)))));
+		UBLANK=new Caller(codePoint->up.match(codePoint),"\\U{Blank}");
+		CharPredicate up1=or(Parser.getPredicate("Nd"),HEX_DIGIT);
+		UXDIGIT=new Caller(codePoint->up1.match(codePoint),"\\U{XDigit}");
+		CharPredicate up3=or(or(or(ALPHABETIC,Parser.getPredicate("Mn")),or(Parser.getPredicate("Me"),Parser.getPredicate("Mc"))),or(or(DIGIT,Parser.getPredicate("Pc")),JOIN_CONTROL));
+		UWORD=new Caller(codePoint->up3.match(codePoint),"\\w");
 	}
 	
 	/**
@@ -284,6 +380,18 @@ abstract class CharPredicate implements Serializable
 	static CharPredicate create(CallerPredicate predicate,String text)
 	{
 		return new Caller(predicate,text);
+	}
+	
+	/**
+	 * 创造对应字符类型的范围字符谓词。
+	 * 
+	 * @param mask 字符类型掩码。
+	 * @param text 对应字符串表示。
+	 * @return
+	 */
+	static CharPredicate create(int mask,String text)
+	{
+		return new Caller(codePoint->(mask&(1<<Character.getType(codePoint)))!=0,"\\U{%s}".formatted(text));
 	}
 	
 	/**
@@ -422,10 +530,11 @@ abstract class CharPredicate implements Serializable
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
+			result.append('[');
 			result.append(Parser.toString(lower));
 			result.append('-');
 			result.append(Parser.toString(upper));
-			return result.toString();
+			return result.append(']').toString();
 		}
 	}
 	
@@ -436,7 +545,7 @@ abstract class CharPredicate implements Serializable
 	 * 
 	 * @author Tony Chen Smith
 	 */
-	private static interface CallerPredicate extends Serializable,IntPredicate
+	static interface CallerPredicate extends Serializable,IntPredicate
 	{
 		
 	}
@@ -550,7 +659,7 @@ abstract class CharPredicate implements Serializable
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
-			result.append('[').append(left).append("&").append(right).append(']');
+			result.append('[').append(Parser.getParam(left.toString(),1)).append("&").append(Parser.getParam(right.toString(),1)).append(']');
 			return result.toString();
 		}
 	}
@@ -607,7 +716,7 @@ abstract class CharPredicate implements Serializable
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
-			result.append('[').append(left).append(right).append(']');
+			result.append('[').append(Parser.getParam(left.toString(),2)).append(Parser.getParam(right.toString(),2)).append(']');
 			return result.toString();
 		}
 	}
@@ -657,7 +766,17 @@ abstract class CharPredicate implements Serializable
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
-			result.append("[^").append(right).append(']');
+			String param=Parser.getParam(right.toString(),0);
+			result.append('[');
+			if(param.startsWith("^"))
+			{
+				result.append(param.substring(1));
+			}
+			else
+			{
+				result.append('^').append(param);
+			}
+			result.append(']');
 			return result.toString();
 		}
 	}
