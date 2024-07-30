@@ -5,7 +5,8 @@ import java.util.Scanner;
 /**
  * 测试用。
  * 
- * <p>在2024-07-17时生成。
+ * <p>
+ * 在2024-07-17时生成。
  * 
  * @author Tony Chen Smith
  */

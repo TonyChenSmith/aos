@@ -12,13 +12,17 @@ import java.util.Set;
 /**
  * 不确定有穷自动机。
  * 
- * <p>该类封装了所有不确定有穷自动机实现的功能，但仅对其他类公开图搜索功能。
+ * <p>
+ * 该类封装了所有不确定有穷自动机实现的功能，但仅对其他类公开图搜索功能。
  * 
- * <p>由于进行了优化，从有向图生成NFA的过程不可逆。优化程度本质上将NFA优化成了DFA。
+ * <p>
+ * 由于进行了优化，从有向图生成NFA的过程不可逆。优化程度本质上将NFA优化成了DFA。
  * 
- * <p>其中，所有对象具有不可比较的特性。仅epsilon因为唯一的谓词可以进行判断。
+ * <p>
+ * 其中，所有对象具有不可比较的特性。仅epsilon因为唯一的谓词可以进行判断。
  * 
- * <p>在2024-06-17时生成。
+ * <p>
+ * 在2024-06-17时生成。
  * 
  * @author Tony Chen Smith
  */
@@ -28,7 +32,7 @@ final class NFA implements Serializable
 	 * 序列化号。
 	 */
 	private static final long serialVersionUID=3712940752704856484L;
-
+	
 	/**
 	 * 非空变换数组。
 	 */
@@ -65,17 +69,17 @@ final class NFA implements Serializable
 					nonull.add(trans);
 				}
 			}
-			//自可达
+			// 自可达
 			this.epsilons[index].add(index);
 			while(!stack.isEmpty())
 			{
-				//栈不为空视为有epsilon变换。
+				// 栈不为空视为有epsilon变换。
 				int node=stack.pop();
 				if(this.epsilons[index].add(node))
 				{
 					if(node==transforms.length)
 					{
-						//尾结点，不存在后续变换
+						// 尾结点，不存在后续变换
 					}
 					else
 					{
@@ -90,7 +94,7 @@ final class NFA implements Serializable
 				}
 				else
 				{
-					//已经搜索过的结点跳过处理。
+					// 已经搜索过的结点跳过处理。
 					continue;
 				}
 			}
@@ -99,7 +103,7 @@ final class NFA implements Serializable
 			nonull.clear();
 			stack.clear();
 		}
-		//构造尾结点
+		// 构造尾结点
 		epsilons[transforms.length]=Set.of(transforms.length);
 		this.transforms[transforms.length]=Collections.emptyList();
 	}
@@ -114,7 +118,7 @@ final class NFA implements Serializable
 	{
 		if(node>=epsilons.length)
 		{
-			//异常情况，返回空集。
+			// 异常情况，返回空集。
 			return Collections.emptySet();
 		}
 		else
@@ -134,7 +138,7 @@ final class NFA implements Serializable
 	{
 		if(node>=epsilons.length)
 		{
-			//异常情况，返回空集。
+			// 异常情况，返回空集。
 			return Collections.emptySet();
 		}
 		if(!transforms[node].isEmpty())
@@ -146,7 +150,7 @@ final class NFA implements Serializable
 			}
 			
 		}
-		//按照构造规则，每个结点要不有非epsilon谓词，要不为空，此处直接返回空集即可。
+		// 按照构造规则，每个结点要不有非epsilon谓词，要不为空，此处直接返回空集即可。
 		return Collections.emptySet();
 	}
 	
@@ -199,12 +203,13 @@ final class NFA implements Serializable
 	/**
 	 * NFA有向图。用于NFA的构造，其构造出NFA后不可逆。
 	 * 
-	 * <p>在2024-07-16时生成。
+	 * <p>
+	 * 在2024-07-16时生成。
 	 * 
 	 * @author Tony Chen Smith
 	 */
 	final static class Digraph
-	{	
+	{
 		/**
 		 * 变换数组。其长度为结点数目-1。
 		 */
@@ -336,7 +341,7 @@ final class NFA implements Serializable
 		 */
 		static Digraph transform(CharPredicate predicate)
 		{
-			//2结点，s-p->e
+			// 2结点，s-p->e
 			Digraph result=new Digraph(2);
 			result.addTransform(0,Transform.create(predicate,1));
 			return result;
@@ -371,24 +376,25 @@ final class NFA implements Serializable
 			List<Transform>[] transB=b.transforms;
 			Digraph result=new Digraph(a.count()+b.count());
 			int end,index,offset;
-			//先添加a图。
+			// 先添加a图。
 			for(end=transA.length,offset=1,index=0;index<transA.length;index++)
 			{
 				for(Transform trans:transA[index])
 				{
 					if(trans.transform(index)==end)
 					{
-						//到达结尾的变换。
-						result.transforms[index+offset].add(Transform.offset(trans,index+offset,result.transforms.length));
+						// 到达结尾的变换。
+						result.transforms[index+offset].add(Transform.offset(trans,index+offset,
+							result.transforms.length));
 					}
 					else
 					{
-						//不改变，偏移属性不随定位变化而变化。
+						// 不改变，偏移属性不随定位变化而变化。
 						result.transforms[index+offset].add(trans);
 					}
 				}
 			}
-			//添加初始结点变化
+			// 添加初始结点变化
 			result.transforms[0].add(Transform.create(CharPredicate.EPSILON,1));
 			result.transforms[0].add(Transform.create(CharPredicate.EPSILON,1+transA.length));
 			for(end=transB.length,offset=1+transA.length,index=0;index<transB.length;index++)
@@ -397,12 +403,13 @@ final class NFA implements Serializable
 				{
 					if(trans.transform(index)==end)
 					{
-						//到达结尾的变换。
-						result.transforms[index+offset].add(Transform.offset(trans,index+offset,result.transforms.length));
+						// 到达结尾的变换。
+						result.transforms[index+offset].add(Transform.offset(trans,index+offset,
+							result.transforms.length));
 					}
 					else
 					{
-						//不改变，偏移属性不随定位变化而变化。
+						// 不改变，偏移属性不随定位变化而变化。
 						result.transforms[index+offset].add(trans);
 					}
 				}
@@ -431,7 +438,8 @@ final class NFA implements Serializable
 	/**
 	 * 变换类。实现将谓词判断转换为结点变换。
 	 * 
-	 * <p>在2024-07-16时生成。
+	 * <p>
+	 * 在2024-07-16时生成。
 	 * 
 	 * @author Tony Chen Smith
 	 */
@@ -441,7 +449,7 @@ final class NFA implements Serializable
 		 * 序列化号。
 		 */
 		private static final long serialVersionUID=9028317573007151542L;
-
+		
 		/**
 		 * 谓词。
 		 */
@@ -504,13 +512,15 @@ final class NFA implements Serializable
 		 */
 		public String toString(int index)
 		{
-			return new StringBuilder().append('[').append(predicate).append("]->").append(index+offset).toString();
+			return new StringBuilder().append('[').append(predicate).append("]->").append(index
+				+offset).toString();
 		}
 		
 		@Override
 		public String toString()
 		{
-			return new StringBuilder().append('[').append(predicate).append("]->(index)+(").append(offset).append(')').toString();
+			return new StringBuilder().append('[').append(predicate).append("]->(index)+(").append(
+				offset).append(')').toString();
 		}
 		
 		/**
@@ -542,12 +552,13 @@ final class NFA implements Serializable
 	/**
 	 * 状态机的状态类。
 	 * 
-	 * <p>在2024-07-22时生成。
+	 * <p>
+	 * 在2024-07-22时生成。
 	 * 
 	 * @author Tony Chen Smith
 	 */
 	final class State
-	{	
+	{
 		/**
 		 * 尾结点索引。
 		 */
@@ -594,7 +605,7 @@ final class NFA implements Serializable
 			}
 			if(reachables.isEmpty())
 			{
-				//还是正常更新当前结点状态。
+				// 还是正常更新当前结点状态。
 				current=Collections.emptySet();
 				return false;
 			}
@@ -604,7 +615,7 @@ final class NFA implements Serializable
 				codePoints.add(codePoint);
 				if(current.contains(tail))
 				{
-					//包含尾结点，为一可能结点。该列表自然有序。
+					// 包含尾结点，为一可能结点。该列表自然有序。
 					ends.add(codePoints.size());
 				}
 				return true;

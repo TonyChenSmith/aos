@@ -6,7 +6,8 @@ import java.util.function.IntPredicate;
 /**
  * 字符谓词类。
  * 
- * <p>可以通过三种方式构造谓词：
+ * <p>
+ * 可以通过三种方式构造谓词：
  * <ol>
  * <li>单码元构造</li>
  * <li>码元范围构造</li>
@@ -14,7 +15,8 @@ import java.util.function.IntPredicate;
  * </ol>
  * 设计模式参考外观模式。隐藏三种构造对内部的细节。
  * 
- * <p>在2024-06-16时生成。
+ * <p>
+ * 在2024-06-16时生成。
  * 
  * @author Tony Chen Smith
  */
@@ -24,7 +26,7 @@ abstract class CharPredicate implements Serializable
 	 * 序列化号。
 	 */
 	private static final long serialVersionUID=8550723343181471879L;
-
+	
 	/**
 	 * 结构空谓词。
 	 */
@@ -235,37 +237,46 @@ abstract class CharPredicate implements Serializable
 		NUMBER=new Range('0','9');
 		CharPredicate phex=CharPredicate.or(new Range('a','f'),new Range('A','F'));
 		HEX=CharPredicate.or(NUMBER,phex);
-		HSPACE=or(or(or(or(new Single(' '),new Single('\t')),or(new Single('\u00A0'),new Single('\u1680'))),or(or(new Single('\u180E'),new Range('\u2000','\u200A')),or(new Single('\u202F'),new Single('\u205F')))),new Single('\u3000'));
-		VSPACE=or(or(or(new Single('\n'),new Single('\u000B')),or(new Single('\u000C'),new Single('\r'))),or(or(new Single('\u0085'),new Single('\u2028')),new Single('\u2029')));
-		SPACE=or(or(or(new Single(' '),new Single('\t')),or(new Single('\n'),new Single('\u000B'))),or(new Single('\u000C'),new Single('\r')));
+		HSPACE=or(or(or(or(new Single(' '),new Single('\t')),or(new Single('\u00A0'),new Single(
+			'\u1680'))),or(or(new Single('\u180E'),new Range('\u2000','\u200A')),or(new Single(
+				'\u202F'),new Single('\u205F')))),new Single('\u3000'));
+		VSPACE=or(or(or(new Single('\n'),new Single('\u000B')),or(new Single('\u000C'),new Single(
+			'\r'))),or(or(new Single('\u0085'),new Single('\u2028')),new Single('\u2029')));
+		SPACE=or(or(or(new Single(' '),new Single('\t')),or(new Single('\n'),new Single('\u000B'))),
+			or(new Single('\u000C'),new Single('\r')));
 		WORD=or(ALPHA,or(new Single('_'),NUMBER));
 		ALNUM=or(ALPHA,NUMBER);
 		CNTRL=or(new Range(0,0x1F),new Single(0x7F));
-		PUNCT=or(or(new Range(0x20,0x2F),new Range(0x3A,0x40)),or(new Range(0x5B,0x60),new Range(0x7B,0x7E)));
+		PUNCT=or(or(new Range(0x20,0x2F),new Range(0x3A,0x40)),or(new Range(0x5B,0x60),new Range(
+			0x7B,0x7E)));
 		GRAPH=or(ALNUM,PUNCT);
 		PRINT=or(GRAPH,new Single(0x20));
 		BLANK=or(new Single(' '),new Single('\t'));
 		
-		//下面为Unicode区。
+		// 下面为Unicode区。
 		LOWERCASE=new Caller(Character::isLowerCase,"\\U{IsLowercase}");
 		UPPERCASE=new Caller(Character::isUpperCase,"\\U{IsUppercase}");
 		ALPHABETIC=new Caller(Character::isAlphabetic,"\\U{IsAlphabetic}");
 		DIGIT=new Caller(Character::isDigit,"\\U{IsDigit}");
 		UALNUM=or(ALPHABETIC,DIGIT);
 		PUNCTUATION=new Caller(codePoint->{
-			switch(Character.getType(codePoint))
-			{
-				case Character.CONNECTOR_PUNCTUATION,Character.DASH_PUNCTUATION,Character.START_PUNCTUATION,
-					Character.END_PUNCTUATION,Character.OTHER_PUNCTUATION,Character.INITIAL_QUOTE_PUNCTUATION,Character.FINAL_QUOTE_PUNCTUATION->{return true;}
-				default->{return false;}
+			switch(Character.getType(codePoint)){
+				case Character.CONNECTOR_PUNCTUATION,Character.DASH_PUNCTUATION,Character.START_PUNCTUATION,Character.END_PUNCTUATION,Character.OTHER_PUNCTUATION,Character.INITIAL_QUOTE_PUNCTUATION,Character.FINAL_QUOTE_PUNCTUATION->{
+					return true;
+				}
+				default->{
+					return false;
+				}
 			}
 		},"\\U{IsPunctuation}");
 		UGRAPH=new Caller(codePoint->{
-			switch(Character.getType(codePoint))
-			{
-				case Character.SPACE_SEPARATOR,Character.LINE_SEPARATOR,Character.PARAGRAPH_SEPARATOR,
-					Character.CONTROL,Character.SURROGATE,Character.UNASSIGNED->{return false;}
-				default->{return true;}
+			switch(Character.getType(codePoint)){
+				case Character.SPACE_SEPARATOR,Character.LINE_SEPARATOR,Character.PARAGRAPH_SEPARATOR,Character.CONTROL,Character.SURROGATE,Character.UNASSIGNED->{
+					return false;
+				}
+				default->{
+					return true;
+				}
 			}
 		},"[^\\U{Graph]");
 		IDEOGRAPHIC=new Caller(Character::isIdeographic,"\\U{IsIdeographic}");
@@ -273,9 +284,10 @@ abstract class CharPredicate implements Serializable
 		TITLECASE=new Caller(Character::isTitleCase,"\\U{IsTitleCase");
 		CC=new Caller(codePoint->Character.getType(codePoint)==Character.CONTROL,"\\U{gc=Cc}");
 		WHITE_SPACE=new Caller(codePoint->{
-			switch(Character.getType(codePoint))
-			{
-				case Character.SPACE_SEPARATOR,Character.LINE_SEPARATOR,Character.PARAGRAPH_SEPARATOR->{return true;}
+			switch(Character.getType(codePoint)){
+				case Character.SPACE_SEPARATOR,Character.LINE_SEPARATOR,Character.PARAGRAPH_SEPARATOR->{
+					return true;
+				}
 			}
 			if((codePoint>=0x9&&codePoint<=0xD)||codePoint==0x85)
 			{
@@ -283,21 +295,26 @@ abstract class CharPredicate implements Serializable
 			}
 			return false;
 		},"\\U{IsWhite_Space}");
-		CharPredicate up2=or(or(DIGIT,or(new Range(0x30,0x39),new Range(0x41,0x46))),or(or(new Range(0x61,0x66),new Range(0xFF10,0xFF19)),or(new Range(0xFF21,0xFF26),new Range(0xFF41,0xFF46))));
+		CharPredicate up2=or(or(DIGIT,or(new Range(0x30,0x39),new Range(0x41,0x46))),or(or(
+			new Range(0x61,0x66),new Range(0xFF10,0xFF19)),or(new Range(0xFF21,0xFF26),new Range(
+				0xFF41,0xFF46))));
 		HEX_DIGIT=new Caller(codePoint->up2.match(codePoint),"\\U{IsHex_Digit}");
 		JOIN_CONTROL=new Range(0x200C,0x200D);
 		NONCHARACTER_CODE_POINT=new Caller(codePoint->{
 			return (codePoint&0xFFFE)==0xFFFE||(codePoint<=0xFDEF&&codePoint>=0xFDD0);
 		},"\\U{IsNoncharacter_Code_Point}");
-		ASSIGNED=new Caller(codePoint->Character.getType(codePoint)!=Character.UNASSIGNED,"\\U{Assigned}");
+		ASSIGNED=new Caller(codePoint->Character.getType(codePoint)!=Character.UNASSIGNED,
+			"\\U{Assigned}");
 		UPRINT=new Caller(codePoint->{
 			return false;
 		},"\\U{Print}");
-		CharPredicate up=and(WHITE_SPACE,not(or(or(Parser.getPredicate("Zl"),Parser.getPredicate("Zp")),or(new Range(0xA,0xD),new Single(0x85)))));
+		CharPredicate up=and(WHITE_SPACE,not(or(or(Parser.getPredicate("Zl"),Parser.getPredicate(
+			"Zp")),or(new Range(0xA,0xD),new Single(0x85)))));
 		UBLANK=new Caller(codePoint->up.match(codePoint),"\\U{Blank}");
 		CharPredicate up1=or(Parser.getPredicate("Nd"),HEX_DIGIT);
 		UXDIGIT=new Caller(codePoint->up1.match(codePoint),"\\U{XDigit}");
-		CharPredicate up3=or(or(or(ALPHABETIC,Parser.getPredicate("Mn")),or(Parser.getPredicate("Me"),Parser.getPredicate("Mc"))),or(or(DIGIT,Parser.getPredicate("Pc")),JOIN_CONTROL));
+		CharPredicate up3=or(or(or(ALPHABETIC,Parser.getPredicate("Mn")),or(Parser.getPredicate(
+			"Me"),Parser.getPredicate("Mc"))),or(or(DIGIT,Parser.getPredicate("Pc")),JOIN_CONTROL));
 		UWORD=new Caller(codePoint->up3.match(codePoint),"\\w");
 	}
 	
@@ -362,6 +379,10 @@ abstract class CharPredicate implements Serializable
 	{
 		if(lower instanceof Single low&&upper instanceof Single up)
 		{
+			if(low.matched>up.matched)
+			{
+				throw new IllegalArgumentException("构造范围时输入的下限和上限颠倒。");
+			}
 			return new Range(low.matched,up.matched);
 		}
 		else
@@ -391,7 +412,8 @@ abstract class CharPredicate implements Serializable
 	 */
 	static CharPredicate create(int mask,String text)
 	{
-		return new Caller(codePoint->(mask&(1<<Character.getType(codePoint)))!=0,"\\U{%s}".formatted(text));
+		return new Caller(codePoint->(mask&(1<<Character.getType(codePoint)))!=0,"\\U{%s}"
+			.formatted(text));
 	}
 	
 	/**
@@ -432,7 +454,8 @@ abstract class CharPredicate implements Serializable
 	/**
 	 * 单字符谓词类。
 	 * 
-	 * <p>在2024-06-16时生成。
+	 * <p>
+	 * 在2024-06-16时生成。
 	 * 
 	 * @author Tony Chen Smith
 	 */
@@ -480,7 +503,8 @@ abstract class CharPredicate implements Serializable
 	/**
 	 * 范围字符谓词类。
 	 * 
-	 * <p>在2024-06-16时生成。
+	 * <p>
+	 * 在2024-06-16时生成。
 	 * 
 	 * @author Tony Chen Smith
 	 */
@@ -490,7 +514,7 @@ abstract class CharPredicate implements Serializable
 		 * 序列化号。
 		 */
 		private static final long serialVersionUID=-8850683211376552654L;
-
+		
 		/**
 		 * 范围下限。
 		 */
@@ -522,7 +546,7 @@ abstract class CharPredicate implements Serializable
 		@Override
 		boolean isRange()
 		{
-			//有且仅有a-b形式会构建该类。默认为一个范围。
+			// 有且仅有a-b形式会构建该类。默认为一个范围。
 			return true;
 		}
 		
@@ -541,7 +565,8 @@ abstract class CharPredicate implements Serializable
 	/**
 	 * 可序列化的函数式接口。
 	 * 
-	 * <p>在2024-07-28时生成。
+	 * <p>
+	 * 在2024-07-28时生成。
 	 * 
 	 * @author Tony Chen Smith
 	 */
@@ -553,7 +578,8 @@ abstract class CharPredicate implements Serializable
 	/**
 	 * 方法引用谓词类。
 	 * 
-	 * <p>在2024-07-28时生成。
+	 * <p>
+	 * 在2024-07-28时生成。
 	 * 
 	 * @author Tony Chen Smith
 	 */
@@ -591,11 +617,11 @@ abstract class CharPredicate implements Serializable
 		{
 			return predicate.test(codePoint);
 		}
-
+		
 		@Override
 		boolean isRange()
 		{
-			//方法调用视为范围。
+			// 方法调用视为范围。
 			return true;
 		}
 		
@@ -609,7 +635,8 @@ abstract class CharPredicate implements Serializable
 	/**
 	 * 与运算字符谓词类。
 	 * 
-	 * <p>在2024-06-16时生成。
+	 * <p>
+	 * 在2024-06-16时生成。
 	 * 
 	 * @author Tony Chen Smith
 	 */
@@ -619,7 +646,7 @@ abstract class CharPredicate implements Serializable
 		 * 序列化号。
 		 */
 		private static final long serialVersionUID=6658173815371247278L;
-
+		
 		/**
 		 * 左值。
 		 */
@@ -651,7 +678,7 @@ abstract class CharPredicate implements Serializable
 		@Override
 		boolean isRange()
 		{
-			//逻辑运算均视为范围。本质是逻辑运算的该方法不重要。
+			// 逻辑运算均视为范围。本质是逻辑运算的该方法不重要。
 			return true;
 		}
 		
@@ -659,7 +686,8 @@ abstract class CharPredicate implements Serializable
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
-			result.append('[').append(Parser.getParam(left.toString(),1)).append("&").append(Parser.getParam(right.toString(),1)).append(']');
+			result.append('[').append(Parser.getParam(left.toString(),1)).append("&").append(Parser
+				.getParam(right.toString(),1)).append(']');
 			return result.toString();
 		}
 	}
@@ -667,7 +695,8 @@ abstract class CharPredicate implements Serializable
 	/**
 	 * 或运算字符谓词类。
 	 * 
-	 * <p>在2024-06-16时生成。
+	 * <p>
+	 * 在2024-06-16时生成。
 	 * 
 	 * @author Tony Chen Smith
 	 */
@@ -677,7 +706,7 @@ abstract class CharPredicate implements Serializable
 		 * 序列化号。
 		 */
 		private static final long serialVersionUID=7547941211030867183L;
-
+		
 		/**
 		 * 左值。
 		 */
@@ -716,7 +745,8 @@ abstract class CharPredicate implements Serializable
 		public String toString()
 		{
 			StringBuilder result=new StringBuilder();
-			result.append('[').append(Parser.getParam(left.toString(),2)).append(Parser.getParam(right.toString(),2)).append(']');
+			result.append('[').append(Parser.getParam(left.toString(),2)).append(Parser.getParam(
+				right.toString(),2)).append(']');
 			return result.toString();
 		}
 	}
@@ -724,7 +754,8 @@ abstract class CharPredicate implements Serializable
 	/**
 	 * 非运算字符谓词类。
 	 * 
-	 * <p>在2024-06-16时生成。
+	 * <p>
+	 * 在2024-06-16时生成。
 	 * 
 	 * @author Tony Chen Smith
 	 */

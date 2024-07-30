@@ -7,9 +7,11 @@ import aos.library.regex.NFA.State;
 /**
  * 正则表达式的模式类。
  * 
- * <p>负责将正则表达式翻译成NFA，再将NFA的状态包装成模式。
+ * <p>
+ * 负责将正则表达式翻译成NFA，再将NFA的状态包装成模式。
  * 
- * <p>在2024-07-23时生成。
+ * <p>
+ * 在2024-07-23时生成。
  * 
  * @author Tony Chen Smith
  */
