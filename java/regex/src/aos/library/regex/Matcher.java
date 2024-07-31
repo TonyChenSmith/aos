@@ -5,11 +5,9 @@ import aos.library.regex.NFA.State;
 /**
  * 正则表达式的匹配器类。
  * 
- * <p>
- * 负责将NFA产生的状态包装为匹配器，并提供流匹配与字符串匹配两种接口。
+ * <p>负责将NFA产生的状态包装为匹配器，并提供流匹配与字符串匹配两种接口。
  * 
- * <p>
- * 在2024-07-26时生成。
+ * <p>在2024-07-26时生成。
  * 
  * @author Tony Chen Smith
  */
@@ -18,12 +16,12 @@ public final class Matcher
 	/**
 	 * 匹配器对应模式。
 	 */
-	private Pattern pattern;
+	private final Pattern pattern;
 	
 	/**
 	 * 状态机状态。
 	 */
-	private State state;
+	private final State state;
 	
 	/**
 	 * 用模式构造匹配器。
@@ -34,17 +32,6 @@ public final class Matcher
 	{
 		this.pattern=pattern;
 		state=pattern.init();
-	}
-	
-	/**
-	 * 扫描码元。
-	 * 
-	 * @param codePoint 码元。
-	 * @return 匹配返回真，并期待下一个字符。
-	 */
-	public boolean scan(int codePoint)
-	{
-		return state.scan(codePoint);
 	}
 	
 	/**
@@ -75,6 +62,18 @@ public final class Matcher
 	public Pattern pattern()
 	{
 		return pattern;
+	}
+	
+	/**
+	 * 扫描码元。
+	 * 
+	 * @param codePoint 码元。
+	 * 
+	 * @return 匹配返回真，并期待下一个字符。
+	 */
+	public boolean scan(int codePoint)
+	{
+		return state.scan(codePoint);
 	}
 	
 	@Override
