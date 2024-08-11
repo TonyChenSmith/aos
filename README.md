@@ -12,4 +12,5 @@
 1. `ToolPkg`-工具包。编译出来的EFI文件都是`UEFI_APPLICATION`，在UEFI Shell中检查系统信息，或是测试小功能。现在作为AOS的`UEFI Bootloader`编译包使用。
 
 在目录`java`下，有以下项目：
-1. `regex`-项目regex。内有aos.library.regex模块，为AOS Java流正则库。将用于词法分析器实现。
+1. `regex`-项目regex。内有aos.library.regex模块，为AOS Java流正则库。将用于编译器词法分析器实现。
+1. `compiler`-项目compiler。内有aos.tools.compiler模块，为AOS Java自定义编译器。
