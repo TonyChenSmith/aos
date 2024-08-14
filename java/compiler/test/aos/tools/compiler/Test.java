@@ -20,7 +20,7 @@ public class Test
 		//a b c d* | e
 		Builder a=Builder.create("a").concat(Builder.create("b")).concat(Builder.create("c")).concat(Builder.create("d").closure());
 		Builder b=Builder.create("e");
-		Builder r=a.union(b);
+		Builder r=b.union(a);
 		System.out.println(r);
 		System.out.println(r.build("T"));
 	}

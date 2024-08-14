@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.IntStream;
 
 /**
  * 产生式，一个DFA条件有向图。
@@ -39,7 +38,7 @@ final class Production implements Serializable
 	/**
 	 * 变换数组。
 	 */
-	private final Transform[][] transforms;
+	private final Transform[] transforms;
 	
 	/**
 	 * 以两数组构造产生式。
@@ -47,7 +46,7 @@ final class Production implements Serializable
 	 * @param transforms
 	 * @param epsilons
 	 */
-	private Production(String name,Transform[][] transforms,int[][] epsilons)
+	private Production(String name,Transform[] transforms,int[][] epsilons)
 	{
 		this.transforms=transforms;
 		this.epsilons=epsilons;
@@ -59,30 +58,98 @@ final class Production implements Serializable
 	 * 
 	 * @param current 当前结点集。
 	 * @param symbol 将用于匹配的语法符号。
+	 * @param context 上下文。
 	 * @return 下一状态集。
 	 */
-	Set<Integer> match(Set<Integer> current,SyntaxSymbol symbol)
+	int[] match(int[] current,SyntaxSymbol symbol,Context context)
 	{
-		Set<Integer> result=new HashSet<>();
+		IntSet result=new IntSet();
 		for(int node:current)
 		{
-			for(Transform transform:transforms[node])
+			switch(transforms[node].match(symbol,context))
 			{
-				switch(transform.match(symbol))
-				{
-					case MATCH:
-						result.addAll(IntStream.of(epsilons[transform.toDest()]).boxed().toList());
-						break;
-					case MISMATCH:
-						//无事发生。
-						break;
-					default:
-						//不可达。
-						break;
-				}
+				case MATCH:
+					//有符号变换就无语法翻译行为。
+					result.add(epsilons[transforms[node].toDest()]);
+					break;
+				case MISMATCH:
+					//无事发生。应返回空集。
+					break;
+				case ACTION:
+					//语法翻译行为。
+					result.add(match(epsilons[transforms[node].toDest()],symbol,context));
+					break;
+				default:
+					//不可达。
+					break;
 			}
 		}
-		return result;
+		return result.get();
+	}
+	
+	/**
+	 * 判断当前状态是否到达结尾。
+	 * 
+	 * @param current 当前结点集。
+	 * @return 如果有结尾结点返回真。
+	 */
+	boolean isEnd(int[] current)
+	{
+		return new IntSet(current).contain(transforms.length-1);
+	}
+	
+	/**
+	 * 获得起始结点集。
+	 * 
+	 * @return 索引0的结点集。
+	 */
+	int[] start()
+	{
+		return epsilons[0].clone();
+	}
+	
+	/**
+	 * 获得当前结点集对应的下一符号结点集。应在找首符号前调用，且保留该输入参数。
+	 * 
+	 * @param current 当前结点集。
+	 * @return 符号结点集，或结束集。
+	 */
+	int[] next(int[] current)
+	{
+		IntSet result=new IntSet();
+		for(int node:current)
+		{
+			if(transforms[node].isAction())
+			{
+				result.add(next(epsilons[transforms[node].toDest()]));
+			}
+			else
+			{
+				result.add(node);
+			}
+		}
+		return result.get();
+	}
+	
+	/**
+	 * 返回结点对应符号。
+	 * 
+	 * @param node 结点。
+	 * @return 结点所需符号。
+	 */
+	String first(int node)
+	{
+		return transforms[node].symbol;
+	}
+	
+	/**
+	 * 获得结点数量。
+	 * 
+	 * @return 结点数量。
+	 */
+	int count()
+	{
+		return transforms.length;
 	}
 	
 	@Override
@@ -93,16 +160,7 @@ final class Production implements Serializable
 		result.append("Node:").append(transforms.length).append('\n');
 		for(int i=0;i<transforms.length;i++)
 		{
-			result.append(i).append(":({");
-			for(int j=0;j<transforms[i].length;j++)
-			{
-				result.append(transforms[i][j]);
-				if(j<transforms[i].length-1)
-				{
-					result.append(',');
-				}
-			}
-			result.append("},[");
+			result.append(i).append(":({").append(transforms[i]==null?"":transforms[i]).append("},{");
 			for(int j=0;j<epsilons[i].length;j++)
 			{
 				result.append(epsilons[i][j]);
@@ -111,7 +169,7 @@ final class Production implements Serializable
 					result.append(',');
 				}
 			}
-			result.append("])");
+			result.append("})");
 			if(i<transforms.length-1)
 			{
 				result.append('\n');
@@ -206,7 +264,7 @@ final class Production implements Serializable
 				}
 				epsilons[index].add(index);
 			}
-			final Transform[][] rts=new Transform[transforms.length][];
+			final Transform[] rts=new Transform[transforms.length];
 			final int[][] res=new int[epsilons.length][];
 			for(int index=0;index<this.transforms.length;index++)
 			{
@@ -219,7 +277,8 @@ final class Production implements Serializable
 					}
 				}
 				res[index]=subset.stream().mapToInt(Integer::intValue).sorted().toArray();
-				rts[index]=transforms[index].toArray(Transform[]::new);
+				Transform[] tts=transforms[index].toArray(Transform[]::new);
+				rts[index]=tts.length==0?null:tts[0];
 			}
 			return new Production(name,rts,res);
 		}
@@ -250,6 +309,10 @@ final class Production implements Serializable
 					if(transform.isEpsilon())
 					{
 						this.transforms[start+offset].add(Transform.epsilon(transform.toDest()+start));
+					}
+					else if(transform.isAction())
+					{
+						this.transforms[start+offset].add(Transform.action(transform.action,transform.toDest()+start));
 					}
 					else
 					{
@@ -369,6 +432,14 @@ final class Production implements Serializable
 			return result;
 		}
 		
+		static Builder action()
+		{
+			// 开始 结束。
+			final Builder result=new Builder(2);
+			result.addTransform(0,Transform.action(null,1));
+			return result;
+		}
+		
 		/**
 		 * 将a图和b图并联。
 		 * 
@@ -421,6 +492,11 @@ final class Production implements Serializable
 		private final boolean isEpsilon;
 		
 		/**
+		 * 语法制导行为。
+		 */
+		private final Action action;
+		
+		/**
 		 * 符号名。用于变换条件比对。
 		 */
 		private final String symbol;
@@ -431,12 +507,14 @@ final class Production implements Serializable
 		 * @param symbol    语法符号名。
 		 * @param isEpsilon 是否为空变换。
 		 * @param dest      目的索引。
+		 * @param action 语法翻译行为。
 		 */
-		private Transform(String symbol,boolean isEpsilon,int dest)
+		private Transform(String symbol,boolean isEpsilon,int dest,Action action)
 		{
 			this.symbol=symbol;
 			this.isEpsilon=isEpsilon;
 			this.dest=dest;
+			this.action=action;
 		}
 		
 		@Override
@@ -448,6 +526,10 @@ final class Production implements Serializable
 				{
 					return isEpsilon==transform.isEpsilon&&dest==transform.dest;
 				}
+				else if(action!=null)
+				{
+					return symbol.equals(transform.symbol)&&dest==transform.dest&&action.equals(transform.action);
+				}
 				return symbol.equals(transform.symbol)&&dest==transform.dest;
 			}
 			return false;
@@ -456,13 +538,22 @@ final class Production implements Serializable
 		@Override
 		public int hashCode()
 		{
+			if(action!=null)
+			{
+				return symbol.hashCode()^Integer.hashCode(dest)^action.hashCode();
+			}
 			return symbol.hashCode()^Integer.hashCode(dest);
 		}
 		
 		@Override
 		public String toString()
 		{
-			return new StringBuilder().append('[').append(symbol).append("]->").append(dest).toString();
+			StringBuilder result=new StringBuilder().append('[').append(symbol).append("]->").append(dest);
+			if(action!=null)
+			{
+				result.append('{').append(action).append('}');
+			}
+			return result.toString();
 		}
 		
 		/**
@@ -476,14 +567,30 @@ final class Production implements Serializable
 		}
 		
 		/**
+		 * 是否为语法翻译行为。
+		 * 
+		 * @return 行为返回真。
+		 */
+		boolean isAction()
+		{
+			return action!=null;
+		}
+		
+		/**
 		 * 比较输入符号是否匹配该变换。调用该方法时，正常不存在空变换。
 		 * 
 		 * @param symbol 语法符号。
+		 * @param context 上下文。
 		 * 
 		 * @return 返回匹配结果。
 		 */
-		MatchResult match(SyntaxSymbol symbol)
+		MatchResult match(SyntaxSymbol symbol,Context context)
 		{
+			if(action!=null)
+			{
+				action.action(context);
+				return MatchResult.ACTION;
+			}
 			return this.symbol.equals(symbol.name())?MatchResult.MATCH:MatchResult.MISMATCH;
 		}
 		
@@ -516,7 +623,7 @@ final class Production implements Serializable
 		 */
 		static Transform epsilon(int dest)
 		{
-			return new Transform(EPSILON,true,dest);
+			return new Transform(EPSILON,true,dest,null);
 		}
 		
 		/**
@@ -529,7 +636,39 @@ final class Production implements Serializable
 		 */
 		static Transform transform(String symbol,int dest)
 		{
-			return new Transform(symbol,EPSILON.equals(symbol),dest);
+			return new Transform(symbol,EPSILON.equals(symbol),dest,null);
+		}
+		
+		/**
+		 * 构造一个语法翻译行为。
+		 * 
+		 * @param action 行为。
+		 * @param dest 目标索引。
+		 * @return 对应的行为变换。
+		 */
+		static Transform action(Action action,int dest)
+		{
+			return new Transform("$action",false,dest,action);
+		}
+	}
+	
+	/**
+	 * 变换第二选项。语法翻译行为。
+	 * 
+	 * <p>在2024-08-13时生成。
+	 *
+	 * @author Tony Chen Smith
+	 */
+	static final class Action implements Serializable
+	{
+		/**
+		 * 序列化号。
+		 */
+		private static final long serialVersionUID=-3185826060855540265L;
+		
+		void action(Context context)
+		{
+			
 		}
 	}
 	
@@ -550,6 +689,11 @@ final class Production implements Serializable
 		/**
 		 * 不匹配。
 		 */
-		MISMATCH
+		MISMATCH,
+		
+		/**
+		 * 语法翻译行为。
+		 */
+		ACTION
 	}
 }
