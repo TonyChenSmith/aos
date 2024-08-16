@@ -41,6 +41,22 @@ public final class Pattern implements Serializable
 		nfa=new Parser(regex).parse().build();
 	}
 	
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(obj instanceof final Pattern pattern)
+		{
+			return regex.equals(pattern.regex);
+		}
+		return false;
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return regex.hashCode();
+	}
+	
 	/**
 	 * 获取模式的一个匹配器。
 	 * 

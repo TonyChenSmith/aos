@@ -19,14 +19,14 @@ import java.util.Map;
 final class LayerTable
 {
 	/**
-	 * 上一层级的表。
-	 */
-	private final LayerTable parent;
-	
-	/**
 	 * 当前表所存映射。
 	 */
 	private final Map<String,String> map;
+	
+	/**
+	 * 上一层级的表。
+	 */
+	private final LayerTable parent;
 	
 	/**
 	 * 构造层级表。
@@ -36,64 +36,7 @@ final class LayerTable
 	private LayerTable(LayerTable parent)
 	{
 		this.parent=parent;
-		this.map=new HashMap<>();
-	}
-	
-	/**
-	 * 放入一对键值对。
-	 * 
-	 * @param key 键。
-	 * @param value 值。
-	 */
-	void put(String key,String value)
-	{
-		map.put(key,value);
-	}
-	
-	/**
-	 * 获得属性值。
-	 * 
-	 * @param key 键。
-	 * @return 对应的值，或空值。
-	 */
-	String get(String key)
-	{
-		String result=map.get(key);
-		if(result==null)
-		{
-			return parent==null?null:parent.get(key);
-		}
-		return result;
-	}
-	
-	/**
-	 * 返回当前层级的不可改映射。
-	 * 
-	 * @return 当前不可改映射。
-	 */
-	Map<String,String> current()
-	{
-		return Map.copyOf(map);
-	}
-	
-	/**
-	 * 构造新层级。
-	 * 
-	 * @return 新层级表。
-	 */
-	LayerTable newLayer()
-	{
-		return new LayerTable(this);
-	}
-	
-	/**
-	 * 删除当前层级。
-	 * 
-	 * @return 上一层级表。
-	 */
-	LayerTable deleteLayer()
-	{
-		return this.parent;
+		map=new HashMap<>();
 	}
 	
 	@Override
@@ -110,7 +53,65 @@ final class LayerTable
 		}
 		return result.append("LayerTable@").append(Integer.toHexString(hashCode())).append(':').append(map).toString();
 	}
-
+	
+	/**
+	 * 返回当前层级的不可改映射。
+	 * 
+	 * @return 当前不可改映射。
+	 */
+	Map<String,String> current()
+	{
+		return Map.copyOf(map);
+	}
+	
+	/**
+	 * 删除当前层级。
+	 * 
+	 * @return 上一层级表。
+	 */
+	LayerTable deleteLayer()
+	{
+		return parent;
+	}
+	
+	/**
+	 * 获得属性值。
+	 * 
+	 * @param key 键。
+	 * 
+	 * @return 对应的值，或空值。
+	 */
+	String get(String key)
+	{
+		final String result=map.get(key);
+		if(result==null)
+		{
+			return parent==null?null:parent.get(key);
+		}
+		return result;
+	}
+	
+	/**
+	 * 构造新层级。
+	 * 
+	 * @return 新层级表。
+	 */
+	LayerTable newLayer()
+	{
+		return new LayerTable(this);
+	}
+	
+	/**
+	 * 放入一对键值对。
+	 * 
+	 * @param key   键。
+	 * @param value 值。
+	 */
+	void put(String key,String value)
+	{
+		map.put(key,value);
+	}
+	
 	/**
 	 * 产生一个根层级表。
 	 * 

@@ -6,12 +6,9 @@ import java.io.PushbackReader;
 import java.io.Reader;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 
 import aos.library.regex.Matcher;
-import aos.library.regex.Pattern;
 
 /**
  * 词法器。
@@ -28,14 +25,14 @@ final class Lexer implements Closeable
 	private static final int EOF=-1;
 	
 	/**
-	 * 字符输入。
-	 */
-	private final PushbackReader input;
-	
-	/**
 	 * 缓存。
 	 */
 	private Integer buffer;
+	
+	/**
+	 * 字符输入。
+	 */
+	private final PushbackReader input;
 	
 	/**
 	 * 构造词法器。
@@ -48,78 +45,54 @@ final class Lexer implements Closeable
 		buffer=null;
 	}
 	
-	/**
-	 * 读入一个码元。
-	 * 
-	 * @return 码元，或行结尾。
-	 */
-	private int read()
+	@Override
+	public void close() throws IOException
 	{
-		try
-		{
-			char result=(char)input.read();
-			if(result==-1)
-			{
-				return EOF;
-			}
-			if(Character.isSurrogate(result))
-			{
-				char b=(char)input.read();
-				if(Character.isSurrogatePair(result,b))
-				{
-					return Character.toCodePoint(result,b);
-				}
-				else if(Character.isSurrogatePair(b,result))
-				{
-					return Character.toCodePoint(b,result);
-				}
-				else
-				{
-					input.unread(b);
-					return result;
-				}
-			}
-			return result;
-		}
-		catch(IOException e)
-		{
-			throw new RuntimeException(e);
-		}
+		input.close();
 	}
 	
 	/**
-	 * 扫描获得单词。如果同时有多个匹配，按表的前后顺序进行仲裁，小行标的优先。
+	 * 扫描获得单词。如果同时有多个匹配，按优先级的前后顺序进行仲裁，小数值的优先。
 	 * 
 	 * @param context 上下文。
-	 * @return 对应单词。
+	 * 
+	 * @return 对应单词。返回空值时语法器应准备报错。
 	 */
 	Token scan(Context context)
 	{
 		Token result=rawScan(context);
+		if(result==null)
+		{
+			return null;
+		}
+		context.onScan(result);
 		while(context.banTokens.contains(result.name()))
 		{
-			//下一个。
+			// 下一个。
 			result=rawScan(context);
+			context.onScan(result);
 		}
 		return result;
 	}
 	
 	/**
-	 * 扫描获得单词。如果同时有多个匹配，按表的前后顺序进行仲裁，小行标的优先。
+	 * 扫描获得单词。如果同时有多个匹配，按优先级的前后顺序进行仲裁，小数值的优先。
 	 * 
 	 * @param context 上下文。
-	 * @return 对应单词。
+	 * 
+	 * @return 对应单词。返回空值时语法器应准备报错。
 	 */
 	private Token rawScan(Context context)
 	{
-		Set<Matcher> matchers=new HashSet<>();
-		context.patterns.getColumnValues("pattern").forEach(p->matchers.add(((Pattern)p).matcher()));
-		//最长匹配。
-		Set<Matcher> uncalc=new HashSet<>();
-		List<Integer> chars=new LinkedList<>();
+		final Set<Matcher> matchers=new HashSet<>();
+		context.patterns.forEach((s,p)->matchers.add(p.matcher()));
+		// 最长匹配。
+		final Set<Matcher> uncalc=new HashSet<>();
+		// 当前已接受行号。
+		final int mark=context.currentColumn();
 		while(true)
 		{
-			//清空结算集。
+			// 清空结算集。
 			uncalc.clear();
 			int ch;
 			if(buffer!=null)
@@ -131,11 +104,10 @@ final class Lexer implements Closeable
 			{
 				ch=read();
 			}
-			chars.add(ch);
-			Iterator<Matcher> itr=matchers.iterator();
+			final Iterator<Matcher> itr=matchers.iterator();
 			while(itr.hasNext())
 			{
-				Matcher m=itr.next();
+				final Matcher m=itr.next();
 				if(!m.scan(ch))
 				{
 					if(m.match())
@@ -150,42 +122,73 @@ final class Lexer implements Closeable
 				buffer=ch;
 				break;
 			}
+			context.acceptInput(ch);
 		}
 		if(uncalc.isEmpty())
 		{
-			//毫无结果。
-			if(chars.size()==1&&buffer==EOF)
+			// 毫无结果。
+			if(mark==context.currentColumn()&&buffer==EOF)
 			{
-				//内置文件结束词。
-				return new Token("$eof","$");
+				// 内置文件结束词。该类型为最低级。
+				return new Token("$eof","");
 			}
 			else
 			{
-				throw new RuntimeException("有不识别的字符，无词法单元与之匹配。%s".formatted(chars.toString()));
+				// 交由语法器报错。
+				return null;
 			}
 		}
-		else
+		final Iterator<Matcher> itr=uncalc.iterator();
+		Matcher cm=itr.next();
+		int cpriority=context.getTokenPriority(cm.pattern());
+		while(itr.hasNext())
 		{
-			Iterator<Matcher> itr=uncalc.iterator();
-			Matcher cm=itr.next();
-			int clevel=Integer.valueOf(context.patterns.getRow(cm.pattern()));
-			while(itr.hasNext())
+			final Matcher m=itr.next();
+			final int priority=context.getTokenPriority(m.pattern());
+			if(priority<cpriority)
 			{
-				Matcher m=itr.next();
-				int level=Integer.valueOf(context.patterns.getRow(m.pattern()));
-				if(level<clevel)
-				{
-					cm=m;
-					clevel=level;
-				}
+				cm=m;
+				cpriority=priority;
 			}
-			return new Token((String)context.patterns.get(clevel,"name"),cm.get());
 		}
+		return new Token(context.tokenMap.get(cm.pattern()),cm.get());
 	}
 	
-	@Override
-	public void close() throws IOException
+	/**
+	 * 读入一个码元。
+	 * 
+	 * @return 码元，或行结尾。
+	 */
+	private int read()
 	{
-		input.close();
+		try
+		{
+			final char result=(char)input.read();
+			if(result==-1)
+			{
+				return EOF;
+			}
+			if(Character.isSurrogate(result))
+			{
+				final char b=(char)input.read();
+				if(Character.isSurrogatePair(result,b))
+				{
+					return Character.toCodePoint(result,b);
+				}
+				if(Character.isSurrogatePair(b,result))
+				{
+					return Character.toCodePoint(b,result);
+				}
+				else
+				{
+					input.unread(b);
+				}
+			}
+			return result;
+		}
+		catch(final IOException e)
+		{
+			throw new RuntimeException(e);
+		}
 	}
 }

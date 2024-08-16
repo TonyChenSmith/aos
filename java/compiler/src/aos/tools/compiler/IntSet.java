@@ -36,6 +36,28 @@ final class IntSet
 		add(set);
 	}
 	
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(obj instanceof final IntSet iset)
+		{
+			return set.equals(iset.set);
+		}
+		return false;
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return set.hashCode();
+	}
+	
+	@Override
+	public String toString()
+	{
+		return set.toString();
+	}
+	
 	/**
 	 * 将单个值添加到整形集中。
 	 * 
@@ -43,7 +65,7 @@ final class IntSet
 	 */
 	void add(int value)
 	{
-		this.set.add(value);
+		set.add(value);
 	}
 	
 	/**
@@ -53,7 +75,7 @@ final class IntSet
 	 */
 	void add(int[] set)
 	{
-		for(int value:set)
+		for(final int value:set)
 		{
 			this.set.add(value);
 		}
@@ -63,6 +85,7 @@ final class IntSet
 	 * 检查集中是否包含当前元素。
 	 * 
 	 * @param value 值。
+	 * 
 	 * @return 如果有则返回真。
 	 */
 	boolean contain(int value)
@@ -78,27 +101,5 @@ final class IntSet
 	int[] get()
 	{
 		return set.stream().mapToInt(Integer::intValue).toArray();
-	}
-	
-	@Override
-	public int hashCode()
-	{
-		return set.hashCode();
-	}
-	
-	@Override
-	public boolean equals(Object obj)
-	{
-		if(obj instanceof IntSet iset)
-		{
-			return set.equals(iset.set);
-		}
-		return false;
-	}
-	
-	@Override
-	public String toString()
-	{
-		return set.toString();
 	}
 }
