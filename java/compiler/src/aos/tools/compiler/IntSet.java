@@ -100,6 +100,6 @@ final class IntSet
 	 */
 	int[] get()
 	{
-		return set.stream().mapToInt(Integer::intValue).toArray();
+		return set.stream().mapToInt(Integer::intValue).sorted().toArray();
 	}
 }

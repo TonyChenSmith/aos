@@ -1,6 +1,9 @@
 package aos.tools.compiler;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +57,11 @@ final class Context
 	final Map<String,Production> productions;
 	
 	/**
+	 * 语法分析表。
+	 */
+	final LRTable table;
+	
+	/**
 	 * 列号。
 	 */
 	private int column;
@@ -66,12 +74,27 @@ final class Context
 	/**
 	 * 行号。
 	 */
-	private final int line;
+	private int line;
 	
 	/**
 	 * 当前行文本。
 	 */
-	private final List<Integer> text;
+	private List<Integer> text;
+	
+	/**
+	 * 状态栈。
+	 */
+	Deque<Integer> states;
+	
+	/**
+	 * 符号栈。
+	 */
+	Deque<SyntaxSymbol> symbols;
+	
+	/**
+	 * 变量域。存储层级为<code>非终结符.变量名.变量值</code>，为全局不询问直接覆盖。
+	 */
+	private Map<String,Map<String,String>> variables;
 	
 	Context(Map<String,Pattern> patterns,Map<String,LexerCallback> callbacks,Map<Pattern,String> tokenMap,Map<String,Integer> priorityMap,Set<String> banTokens,Map<String,Production> productions)
 	{
@@ -86,6 +109,11 @@ final class Context
 		line=1;
 		column=1;
 		length=0;
+		states=new ArrayDeque<>();
+		symbols=new ArrayDeque<>();
+		variables=new HashMap<>();
+		
+		table=LRTable.create(this);
 	}
 	
 	/**
@@ -131,6 +159,20 @@ final class Context
 	}
 	
 	/**
+	 * 重置上下文。
+	 */
+	void reset()
+	{
+		text.clear();
+		line=1;
+		column=1;
+		length=0;
+		states.clear();
+		symbols.clear();
+		variables.clear();
+	}
+	
+	/**
 	 * 获取单词优先级。
 	 * 
 	 * @param pattern 模式。
@@ -150,5 +192,28 @@ final class Context
 	void onScan(Token token)
 	{
 		callbacks.getOrDefault(token.name(),NONACTION).process(token,this);
+	}
+	
+	/**
+	 * 移入状态。
+	 * 
+	 * @param state 状态。
+	 * @param symbol 符号。
+	 */
+	void shift(int state,SyntaxSymbol symbol)
+	{
+		states.push(state);
+		symbols.push(symbol);
+	}
+	
+	/**
+	 * 归约非终结符。
+	 * 
+	 * @param noterminal 非终结符。
+	 * @param symbol 向前看符号。
+	 */
+	void reduce(String noterminal,SyntaxSymbol symbol)
+	{
+		
 	}
 }

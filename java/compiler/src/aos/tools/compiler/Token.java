@@ -83,4 +83,16 @@ final class Token implements SyntaxSymbol
 		final StringBuilder result=new StringBuilder(name);
 		return result.append(':').append(get("lexem")).append(attributes).toString();
 	}
+
+	@Override
+	public int count()
+	{
+		return 0;
+	}
+
+	@Override
+	public SyntaxSymbol getSymbol(int index)
+	{
+		return this;
+	}
 }

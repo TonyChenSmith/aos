@@ -80,6 +80,22 @@ final class Production implements Serializable
 		return result.toString();
 	}
 	
+	@Override
+	public int hashCode()
+	{
+		return name.hashCode();
+	}
+	
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(obj instanceof Production p)
+		{
+			return name.equals(p.name);
+		}
+		return false;
+	}
+	
 	/**
 	 * 获得产生式对应的非终结符号。
 	 * 
@@ -221,15 +237,52 @@ final class Production implements Serializable
 	 * @param current 当前结点集。
 	 * @param symbol 目标符号。
 	 * @param lookahead 向前看符号。
+	 * @param context 上下文。
 	 * @return 后续符号集。
 	 */
-	Set<String> followSymbols(int[] current,String symbol,String lookahead)
+	Set<String> followSymbols(int[] current,String symbol,String lookahead,Context context)
 	{
-		Set<String> result=first(symbols(follow(current,symbol)));
-		if(result.contains("$end"))
+		Set<String> set=first(follow(current,symbol));
+		Set<String> result=new HashSet<>();
+		if(set.contains("$end"))
 		{
-			result.remove("$end");
-			result.add(lookahead);
+			set.remove("$end");
+			set.add(lookahead);
+		}
+		for(String sym:set)
+		{
+			if(context.productions.containsKey(sym))
+			{
+				result.addAll(context.productions.get(sym).firstSymbol(context));
+			}
+			else
+			{
+				result.add(sym);
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * 开始结点的终结符号集。
+	 * 
+	 * @param context 上下文。
+	 * @return 开始终结符集。
+	 */
+	Set<String> firstSymbol(Context context)
+	{
+		Set<String> set=first(epsilons[0]);
+		Set<String> result=new HashSet<>();
+		for(String symbol:set)
+		{
+			if(context.productions.containsKey(symbol))
+			{
+				result.addAll(context.productions.get(symbol).firstSymbol(context));
+			}
+			else
+			{
+				result.add(symbol);
+			}
 		}
 		return result;
 	}

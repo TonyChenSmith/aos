@@ -32,4 +32,19 @@ interface SyntaxSymbol
 	 * @param value 属性值。
 	 */
 	abstract void set(String key,String value);
+	
+	/**
+	 * 获取下属符号数目。终结符返回0。
+	 * 
+	 * @return 下属符号数目。
+	 */
+	abstract int count();
+	
+	/**
+	 * 获取语法符号。0为自身。
+	 * 
+	 * @param index 索引。
+	 * @return 对应语法符号。
+	 */
+	abstract SyntaxSymbol getSymbol(int index);
 }

@@ -1,9 +1,8 @@
 package aos.tools.compiler;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -15,12 +14,27 @@ import java.util.TreeSet;
  *
  * @author Tony Chen Smith
  */
-final class Items
+final class Items implements Serializable
 {
+	/**
+	 * 序列化号。
+	 */
+	private static final long serialVersionUID=-8363082184008015867L;
+	
 	/**
 	 * 项集。以所有开始符号分别列出的项进行排列。
 	 */
-	private final Map<String,List<Item>> items;
+	private final Map<String,Set<Item>> items;
+	
+	/**
+	 * 构造初始项集。
+	 * 
+	 * @param context 上下文。
+	 */
+	Items(Context context)
+	{
+		this(context,Set.of(new Item(context.productions.get("%start"),"$eof")));
+	}
 	
 	/**
 	 * 以输入项作为根源项，搜寻其等价项构造该项集。
@@ -28,41 +42,53 @@ final class Items
 	 * @param context 上下文。
 	 * @param item 主项。
 	 */
-	Items(Context context,List<Item> items)
+	Items(Context context,Set<Item> items)
 	{
-		Map<String,List<Item>> ritems=new HashMap<>();
-		Set<Item> citems=new HashSet<>();
+		Map<String,Set<Item>> ritems=new HashMap<>();
 		//非终结符号集。用于提取出需要添加的项。
 		Set<String> noterminals=new HashSet<>();
-		for(Item item:items)
+		boolean nochange=true;
+		while(true)
 		{
-			citems.add(item);
-			//非终结符号集。用于提取出需要添加的项。
-			Set<String> all=new TreeSet<>(context.productions.keySet());
-			all.retainAll(item.first());
-			noterminals.addAll(all);
-		}
-		for(String noterminal:noterminals)
-		{
-			Set<String> current=new HashSet<>();
+			noterminals.clear();
+			Set<Item> citems=new HashSet<>();
 			for(Item item:items)
 			{
-				if(item.first().contains(noterminal))
+				citems.add(item);
+				//非终结符号集。用于提取出需要添加的项。
+				Set<String> all=new TreeSet<>(context.productions.keySet());
+				all.retainAll(item.first());
+				noterminals.addAll(all);
+			}
+			for(String noterminal:noterminals)
+			{
+				for(Item item:items)
 				{
-					Set<String> nfollow=item.follow(noterminal);
-					Production np=context.productions.get(noterminal);
-					for(String nlookahead:nfollow)
+					if(item.first().contains(noterminal))
 					{
-						if(!current.contains(nlookahead))
+						Set<String> nfollow=item.follow(noterminal,context);
+						Production np=context.productions.get(noterminal);
+						for(String nlookahead:nfollow)
 						{
-							items.add(new Item(np,nlookahead));
-							current.add(nlookahead);
+							if(citems.add(new Item(np,nlookahead)))
+							{
+								nochange=false;
+							}
 						}
 					}
 				}
 			}
+			items=citems;
+			if(nochange)
+			{
+				break;
+			}
+			else
+			{
+				nochange=true;
+			}
 		}
-		for(Item each:citems)
+		for(Item each:items)
 		{
 			Set<String> first=each.first();
 			for(String symbol:first)
@@ -73,7 +99,7 @@ final class Items
 				}
 				else
 				{
-					List<Item> list=new LinkedList<>();
+					Set<Item> list=new HashSet<>();
 					list.add(each);
 					ritems.put(symbol,list);
 				}
@@ -94,5 +120,64 @@ final class Items
 		{
 			item.process(symbol,context);
 		}
+	}
+	
+	/**
+	 * 获得首符号集。
+	 * 
+	 * @return 总首符号集。
+	 */
+	Set<String> first()
+	{
+		return new HashSet<>(items.keySet());
+	}
+	
+	/**
+	 * 获得可归约集。
+	 * 
+	 * @return 可归约集。
+	 */
+	Set<Item> reducedItems()
+	{
+		return items.getOrDefault("$end",Set.of());
+	}
+	
+	/**
+	 * 获得下一项集。调用前要求确认非全规约集。
+	 * 
+	 * @param context 上下文。
+	 * @param symbol 匹配符号。
+	 * @return 下一项集。
+	 */
+	Items match(Context context,String symbol)
+	{
+		Set<Item> set=new HashSet<>();
+		for(Item item:items.get(symbol))
+		{
+			set.add(item.match(symbol));
+		}
+		return new Items(context,set);
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return items.hashCode();
+	}
+	
+	@Override
+	public String toString()
+	{
+		return items.toString();
+	}
+	
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(obj instanceof Items i)
+		{
+			return items.equals(i.items);
+		}
+		return false;
 	}
 }

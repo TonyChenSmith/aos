@@ -104,11 +104,22 @@ final class Item
 	 * 获得非终结符号后续终结符号集。
 	 * 
 	 * @param symbol 非终结符号。
+	 * @param context 上下文。
 	 * @return 终结符号集。
 	 */
-	Set<String> follow(String symbol)
+	Set<String> follow(String symbol,Context context)
 	{
-		return production.followSymbols(nodes,symbol,lookahead);
+		return production.followSymbols(nodes,symbol,lookahead,context);
+	}
+	
+	/**
+	 * 获得对应的产生式。
+	 * 
+	 * @return 产生式。
+	 */
+	Production getProduction()
+	{
+		return production;
 	}
 	
 	/**
@@ -129,5 +140,21 @@ final class Item
 		result.append('{').append(production.getSymbol()).append(',');
 		result.append(Arrays.toString(nodes)).append(',').append(lookahead).append('}');
 		return result.toString();
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return Arrays.hashCode(nodes)^production.hashCode()^lookahead.hashCode();
+	}
+	
+	@Override
+	public boolean equals(Object obj)
+	{
+		if(obj instanceof Item i)
+		{
+			return production.equals(i.production)&&Arrays.equals(nodes,i.nodes)&&lookahead.equals(i.lookahead);
+		}
+		return false;
 	}
 }
