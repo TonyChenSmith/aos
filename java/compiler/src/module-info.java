@@ -14,4 +14,6 @@
 module aos.tools.compiler
 {
 	requires aos.library.regex;
+	
+	exports aos.tools.compiler;
 }

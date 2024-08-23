@@ -10,6 +10,18 @@ package aos.tools.compiler;
 interface LexerCallback
 {
 	/**
+	 * 无动作回调。
+	 */
+	static final LexerCallback NONACTION=(t,c)->{};
+	
+	/**
+	 * 换行回调。
+	 */
+	static final LexerCallback NEW_LINE=(t,c)->{
+		c.onNewLine();
+	};
+	
+	/**
 	 * 处理单词。
 	 * 
 	 * @param token   单词。

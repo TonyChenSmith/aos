@@ -27,6 +27,11 @@ final class Items implements Serializable
 	private final Map<String,Set<Item>> items;
 	
 	/**
+	 * 项集中包含的产生式。
+	 */
+	private final Set<String> productions;
+	
+	/**
 	 * 构造初始项集。
 	 * 
 	 * @param context 上下文。
@@ -47,6 +52,7 @@ final class Items implements Serializable
 		Map<String,Set<Item>> ritems=new HashMap<>();
 		//非终结符号集。用于提取出需要添加的项。
 		Set<String> noterminals=new HashSet<>();
+		productions=new HashSet<>();
 		boolean nochange=true;
 		while(true)
 		{
@@ -90,6 +96,7 @@ final class Items implements Serializable
 		}
 		for(Item each:items)
 		{
+			productions.add(each.getProduction().getSymbol());
 			Set<String> first=each.first();
 			for(String symbol:first)
 			{
@@ -157,6 +164,17 @@ final class Items implements Serializable
 			set.add(item.match(symbol));
 		}
 		return new Items(context,set);
+	}
+	
+	/**
+	 * 查询项集是否包含该产生式。
+	 * 
+	 * @param symbol 产生式名。
+	 * @return
+	 */
+	boolean contains(String symbol)
+	{
+		return productions.contains(symbol);
 	}
 	
 	@Override

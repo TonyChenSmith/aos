@@ -2,6 +2,7 @@ package aos.tools.compiler;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -20,12 +21,7 @@ import aos.library.regex.Pattern;
  * @author Tony Chen Smith
  */
 final class Context
-{
-	/**
-	 * 无动作回调。
-	 */
-	private static final LexerCallback NONACTION=(t,c)->{};
-	
+{	
 	/**
 	 * 全局禁用单词名。
 	 */
@@ -159,6 +155,16 @@ final class Context
 	}
 	
 	/**
+	 * 新行回调。
+	 */
+	void onNewLine()
+	{
+		line++;
+		column=1;
+		text.clear();
+	}
+	
+	/**
 	 * 重置上下文。
 	 */
 	void reset()
@@ -191,29 +197,89 @@ final class Context
 	 */
 	void onScan(Token token)
 	{
-		callbacks.getOrDefault(token.name(),NONACTION).process(token,this);
+		callbacks.getOrDefault(token.name(),LexerCallback.NONACTION).process(token,this);
 	}
 	
 	/**
-	 * 移入状态。
+	 * 出错回调。
 	 * 
-	 * @param state 状态。
-	 * @param symbol 符号。
+	 * @param message 出错信息。
+	 * @param file 文件名。
 	 */
-	void shift(int state,SyntaxSymbol symbol)
+	void onError(String message,String file)
 	{
-		states.push(state);
-		symbols.push(symbol);
+		StringBuilder err=new StringBuilder();
+		err.append(file).append(':').append(line).append(':').append(column);
+		err.append(':').append(message).append('\n');
+		StringBuilder lines=new StringBuilder("% 6d | ".formatted(line));
+		int prefix=lines.length()-3;
+		int count=0;
+		for(int codePoint:text)
+		{
+			if(codePoint=='\t')
+			{
+				lines.append("    ");
+				count=count+4;
+			}
+			else
+			{
+				lines.appendCodePoint(codePoint);
+				count++;
+			}
+		}
+		lines.append('\n');
+		for(;prefix>0;prefix--)
+		{
+			lines.append(' ');
+		}
+		lines.append(" | ");
+		for(;count>0;count--)
+		{
+			lines.append(' ');
+		}
+		lines.append('^');
+		err.append(lines);
+		throw new ClaySyntaxError(err.toString());
 	}
 	
 	/**
-	 * 归约非终结符。
+	 * 获取变量，用于非终结符属性。
 	 * 
-	 * @param noterminal 非终结符。
-	 * @param symbol 向前看符号。
+	 * @param noterminal 非终结符名。
+	 * @param name 变量名。
+	 * @return 对应变量值，或空字符串。
 	 */
-	void reduce(String noterminal,SyntaxSymbol symbol)
+	String getVariable(String noterminal,String name)
 	{
-		
+		return variables.getOrDefault(noterminal,Collections.emptyMap()).getOrDefault(name,"");
+	}
+	
+	/**
+	 * 设置变量值。
+	 * 
+	 * @param noterminal 非终结符名。
+	 * @param name 变量名。
+	 * @param value 变量值。不应为空或空字符串。
+	 */
+	void setVariable(String noterminal,String name,String value)
+	{
+		Map<String,String> nvers=variables.get(noterminal);
+		if(nvers==null)
+		{
+			nvers=new HashMap<>();
+			variables.put(noterminal,nvers);
+		}
+		nvers.put(name,value);
+	}
+	
+	/**
+	 * 获取一个非终结符名下的全部变量。
+	 * 
+	 * @param noterminal 非终结符名。
+	 * @return 对应映射，或空映射。
+	 */
+	Map<String,String> getVariables(String noterminal)
+	{
+		return variables.getOrDefault(noterminal,Collections.emptyMap());
 	}
 }

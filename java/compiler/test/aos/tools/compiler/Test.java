@@ -37,5 +37,7 @@ public class Test
 		LRTable t2=LRTable.create(context1);
 		System.out.println(t1);
 		System.out.println(t2);
+		
+		context1.onError("a","test.clay");
 	}
 }
