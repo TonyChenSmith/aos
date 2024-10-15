@@ -1,0 +1,24 @@
+# Shell command:memory
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Memory
+  MODULE_UNI_FILE                = Memory.uni
+  FILE_GUID                      = E3950C6A-3560-3128-B45F-7A2CE8D46AB2 #UUID.nameUUIDFromBytes("mirror.tools.shell.command.memory".getBytes("UTF-8"))
+  MODULE_TYPE                    = UEFI_APPLICATION
+  VERSION_STRING                 = 0.1
+  ENTRY_POINT                    = CommandEntry
+
+[Sources]
+  Memory.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  UefiLib
+  UefiApplicationEntryPoint
+  UefiBootServicesTableLib
+
+[BuildOptions]
+  #GCC:*_*_X64_CC_FLAGS=-S

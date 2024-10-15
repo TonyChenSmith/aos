@@ -4,10 +4,9 @@
  * 2024-05-28创建。
  */
 #include "aosloader.h"
-#include "aosgraphics.h"
 
 /*启动参数*/
-static AOS_BOOT_PARAMS boot_params;
+AOS_BOOT_PARAMS boot_params;
 
 /*
  * 入口函数。理论上不会返回。
@@ -17,9 +16,9 @@ static AOS_BOOT_PARAMS boot_params;
 EFI_STATUS
 EFIAPI
 aos_uefi_entry(
-		IN EFI_HANDLE        image_handle,
-		IN EFI_SYSTEM_TABLE* system_table
-	)
+	IN EFI_HANDLE        image_handle,
+	IN EFI_SYSTEM_TABLE* system_table
+)
 {
 	EFI_STATUS status; /*状态*/
 	UINT32 i,j,c,h,v; /*绘制变量*/
@@ -35,10 +34,24 @@ aos_uefi_entry(
 	}
 
 	/*初始化启动参数*/
+	status=aos_init_memory();
+	if(EFI_ERROR(status))
+	{
+		DEBUG((DEBUG_ERROR,"1. status=%u\n",status));
+		return status;
+	}
+
+	status=aos_scan_pci_device();
+	if(EFI_ERROR(status))
+	{
+		DEBUG((DEBUG_ERROR,"2. status=%u\n",status));
+		return status;
+	}
+
 	status=aos_init_graphics_info(&boot_params);
 	if(EFI_ERROR(status))
 	{
-		Print(L"%d\r\n",status);
+		DEBUG((DEBUG_ERROR,"3. status=%u\n",status));
 		return status;
 	}
 
@@ -60,7 +73,19 @@ aos_uefi_entry(
 			offset++;
 		}
 	}
-	/*理论上不应该到达、返回了*/
-	CpuDeadLoop();
+	/*暂停10s*/
+	gBS->Stall(10000);
+
+	/*计算一下总大小*/
+	UINTN size_pci=0;
+	VOID* table=(VOID*)boot_params.root_bridges;
+	for(UINTN index=0;index<boot_params.root_bridge_length;index++)
+	{
+		UINTN t=sizeof(PCI_ROOT_BRIDGE_INFO)+((PCI_ROOT_BRIDGE_INFO*)table)->length*sizeof(PCI_RANGE);
+		size_pci=size_pci+t;
+		table=(VOID*)((UINTN)table+t);
+	}
+	size_pci=boot_params.device_length*sizeof(PCI_DEVICE_INFO)+size_pci;
+	DEBUG((DEBUG_INFO,"size_pci=%lu,pages=%lu\n",size_pci,aos_size_to_pages(size_pci)));
 	return EFI_SUCCESS;
 }

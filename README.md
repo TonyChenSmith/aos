@@ -7,6 +7,8 @@
 目录对应如下：
 1. `edk2-stable202402`-EDK2开发工具，加上自己的项目。
 1. `java`-AOS相关Java项目。
+1. `make`-make测试项目。
+1. `kernel`-内核项目。
 
 在目录`edk2-stable202402`下，与本项目相关包如下：
 1. `ToolPkg`-工具包。编译出来的EFI文件都是`UEFI_APPLICATION`，在UEFI Shell中检查系统信息，或是测试小功能。现在作为AOS的`UEFI Bootloader`编译包使用。

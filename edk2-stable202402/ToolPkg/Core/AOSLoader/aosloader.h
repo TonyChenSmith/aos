@@ -18,7 +18,9 @@
 
 /*本地头文件*/
 #include "aosdefine.h"
-#include "aosgraphics.h"
+#include "graphics/aosgraphics.h"
+#include "env/aosenv.h"
+#include "bus/aosbus.h"
 
 /*函数*/
 
@@ -26,8 +28,8 @@
 EFI_STATUS
 EFIAPI
 aos_uefi_entry(
-		IN EFI_HANDLE        image_handle,
-		IN EFI_SYSTEM_TABLE* system_table
-	);
+	IN EFI_HANDLE        image_handle,
+	IN EFI_SYSTEM_TABLE* system_table
+);
 
 #endif /*__AOS_LOADER_H__*/

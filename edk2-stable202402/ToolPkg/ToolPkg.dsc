@@ -21,6 +21,7 @@
   CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
   PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
   RegisterFilterLib|MdePkg/Library/RegisterFilterLibNull/RegisterFilterLibNull.inf
+  MtrrLib|UefiCpuPkg/Library/MtrrLib/MtrrLib.inf
   # UEFI & PI
   DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
   UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
@@ -29,7 +30,9 @@
   # Generic Modules
   PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
   # Misc
-  DebugLib|MdePkg/Library/UefiDebugLibStdErr/UefiDebugLibStdErr.inf
+  # DebugLib|MdePkg/Library/UefiDebugLibStdErr/UefiDebugLibStdErr.inf
+  IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
+  DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
   DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf
 
 [LibraryClasses.common.UEFI_APPLICATION]
@@ -43,6 +46,8 @@
   # Use the package directly without creating a new one.
   ToolPkg/Core/AOSLoader/AOSLoader.inf
 
+  ToolPkg/Application/Memory/Memory.inf
+
 [PcdsFixedAtBuild]
-  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x07
-  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80000033
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x2F
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x8000007F

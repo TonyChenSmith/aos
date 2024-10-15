@@ -15,8 +15,11 @@
 	aosloader.h
 	aosdefine.h
 	main.c
-	memory/aosmemory.h
-	memory/memory.c
+	bus/aosbus.h
+	bus/bus.c
+	env/aosenv.h
+	env/env.c
+	env/asmenv.nasm
 	graphics/aosgraphics.h
 	graphics/graphics.c
 
@@ -25,13 +28,18 @@
 	MdeModulePkg/MdeModulePkg.dec
 
 [LibraryClasses]
+	BaseLib
+	DebugLib
 	UefiLib
+	UefiBootServicesTableLib
 	UefiApplicationEntryPoint
 
 [Protocols]
 	gEfiEdidActiveProtocolGuid
 	gEfiEdidDiscoveredProtocolGuid
 	gEfiGraphicsOutputProtocolGuid
+	gEfiPciIoProtocolGuid
+	gEfiPciRootBridgeIoProtocolGuid
 
 [Guids]
 	gEfiConsoleOutDeviceGuid

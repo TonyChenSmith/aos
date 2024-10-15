@@ -8,8 +8,6 @@
 /*头文件*/
 
 /*库头文件。*/
-#include <Library/BaseLib.h>
-#include <Library/UefiBootServicesTableLib.h>
 #include <Protocol/EdidActive.h>
 #include <Protocol/EdidDiscovered.h>
 #include <Protocol/GraphicsOutput.h>
@@ -24,7 +22,7 @@
 EFI_STATUS
 EFIAPI
 aos_init_graphics_info(
-    IN OUT AOS_BOOT_PARAMS* boot_params
+	IN OUT AOS_BOOT_PARAMS* boot_params
 );
 
 #endif /*__AOS_GRAPHICS_H__*/

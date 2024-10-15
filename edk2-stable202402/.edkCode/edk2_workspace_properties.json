@@ -1,7 +1,11 @@
 {
-    "packagePaths": [],
+    "packagePaths": [
+        "ToolPkg\\Application\\Info",
+        "FatPkg\\EnhancedFatDxe"
+    ],
     "dscPaths": [
-        "MdeModulePkg\\MdeModulePkg.dsc"
+        "OvmfPkg\\OvmfPkgX64.dsc",
+        "ToolPkg\\ToolPkg.dsc"
     ],
     "buildDefines": [
         "ARCH=X64"

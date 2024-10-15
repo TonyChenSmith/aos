@@ -97,8 +97,7 @@ aos_init_graphics_info(
 			/*不应该出现*/
 			return status;
 		}
-		if(current_gop->Mode->Info->PixelFormat==PixelBltOnly||
-			current_gop->Mode->Info->PixelFormat>=PixelFormatMax)
+		if(current_gop->Mode->Info->PixelFormat==PixelBltOnly||current_gop->Mode->Info->PixelFormat>=PixelFormatMax)
 		{
 			/*非目标GOP*/
 			continue;
