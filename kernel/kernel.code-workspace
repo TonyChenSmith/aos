@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"cmake.options.statusBarVisibility": "visible",
+		"files.associations": {
+			"*.nasm": "nasm",
+			"main.h": "c"
+		}
+	}
+}

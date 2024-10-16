@@ -20,6 +20,8 @@
 	env/aosenv.h
 	env/env.c
 	env/asmenv.nasm
+	file/file.c
+	file/aosfile.h
 	graphics/aosgraphics.h
 	graphics/graphics.c
 
@@ -30,6 +32,7 @@
 [LibraryClasses]
 	BaseLib
 	DebugLib
+	FileHandleLib
 	UefiLib
 	UefiBootServicesTableLib
 	UefiApplicationEntryPoint
@@ -40,6 +43,8 @@
 	gEfiGraphicsOutputProtocolGuid
 	gEfiPciIoProtocolGuid
 	gEfiPciRootBridgeIoProtocolGuid
+	gEfiLoadedImageProtocolGuid
+	gEfiSimpleFileSystemProtocolGuid
 
 [Guids]
 	gEfiConsoleOutDeviceGuid

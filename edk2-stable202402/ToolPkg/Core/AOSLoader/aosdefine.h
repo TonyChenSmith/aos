@@ -5,16 +5,11 @@
 #ifndef __AOS_DEFINE_H__
 #define __AOS_DEFINE_H__
 
-/*头文件*/
-
-/*头文件*/
 #include <Uefi.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/DebugLib.h>
-
-/*宏定义与类型定义*/
 
 #pragma pack(1)
 
@@ -215,6 +210,10 @@ typedef struct
 /*目前暂时设置为各8MB*/
 #define AOS_MEMORY_POOL_PAGES aos_size_to_pages(0x800000)
 #define AOS_STACK_PAGES aos_size_to_pages(0x800000)
+
+/*文件路径常量*/
+/*将加载路径转化为宽字符串*/
+#define aos_esp_file(name) L"aos\\boot\\#name"
 
 /*定义AOS内存种类枚举。从紧凑和易读角度，命名方式保留UEFI的样式*/
 typedef enum _AOS_MEMORY_TYPE

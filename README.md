@@ -7,7 +7,6 @@
 目录对应如下：
 1. `edk2-stable202402`-EDK2开发工具，加上自己的项目。
 1. `java`-AOS相关Java项目。
-1. `make`-make测试项目。
 1. `kernel`-内核项目。
 
 在目录`edk2-stable202402`下，与本项目相关包如下：

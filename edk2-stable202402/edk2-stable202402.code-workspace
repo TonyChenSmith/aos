@@ -67,7 +67,10 @@
 			"xtr1common": "c",
 			"mplib.h": "c",
 			"cpugdt.h": "c",
-			"aosenv.h": "c"
+			"aosenv.h": "c",
+			"aosfile.h": "c",
+			"basememorylib.h": "c",
+			"loadedimage.h": "c"
 		},
 		"terminal.integrated.shellIntegration.enabled": false,
 		"edk2-vscode.build.compiler": "CLANGPDB",

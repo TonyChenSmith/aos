@@ -6,3 +6,6 @@ __pycache__/
 tags/
 .vscode/
 .edkCode/
+disk/
+debug.log
+BuildReport.log
