@@ -60,4 +60,5 @@ aos_load_bootstrap(VOID)
 	{
 		return status;
 	}
+	return EFI_SUCCESS;
 }

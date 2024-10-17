@@ -45,9 +45,9 @@
   #ToolPkg/Application/DisplayAdapter/DisplayAdapter.inf
 
   # Use the package directly without creating a new one.
-  ToolPkg/Core/AOSLoader/AOSLoader.inf
+  ToolPkg/Core/aosuefitsl/aosuefitsl.inf
 
-  ToolPkg/Application/Memory/Memory.inf
+  #ToolPkg/Application/Memory/Memory.inf
 
 [PcdsFixedAtBuild]
   gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x2F
