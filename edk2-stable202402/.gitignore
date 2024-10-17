@@ -9,3 +9,4 @@ tags/
 disk/
 debug.log
 BuildReport.log
+.ignore
