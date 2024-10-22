@@ -6,8 +6,11 @@
 #define __AOS_DEFINE_H__
 
 #include <Uefi.h>
+#include <Guid/Acpi.h>
+#include <Guid/SmBios.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/DebugLib.h>
 
@@ -181,15 +184,44 @@ typedef struct
 	PCI_BAR bars[6]; /*BAR信息*/
 } PCI_DEVICE_INFO;
 
+/*CPU信息*/
+typedef struct
+{
+	UINT32 max_processors; /*CPU拥有的逻辑处理器核心数*/
+	BOOLEAN level5; /*是否支持五级页*/
+} AOS_CPU_INFO;
+
 /*段、分页和中断信息*/
 typedef struct
 {
-	BOOLEAN level5; /*是否五级页*/
-	VOID* physical_page_table; /*物理页表，即1:1映射*/
-	VOID* kernel_page_table; /*内核页表，内核运行时使用的页表*/
+	VOID* max_free; /*最大自由区，用于内核进行内存分配*/
+	UINTN max_pages; /*最大自由区页面数目*/
+	AOS_CPU_INFO cpu_info;
 	IA32_DESCRIPTOR gdtr; /*GDT信息*/
 	IA32_DESCRIPTOR idtr; /*IDT信息*/
+	UINTN ist; /*IST基址，这里为中断异常栈*/
+	UINTN ist_length; /*IST长度*/
+	UINTN tss; /*TSS基址，这里为每个核心的TSS集合*/
+	UINTN tss_length; /*TSS总长*/
+	EFI_MEMORY_DESCRIPTOR* memmap; /*内存图*/
+	UINTN entry_size; /*单项的大小*/
+	UINTN memmap_length; /*内存图长度，字节计数*/
 } AOS_ENV_CONFIG;
+
+/*引导程序信息*/
+typedef struct
+{
+	UINTN base; /*程序基址，物理地址*/
+	UINTN entry; /*入口偏移*/
+	
+	/*理论上应该有且仅有三个部分，这一段用于页表设置属性*/
+	UINTN r_offset; /*只读页面偏移，为相对偏移*/
+	UINTN r_pages; /*只读页面数*/
+	UINTN rx_offset; /*运行页面偏移*/
+	UINTN rx_pages; /*运行页面数*/
+	UINTN rw_offset; /*读写页面偏移*/
+	UINTN rw_pages; /*读写页面数*/
+} AOS_BOOTSTRAP_CODE_INFO;
 
 /*内存*/
 
@@ -208,67 +240,17 @@ typedef struct
 
 /*预先申请空间大小，包括预分配内存池和运行栈，内核文件为独立申请*/
 /*目前暂时设置为各8MB*/
-#define AOS_MEMORY_POOL_PAGES aos_size_to_pages(0x800000)
-#define AOS_STACK_PAGES aos_size_to_pages(0x800000)
+#define AOS_MEMORY_POOL_PAGES aos_size_to_pages(SIZE_8MB)
+#define AOS_STACK_PAGES aos_size_to_pages(SIZE_8MB)
+/*单个IST大小*/
+#define AOS_IST_PAGES aos_size_to_pages(SIZE_8KB)
 
-/*文件路径常量*/
-/*将加载路径转化为宽字符串*/
-#define aos_esp_file(name) L"aos\\boot\\#name"
+/*表大小*/
+#define AOS_GDT_PAGES aos_size_to_pages(SIZE_64KB)
+#define AOS_KERNEL_IDT_PAGES aos_size_to_pages(SIZE_4KB)
 
-/*定义AOS内存种类枚举。从紧凑和易读角度，命名方式保留UEFI的样式*/
-typedef enum _AOS_MEMORY_TYPE
-{
-	/*不被使用，保留区域。未知区域都可以被设置为保留区域*/
-	AOSReservedMemory,
-	/*保留给ACPI表*/
-	AOSACPIReclaimMemory,
-	/*保留给ACPI固件*/
-	AOSACPIMemoryNVS,
-	/*MMIO*/
-	AOSMemoryMappedIO,
-	/*NNIO转换到IO区域过程中的保留MMIO*/
-	AOSMemoryMappedIOPortSpace,
-	/*固件保留给处理器微架构代码的区域*/
-	AOSPalCode,
-	/*非易失性空闲内存*/
-	AOSPersistentMemory,
-	/*常规空闲内存*/
-	AOSConventionalMemory,
-	/*未接受内存类型，这里显式保留类型，但依旧视为不存在，其余未映射区域视为不存在*/
-	AOSUnacceptedMemory,
-	/*以下为独特内存类型*/
-	/*UEFI RT代码区域*/
-	AOSUEFIRuntimeCode,
-	/*UEFI RT数据区域*/
-	AOSUEFIRuntimeData,
-	/*页表*/
-	AOSPageTable,
-	/*GDT*/
-	AOSGDT,
-	/*IDT*/
-	AOSIDT,
-	/*内核代码*/
-	AOSKernelCode,
-	/*内核数据*/
-	AOSKernelData,
-	/*UEFI BT代码区域*/
-	AOSUEFILegacyCode,
-	/*UEFI BT数据区域*/
-	AOSUEFILegacyData,
-	/*UEFI 加载器代码区域。为减少出问题的可能性，不移除*/
-	AOSUEFILoaderCode,
-	/*UEFI 加载器数据区域。为减少出问题的可能性，不移除*/
-	AOSUEFILoaderData,
-} AOS_MEMORY_TYPE;
-
-/*AOS内存描述符*/
-typedef struct _AOS_PHYSICAL_MEMORY_DESCRIPTOR
-{
-	UINT64 type;	  /*内存类型*/
-	UINT64 base;	  /*物理基址*/
-	UINT64 amount;	  /*页面数量*/
-	UINT64 attribute; /*内存属性*/
-} AOS_PHYSICAL_MEMORY_DESCRIPTOR;
+/*启动模块数目*/
+#define AOS_BOOT_MODULE_COUNT 1
 
 /*启动参数*/
 typedef struct _AOS_BOOT_PARAMS
@@ -289,7 +271,17 @@ typedef struct _AOS_BOOT_PARAMS
 	AOS_GRAPHICS_INFO graphics_info; /*图像信息数据结构*/
 
 	/*环境*/
-	AOS_ENV_CONFIG env; /*环境信息*/ 
+	AOS_ENV_CONFIG env; /*环境信息*/
+
+	/*系统表*/
+	VOID* acpi;
+	VOID* smbios;
+	VOID* smbios3;
+	EFI_RUNTIME_SERVICES* runtime;
+
+	/*引导程序*/
+	UINTN boot_module_count;
+	AOS_BOOTSTRAP_CODE_INFO modules[AOS_BOOT_MODULE_COUNT];
 } AOS_BOOT_PARAMS;
 
 /*启动参数*/

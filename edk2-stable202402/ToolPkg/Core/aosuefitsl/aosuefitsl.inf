@@ -3,8 +3,8 @@
 	INF_VERSION                    = 0x00010005
 	BASE_NAME                      = aosuefitsl
 	MODULE_UNI_FILE                = aosuefitsl.uni
-	# UUID.nameUUIDFromBytes("aos_uefi_tsl".getBytes())
-	FILE_GUID                      = 2A514AF1-6CCC-3922-A8B4-3FFD53D0A80C
+	# UUID.nameUUIDFromBytes("aos.uefi.tsl".getBytes())
+	FILE_GUID                      = 06EB51D6-F365-3561-B056-1E914731F2A3
 	MODULE_TYPE                    = UEFI_APPLICATION
 	# Major.Minor.Patch Before the official launch, do not increment the major version number.
 	VERSION_STRING                 = 0.0.1
@@ -32,6 +32,7 @@
 	BaseLib
 	DebugLib
 	FileHandleLib
+	MemoryAllocationLib
 	UefiLib
 	UefiBootServicesTableLib
 	UefiApplicationEntryPoint
@@ -46,4 +47,8 @@
 	gEfiSimpleFileSystemProtocolGuid
 
 [Guids]
+	gEfiAcpiTableGuid
+	gEfiSmbiosTableGuid
+	gEfiSmbios3TableGuid
 	gEfiConsoleOutDeviceGuid
+	gEfiFileInfoGuid

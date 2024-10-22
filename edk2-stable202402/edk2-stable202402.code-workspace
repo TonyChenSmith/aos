@@ -70,7 +70,11 @@
 			"aosenv.h": "c",
 			"aosfile.h": "c",
 			"basememorylib.h": "c",
-			"loadedimage.h": "c"
+			"loadedimage.h": "c",
+			"filehandlelib.h": "c",
+			"cpuid.h": "c",
+			"smbios.h": "c",
+			"acpi.h": "c"
 		},
 		"terminal.integrated.shellIntegration.enabled": false,
 		"edk2-vscode.build.compiler": "CLANGPDB",

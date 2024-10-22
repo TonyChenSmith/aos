@@ -46,6 +46,7 @@
 
   # Use the package directly without creating a new one.
   ToolPkg/Core/aosuefitsl/aosuefitsl.inf
+  UefiCpuPkg/Application/Cpuid/Cpuid.inf
 
   #ToolPkg/Application/Memory/Memory.inf
 

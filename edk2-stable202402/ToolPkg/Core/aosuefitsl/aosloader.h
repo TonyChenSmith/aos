@@ -21,6 +21,7 @@
 #include "graphics/aosgraphics.h"
 #include "env/aosenv.h"
 #include "bus/aosbus.h"
+#include "file/aosfile.h"
 
 /*函数*/
 

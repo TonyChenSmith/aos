@@ -9,9 +9,17 @@
 1. `java`-AOS相关Java项目。
 1. `kernel`-内核项目。
 
-在目录`edk2-stable202402`下，与本项目相关包如下：
-1. `ToolPkg`-工具包。编译出来的EFI文件都是`UEFI_APPLICATION`，在UEFI Shell中检查系统信息，或是测试小功能。现在作为AOS的`UEFI Bootloader`编译包使用。
+在目录`edk2-stable202402`下，目前与本项目相关包如下：
+1. `ToolPkg`-工具包。编译出来的EFI文件都是`UEFI_APPLICATION`，在UEFI Shell中检查系统信息，或是测试小功能。现在组件`aos.uefi.tsl`作为AOS的`UEFI Bootstrap`编译包使用。
 
-在目录`java`下，有以下项目：
+在目录`java`下，目前有以下项目：
 1. `regex`-项目regex。内有aos.library.regex模块，为AOS Java流正则库。将用于编译器词法分析器实现。
 1. `compiler`-项目compiler。内有aos.tools.compiler模块，为AOS Java自定义编译器。
+
+在目录`kernel`下，目前有以下组件项目：
+
+由于分类和实际使用的区别，组件与项目名（或文件名）有以下对应关系：
+|组件|项目名|目标文件名|说明|
+|:---:|:---:|:---:|:---:|
+|`aos.uefi.tsl`|`${EDK2}/ToolPkg/Core/aosuefilts.inf`|`/EFI/BOOT/BOOTX64.EFI`|UEFI引导器。|
+|`aos.bootstrap`|`${kernel}/boot/core`|`/aos/boot/boot.core.mod`|ESP分区内系统引导内核。|
