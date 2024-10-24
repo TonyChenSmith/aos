@@ -140,7 +140,6 @@ EFIAPI
 aos_load_bootstrap(VOID)
 {
 	EFI_STATUS status;
-	boot_params.boot_module_count=AOS_BOOT_MODULE_COUNT;
 	status=aos_get_esp_root();
 	if(EFI_ERROR(status))
 	{
@@ -151,7 +150,7 @@ aos_load_bootstrap(VOID)
 	UINTN buffer_size=0;
 
 	/*循环载入每一个文件*/
-	for(UINTN index=0;index<boot_params.boot_module_count;index++)
+	for(UINTN index=0;index<AOS_BOOT_MODULE_COUNT;index++)
 	{
 		UINTN bsize=0;
 		EFI_FILE_INFO* file_info=NULL;

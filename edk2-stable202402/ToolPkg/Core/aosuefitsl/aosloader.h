@@ -33,4 +33,6 @@ aos_uefi_entry(
 	IN EFI_SYSTEM_TABLE* system_table
 );
 
+
+
 #endif /*__AOS_LOADER_H__*/

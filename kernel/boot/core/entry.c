@@ -27,5 +27,9 @@ aos_status aos_bootstrap_entry(void* arg1,void* arg2)
 {
 	atest3();
 	print_bytes("Hello aos kernel.\n",sizeof("Hello aos kernel.\n")-1);
+	while(1)
+	{
+		aos_cpu_hlt();
+	}
 	return (uint64)arg1;
 }

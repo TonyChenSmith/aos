@@ -37,3 +37,8 @@ o16 mov es,cx
 o16 mov fs,cx
 o16 mov gs,cx
     ret
+
+global aos_cpu_hlt
+aos_cpu_hlt:
+	hlt
+    ret

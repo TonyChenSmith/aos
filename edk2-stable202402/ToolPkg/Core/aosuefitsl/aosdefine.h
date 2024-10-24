@@ -137,7 +137,7 @@ typedef struct
 	UINT32 blue_mask;
 	/*保留区（透明度）位。*/
 	UINT32 reserved_mask;
-	/*扫描线长度。小于等下水平分辨率*/
+	/*扫描线长度。小于等于水平分辨率*/
 	UINT32 scan_line_length;
 } AOS_GRAPHICS_INFO;
 
@@ -280,7 +280,6 @@ typedef struct _AOS_BOOT_PARAMS
 	EFI_RUNTIME_SERVICES* runtime;
 
 	/*引导程序*/
-	UINTN boot_module_count;
 	AOS_BOOTSTRAP_CODE_INFO modules[AOS_BOOT_MODULE_COUNT];
 } AOS_BOOT_PARAMS;
 

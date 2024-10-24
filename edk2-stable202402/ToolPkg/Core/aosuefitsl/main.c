@@ -21,8 +21,6 @@ aos_uefi_entry(
 )
 {
 	EFI_STATUS status; /*状态*/
-	UINT32 i,j,c,h,v; /*绘制变量*/
-	UINT32* offset;
 
 	DEBUG((DEBUG_INFO,"===AOS UEFI TSL Module===\n"));
 
@@ -31,6 +29,15 @@ aos_uefi_entry(
 	if(status==EFI_DEVICE_ERROR)
 	{
 		/*出现看门狗硬件错误*/
+		DEBUG((DEBUG_ERROR,"Failed to close the watchdog.\nError code:%u.\n",status));
+		return status;
+	}
+
+	/*加载图像信息*/
+	status=aos_init_graphics_info(&boot_params);
+	if(EFI_ERROR(status))
+	{
+		DEBUG((DEBUG_ERROR,"Failed to get image information.\nError code:%u.\n",status));
 		return status;
 	}
 
@@ -66,14 +73,6 @@ aos_uefi_entry(
 		return status;
 	}
 
-	/*加载图像信息*/
-	status=aos_init_graphics_info(&boot_params);
-	if(EFI_ERROR(status))
-	{
-		DEBUG((DEBUG_ERROR,"Failed to get image information.\nError code:%u.\n",status));
-		return status;
-	}
-
 	/*预分配配置空间*/
 	status=aos_create_config();
 	if(EFI_ERROR(status))
@@ -103,41 +102,13 @@ aos_uefi_entry(
 	status=gBS->ExitBootServices(gImageHandle,key);
 	ASSERT(status==EFI_SUCCESS);
 
-	/*尝试绘制染色板*/
-	c=0;
-	h=boot_params.graphics_info.scan_line_length;
-	v=boot_params.graphics_info.vertical_resolution;
-	offset=(UINT32*)boot_params.graphics_info.frame_buffer_base;
-	for(j=0;j<v;j++)
-	{
-		for(i=0;i<h;i++)
-		{
-			*offset=c|0xFF000000;
-			c++;
-			if(c>=0x01000000)
-			{
-				c=0;
-			}
-			offset++;
-		}
-	}
+	DEBUG((DEBUG_INFO,"===AOS UEFI TSL Module Summary===\n"));
+	DEBUG((DEBUG_INFO,"boot_params_size=%lu\n",sizeof(boot_params)));
 
-	DEBUG((DEBUG_INFO,"sizeof(boot_params)=%lu\n",sizeof(boot_params)));
-
-	/*计算一下总大小*/
-	UINTN size_pci=0;
-	VOID* table=(VOID*)boot_params.root_bridges;
-	for(UINTN index=0;index<boot_params.root_bridge_length;index++)
-	{
-		UINTN t=sizeof(PCI_ROOT_BRIDGE_INFO)+((PCI_ROOT_BRIDGE_INFO*)table)->length*sizeof(PCI_RANGE);
-		size_pci=size_pci+t;
-		table=(VOID*)((UINTN)table+t);
-	}
-	size_pci=boot_params.device_length*sizeof(PCI_DEVICE_INFO)+size_pci;
-	DEBUG((DEBUG_INFO,"size_pci=%lu,pages=%lu\n",size_pci,aos_size_to_pages(size_pci)));
-
+	/*跳转入口，可能会提前调用一个aos.boot.base模块作为最小c库*/
 	int (*aos_bootstrap_jump)(void* boot_params,void* unused)=NULL;
 	aos_bootstrap_jump=(int (*)(void* boot_params,void* unused))(boot_params.modules[0].entry+boot_params.modules[0].base); 
 	aos_bootstrap_jump(params_region,NULL);
+
 	return EFI_SUCCESS;
 }
