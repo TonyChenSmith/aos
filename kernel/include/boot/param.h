@@ -9,7 +9,7 @@
 #include "efi.h"
 
 /*启动模块个数*/
-#define BOOT_MODULE_COUNT 2
+#define BOOT_MODULE_COUNT 1
 
 /*PCI总线范围*/
 typedef struct _boot_pci_bus
@@ -137,6 +137,7 @@ typedef struct _boot_params
 	efi_runtime_services* runtime;			   /*UEFI运行服务*/
 
 	boot_code_info modules[BOOT_MODULE_COUNT]; /*启动模块信息*/
+	void* boot_device;						   /*启动设备路径*/
 } boot_params;
 
 #endif /*__AOS_BOOT_PARAM_H__*/

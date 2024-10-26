@@ -5,13 +5,12 @@
 #ifndef __AOS_BOOT_BOOT_H__
 #define __AOS_BOOT_BOOT_H__
 
-typedef int aos_status;
+#include "type.h"
+#include "param.h"
 
-typedef unsigned long long uint64;
+#define offset_of(type,field) (uintn)__builtin_offsetof(type,field)
 
-extern int boot_code;
-
-extern void print_bytes(const char* buf,uint64 size);
+extern void print_bytes(int8* buf,uint64 size);
 
 extern void aos_cpu_hlt(void);
 

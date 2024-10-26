@@ -6,8 +6,10 @@
 #define __AOS_FILE_H__
 
 #include "aosdefine.h"
+#include "env/aosenv.h"
 #include <Protocol/LoadedImage.h>
 #include <Library/FileHandleLib.h>
+#include <Library/DevicePathLib.h>
 
 /*ELF文件对应偏移量*/
 #define EI_MAG 0

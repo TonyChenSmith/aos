@@ -281,6 +281,8 @@ typedef struct _AOS_BOOT_PARAMS
 
 	/*引导程序*/
 	AOS_BOOTSTRAP_CODE_INFO modules[AOS_BOOT_MODULE_COUNT];
+	/*引导设备*/
+	VOID* boot_device;
 } AOS_BOOT_PARAMS;
 
 /*启动参数*/

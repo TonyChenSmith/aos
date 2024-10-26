@@ -9,7 +9,8 @@
 		"files.associations": {
 			"*.nasm": "nasm",
 			"main.h": "c",
-			"boot.h": "c"
+			"boot.h": "c",
+			"type.h": "c"
 		}
 	}
 }

@@ -33,22 +33,6 @@ aos_uefi_entry(
 		return status;
 	}
 
-	/*加载图像信息*/
-	status=aos_init_graphics_info(&boot_params);
-	if(EFI_ERROR(status))
-	{
-		DEBUG((DEBUG_ERROR,"Failed to get image information.\nError code:%u.\n",status));
-		return status;
-	}
-
-	/*加载内核执行模块*/
-	status=aos_load_bootstrap();
-	if(EFI_ERROR(status))
-	{
-		DEBUG((DEBUG_ERROR,"Kernel executable module file load failure.status=%u\n",status));
-		return status;
-	}
-
 	/*初始化启动参数*/
 	status=aos_init_cpu_info();
 	if(EFI_ERROR(status))
@@ -62,6 +46,23 @@ aos_uefi_entry(
 	if(EFI_ERROR(status))
 	{
 		DEBUG((DEBUG_ERROR,"Failed to preallocate memory.\nError code:%u.\n",status));
+		return status;
+	}
+
+
+	/*加载图像信息*/
+	status=aos_init_graphics_info(&boot_params);
+	if(EFI_ERROR(status))
+	{
+		DEBUG((DEBUG_ERROR,"Failed to get image information.\nError code:%u.\n",status));
+		return status;
+	}
+
+	/*加载内核执行模块*/
+	status=aos_load_bootstrap();
+	if(EFI_ERROR(status))
+	{
+		DEBUG((DEBUG_ERROR,"Kernel executable module file load failure.status=%u\n",status));
 		return status;
 	}
 
@@ -104,6 +105,23 @@ aos_uefi_entry(
 
 	DEBUG((DEBUG_INFO,"===AOS UEFI TSL Module Summary===\n"));
 	DEBUG((DEBUG_INFO,"boot_params_size=%lu\n",sizeof(boot_params)));
+	DEBUG((DEBUG_INFO,".pool=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,pool)));
+	DEBUG((DEBUG_INFO,".pool_length=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,pool_length)));
+	DEBUG((DEBUG_INFO,".stack=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,stack)));
+	DEBUG((DEBUG_INFO,".stack_length=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,stack_length)));
+	DEBUG((DEBUG_INFO,".root_bridges=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,root_bridges)));
+	DEBUG((DEBUG_INFO,".root_bridge_length=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,root_bridge_length)));
+	DEBUG((DEBUG_INFO,".devices=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,devices)));
+	DEBUG((DEBUG_INFO,".device_length=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,device_length)));
+	DEBUG((DEBUG_INFO,".graphics_info=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,graphics_info)));
+	DEBUG((DEBUG_INFO,".env=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,env)));
+	DEBUG((DEBUG_INFO,".acpi=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,acpi)));
+	DEBUG((DEBUG_INFO,".smbios=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,smbios)));
+	DEBUG((DEBUG_INFO,".smbios3=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,smbios3)));
+	DEBUG((DEBUG_INFO,".runtime=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,runtime)));
+	DEBUG((DEBUG_INFO,".modules=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,modules)));
+	DEBUG((DEBUG_INFO,".boot_device=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,boot_device)));
+	DEBUG((DEBUG_INFO,"===Jump aos.boot===\n"));
 
 	/*跳转入口，可能会提前调用一个aos.boot.base模块作为最小c库*/
 	int (*aos_bootstrap_jump)(void* boot_params,void* unused)=NULL;

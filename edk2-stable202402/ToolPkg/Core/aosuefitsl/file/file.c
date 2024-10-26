@@ -38,6 +38,20 @@ aos_get_esp_root(VOID)
 	{
 		return status;
 	}
+	EFI_DEVICE_PATH_PROTOCOL* boot;
+	status=gBS->HandleProtocol(image->DeviceHandle,&gEfiDevicePathProtocolGuid,(VOID*)&boot);
+	if(EFI_ERROR(status))
+	{
+		return status;
+	}
+	UINTN size=GetDevicePathSize(boot);
+	if(size==0)
+	{
+		/*设备分析出错*/
+		return EFI_DEVICE_ERROR;
+	}
+	boot_params.boot_device=aos_allocate_pool(size);
+	CopyMem(boot_params.boot_device,(VOID*)boot,size);
 	status=gBS->HandleProtocol(image->DeviceHandle,&gEfiSimpleFileSystemProtocolGuid,(VOID**)&simple);
 	if(EFI_ERROR(status))
 	{

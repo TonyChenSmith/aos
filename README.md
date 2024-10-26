@@ -17,9 +17,11 @@
 1. `compiler`-项目compiler。内有aos.tools.compiler模块，为AOS Java自定义编译器。
 
 在目录`kernel`下，目前有以下组件项目：
+1. `boot`-ESP分区内核项目，内有以`aos.boot`开始的诸多模块，负责在启动的ESP分区构建内核环境。
 
 由于分类和实际使用的区别，组件与项目名（或文件名）有以下对应关系：
 |组件|项目名|目标文件名|说明|
 |:---:|:---:|:---:|:---:|
 |`aos.uefi.tsl`|`${EDK2}/ToolPkg/Core/aosuefilts.inf`|`/EFI/BOOT/BOOTX64.EFI`|UEFI引导器。|
-|`aos.bootstrap`|`${kernel}/boot/core`|`/aos/boot/boot.core.mod`|ESP分区内系统引导内核。|
+|`aos.boot.core`|`${kernel}/boot/core`|`/aos/boot/core.aem`|ESP分区内系统内核核心模块。|
+|`aos.boot.base`|`${kernel}/boot/base`|`/aos/boot/base.aem`|ESP分区内系统内核基础模块。|

@@ -19,7 +19,7 @@ endforeach()
 set(TARGET_FILE_NAME base.aem)
 add_executable(${TARGET_FILE_NAME} ${SRC_LIST})
 target_include_directories(${TARGET_FILE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/base PRIVATE ${CMAKE_SOURCE_DIR}/include/boot)
-target_link_options(${TARGET_FILE_NAME} PRIVATE "--entry=aos_bootstrap_jump")
+target_link_options(${TARGET_FILE_NAME} PRIVATE "--entry=test")
 
 #引导器基础反汇编目标
 add_custom_target(

@@ -463,6 +463,7 @@ aos_set_system_table(VOID)
 		}
 	}
 	ASSERT(boot_params.acpi!=NULL&&(boot_params.smbios!=NULL||boot_params.smbios3!=NULL));
+	DEBUG((DEBUG_INFO,"===AOS Table===\nacpi=0x%lX,smbios=%lu.\nsmbios3=0x%lX.\n",boot_params.acpi,boot_params.smbios,boot_params.smbios3));
 	boot_params.runtime=gST->RuntimeServices;
 	return EFI_SUCCESS;
 }
