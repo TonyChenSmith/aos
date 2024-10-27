@@ -34,6 +34,8 @@ typedef struct
 #define AOS_SEGMENT_DATA64A aos_offset_of(AOS_GDT_ENTRIES,data64a)
 #define AOS_SEGMENT_SPARE aos_offset_of(AOS_GDT_ENTRIES,spare)
 
+#define AOS_TSS_SPACE 128
+
 /*CPUID功能号*/
 #define CPUID_STD_BASE_ID 0
 #define CPU_INTEL_ID_EBX 0x756E6547

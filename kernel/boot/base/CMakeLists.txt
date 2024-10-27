@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.5.0)
 project(aos.boot.base VERSION 0.0.1 LANGUAGES C ASM_NASM)
 
 #搜索源文件
-list(APPEND SRC_PATHS ".")
+list(APPEND SRC_PATHS "." "func")
 
 list(APPEND SRC_LIST)
 

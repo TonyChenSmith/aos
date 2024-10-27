@@ -123,10 +123,9 @@ aos_uefi_entry(
 	DEBUG((DEBUG_INFO,".boot_device=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,boot_device)));
 	DEBUG((DEBUG_INFO,"===Jump aos.boot===\n"));
 
+	SWITCH_STACK_ENTRY_POINT aos_boot_trampoline=NULL;
 	/*跳转入口，可能会提前调用一个aos.boot.base模块作为最小c库*/
-	int (*aos_bootstrap_jump)(void* boot_params,void* unused)=NULL;
-	aos_bootstrap_jump=(int (*)(void* boot_params,void* unused))(boot_params.modules[0].entry+boot_params.modules[0].base); 
-	aos_bootstrap_jump(params_region,NULL);
-
+	aos_boot_trampoline=(SWITCH_STACK_ENTRY_POINT)(boot_params.modules[0].entry+boot_params.modules[0].base);
+	aos_boot_trampoline(params_region,NULL);
 	return EFI_SUCCESS;
 }

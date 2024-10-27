@@ -373,7 +373,7 @@ aos_create_config(VOID)
 	boot_params.env.gdtr.Base=(UINTN)dt;
 
 	/*预留TSS*/
-	boot_params.env.tss_length=processors*sizeof(IA32_TASK_STATE_SEGMENT);
+	boot_params.env.tss_length=processors*AOS_TSS_SPACE;
 	dt=aos_allocate_pages(aos_size_to_pages(boot_params.env.tss_length));
 	ZeroMem(dt,boot_params.env.tss_length);
 	boot_params.env.tss=(UINTN)dt;
