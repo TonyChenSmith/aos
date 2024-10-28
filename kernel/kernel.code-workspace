@@ -10,7 +10,8 @@
 			"*.nasm": "nasm",
 			"main.h": "c",
 			"boot.h": "c",
-			"type.h": "c"
+			"type.h": "c",
+			"base.h": "c"
 		}
 	}
 }

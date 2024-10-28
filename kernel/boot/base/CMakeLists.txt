@@ -17,9 +17,10 @@ endforeach()
 
 #引导器基础目标
 set(TARGET_FILE_NAME base.aem)
+set(TARGET_ENTRY test)
 add_executable(${TARGET_FILE_NAME} ${SRC_LIST})
 target_include_directories(${TARGET_FILE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/base PRIVATE ${CMAKE_SOURCE_DIR}/include/boot)
-target_link_options(${TARGET_FILE_NAME} PRIVATE "--entry=test")
+target_link_options(${TARGET_FILE_NAME} PRIVATE "--entry=${TARGET_ENTRY}")
 
 #引导器基础反汇编目标
 add_custom_target(

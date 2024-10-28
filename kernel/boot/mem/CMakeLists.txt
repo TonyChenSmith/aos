@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5.0)
 
 #引导器核心模块
-project(aos.boot.core VERSION 0.0.1 LANGUAGES C ASM_NASM)
+project(aos.boot.mem VERSION 0.0.1 LANGUAGES C ASM_NASM)
 
 #搜索源文件
 list(APPEND SRC_PATHS ".")
@@ -16,8 +16,8 @@ foreach(SRC_PATH ${SRC_PATHS})
 endforeach()
 
 #引导器核心目标
-set(TARGET_FILE_NAME core.aem)
-set(TARGET_ENTRY aos_bootstrap_jump)
+set(TARGET_FILE_NAME mem.aem)
+set(TARGET_ENTRY boot_init_memory)
 add_executable(${TARGET_FILE_NAME} ${SRC_LIST})
 target_include_directories(${TARGET_FILE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/base PRIVATE ${CMAKE_SOURCE_DIR}/include/boot)
 target_link_options(${TARGET_FILE_NAME} PRIVATE "--entry=${TARGET_ENTRY}")
