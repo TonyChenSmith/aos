@@ -11,7 +11,21 @@
 			"main.h": "c",
 			"boot.h": "c",
 			"type.h": "c",
-			"base.h": "c"
-		}
+			"base.h": "c",
+			"xmmintrin.h": "c",
+			"mmintrin.h": "c",
+			"mm_malloc.h": "c",
+			"builtins.h": "c",
+			"cpuid.h": "c",
+			"limits.h": "c",
+			"stddef.h": "c",
+			"stdbool.h": "c",
+			"stdint.h": "c",
+			"x86intrin.h": "c",
+			"ia32intrin.h": "c",
+			"immintrin.h": "c",
+			"x86gprintrin.h": "c"
+		},
+		"cmake.exportCompileCommandsFile": true
 	}
 }

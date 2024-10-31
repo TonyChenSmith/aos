@@ -16,7 +16,7 @@
  * 
  * @return 被调用函数的返回值。
  */
-typedef uintn (*boot_ms_call_2)(void* func,uintn arg1,uintn arg2);
+typedef uintn (*boot_ms_call_2)(void* restrict func,uintn arg1,uintn arg2);
 
 /*
  * 对MS ABI四参数函数的调用。
@@ -29,7 +29,7 @@ typedef uintn (*boot_ms_call_2)(void* func,uintn arg1,uintn arg2);
  * 
  * @return 被调用函数的返回值。
  */
-typedef uintn (*boot_ms_call_4)(void* func,uintn arg1,uintn arg2,uintn arg3,uintn arg4);
+typedef uintn (*boot_ms_call_4)(void* restrict func,uintn arg1,uintn arg2,uintn arg3,uintn arg4);
 
 /*
  * 内存复制。行为类似于string.h的memcpy函数。
@@ -40,7 +40,7 @@ typedef uintn (*boot_ms_call_4)(void* func,uintn arg1,uintn arg2,uintn arg3,uint
  * 
  * @return 输出内存指针。
  */
-typedef void* (*boot_memcpy)(void* s1,const void* s2,uintn n);
+typedef void* (*boot_memcpy)(void* restrict s1,const void* restrict s2,uintn n);
 
 /*
  * 基础模块函数表。

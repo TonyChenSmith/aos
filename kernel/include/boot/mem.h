@@ -18,6 +18,6 @@
  * 
  * @return 因为切换运行栈，不能返回。
  */
-extern void boot_init_memory(const boot_params* restrict params,const boot_base_functions* restrict functions);
+extern void boot_init_memory(const boot_params* params,const boot_base_functions* functions);
 
 #endif /*__AOS_BOOT_MEM_H__*/

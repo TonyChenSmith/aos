@@ -7,6 +7,7 @@ tags/
 .vscode/
 .edkCode/
 disk/
+debug_vbox.log
 debug.log
 BuildReport.log
 .ignore

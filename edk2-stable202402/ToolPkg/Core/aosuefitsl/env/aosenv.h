@@ -6,6 +6,7 @@
 #define __AOS_ENV_H__
 
 #include "aosdefine.h"
+#include "file/aosfile.h"
 
 #pragma pack(1)
 
@@ -57,6 +58,34 @@ typedef struct
 
 #define CPUID_EXT_PCP 0x80000008
 
+/*MTRR*/
+#define IA32_MTRRCAP 0x000000FE
+#define IA32_MTRR_DEF_TYPE 0x000002FF
+#define IA32_MTRR_FIX64K_00000 0x00000250
+#define IA32_MTRR_FIX16K_80000 0x00000258
+#define IA32_MTRR_FIX16K_A0000 0x00000259
+#define IA32_MTRR_FIX4K_C0000 0x00000268
+#define IA32_MTRR_FIX4K_C8000 0x00000269
+#define IA32_MTRR_FIX4K_D0000 0x0000026A
+#define IA32_MTRR_FIX4K_D8000 0x0000026B
+#define IA32_MTRR_FIX4K_E0000 0x0000026C
+#define IA32_MTRR_FIX4K_E8000 0x0000026D
+#define IA32_MTRR_FIX4K_F0000 0x0000026E
+#define IA32_MTRR_FIX4K_F8000 0x0000026F
+#define IA32_MTRR_PHYSBASE_BASE 0x00000200
+#define IA32_MTRR_PHYSMASK_BASE 0x00000201
+#define VMTRR_BASE(n) (IA32_MTRR_PHYSBASE_BASE|(n<<1))
+#define VMTRR_MASK(n) (IA32_MTRR_PHYSMASK_BASE|(n<<1))
+
+#define MTRR_UC 0
+#define MTRR_WC 1
+#define MTRR_WT 4
+#define MTRR_WP 5
+#define MTRR_WB 6
+
+/*MISC_ENABLE*/
+#define IA32_MISC_ENABLE 0x000001A0
+
 /*初始化内存*/
 EFI_STATUS
 EFIAPI
@@ -92,6 +121,11 @@ EFIAPI
 aos_set_memmap(
 	OUT UINTN* map_key
 );
+
+/*检查MSR信息，仅检查不记录*/
+VOID
+EFIAPI
+aos_check_msr(VOID);
 
 /*
  * 设置系统表。

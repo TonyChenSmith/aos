@@ -10,7 +10,7 @@
 
 #define offset_of(type,field) (uintn)__builtin_offsetof(type,field)
 
-extern void print_bytes(int8* buf,uint64 size);
+extern void print_bytes(const char* buf,uint64 size);
 
 extern void aos_cpu_hlt(void);
 

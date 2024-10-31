@@ -33,6 +33,7 @@
 	DebugLib
 	FileHandleLib
 	MemoryAllocationLib
+	PrintLib
 	UefiLib
 	UefiBootServicesTableLib
 	UefiApplicationEntryPoint

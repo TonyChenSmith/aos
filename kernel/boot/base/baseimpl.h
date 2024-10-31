@@ -10,16 +10,16 @@
 /*
  * 函数boot_ms_call_2的实现。
  */
-extern uintn base_ms_call_2(void* func,uintn arg1,uintn arg2);
+extern uintn base_ms_call_2(void* restrict func,uintn arg1,uintn arg2);
 
 /*
  * 函数boot_ms_call_4的实现。
  */
-extern uintn base_ms_call_4(void* func,uintn arg1,uintn arg2,uintn arg3,uintn arg4);
+extern uintn base_ms_call_4(void* restrict func,uintn arg1,uintn arg2,uintn arg3,uintn arg4);
 
 /*
  * 函数boot_memcpy的实现。
  */
-extern void* base_memcpy(void* s1,const void* s2,uintn n);
+extern void* base_memcpy(void* restrict s1,const void* restrict s2,uintn n);
 
 #endif /*__AOS_BOOT_BASE_IMPL_H__*/

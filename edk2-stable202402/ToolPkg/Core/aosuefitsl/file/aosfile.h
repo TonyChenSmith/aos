@@ -56,11 +56,31 @@
 #define aos_read_32(buffer,start) (LShiftU64(buffer[(start)+3],24)|LShiftU64(buffer[(start)+2],16)|LShiftU64(buffer[(start)+1],8)|(buffer[(start)+0]))
 #define aos_read_64(buffer,start) (LShiftU64(buffer[(start)+7],56)|LShiftU64(buffer[(start)+6],48)|LShiftU64(buffer[(start)+5],40)|LShiftU64(buffer[(start)+4],32)|LShiftU64(buffer[(start)+3],24)|LShiftU64(buffer[(start)+2],16)|LShiftU64(buffer[(start)+1],8)|(buffer[(start)+0]))
 
+/*预设日志空间大小*/
+#define AOS_LOG_SIZE 4096
+
 /*
  * 加载引导程序到内存上。
  */
 EFI_STATUS
 EFIAPI
 aos_load_bootstrap(VOID);
+
+/*
+ * 系统信息日志记录。
+ */
+EFI_STATUS
+EFIAPI
+aos_log_tsl(VOID);
+
+/*
+ * 实现一个打印函数用于日志输出。内部调用。
+ */
+VOID
+EFIAPI
+aos_log_printf(
+	IN CONST CHAR8* fmt,
+	...
+);
 
 #endif /*__AOS_FILE_H__*/

@@ -4,8 +4,8 @@
  */
 #include "boot.h"
 
-static int8 buffer[512];
-static int8 buffer1[512];
+static char buffer[512];
+static char buffer1[512];
 
 static void print_num(uintn number)
 {
@@ -23,7 +23,7 @@ static void print_num(uintn number)
 	print_bytes(buffer1,index);
 }
 
-static void line(int8* str,uintn number)
+static void line(const char* str,uintn number)
 {
 	uintn size=0;
 	while(str[size]!=0)
@@ -57,6 +57,7 @@ static void print_boot(void)
 	line(".runtime=",offset_of(boot_params,runtime));
 	line(".modules=",offset_of(boot_params,modules));
 	line(".boot_device=",offset_of(boot_params,boot_device));
+	line(".boot_log=",offset_of(boot_params,boot_log));
 }
 
 /*

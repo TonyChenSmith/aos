@@ -6,7 +6,7 @@
 #include "aosloader.h"
 
 /*启动参数*/
-AOS_BOOT_PARAMS boot_params;
+AOS_BOOT_PARAMS boot_params={0};
 
 /*
  * 入口函数。理论上不会返回。
@@ -82,6 +82,14 @@ aos_uefi_entry(
 		return status;
 	}
 
+	/*输出日志，此后才能获取系统表*/
+	status=aos_log_tsl();
+	if(EFI_ERROR(status))
+	{
+		DEBUG((DEBUG_ERROR,"Failed to log.\nError code:%u.\n",status));
+		return status;
+	}
+
 	/*获取内存表*/
 	UINTN key;
 	status=aos_set_memmap(&key);
@@ -121,11 +129,13 @@ aos_uefi_entry(
 	DEBUG((DEBUG_INFO,".runtime=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,runtime)));
 	DEBUG((DEBUG_INFO,".modules=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,modules)));
 	DEBUG((DEBUG_INFO,".boot_device=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,boot_device)));
+	DEBUG((DEBUG_INFO,".boot_log=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,boot_log)));
 	DEBUG((DEBUG_INFO,"===Jump aos.boot===\n"));
 
 	SWITCH_STACK_ENTRY_POINT aos_boot_trampoline=NULL;
 	/*跳转入口，可能会提前调用一个aos.boot.base模块作为最小c库*/
 	aos_boot_trampoline=(SWITCH_STACK_ENTRY_POINT)(boot_params.modules[0].entry+boot_params.modules[0].base);
 	aos_boot_trampoline(params_region,NULL);
+	
 	return EFI_SUCCESS;
 }

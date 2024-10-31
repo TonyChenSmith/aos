@@ -5,23 +5,23 @@
 #ifndef __AOS_BASE_TYPE_H__
 #define __AOS_BASE_TYPE_H__
 
-/*这里的定义以Clang C11为基准*/
-typedef unsigned char uint8;
-typedef unsigned short uint16;
-typedef unsigned int uint32;
-typedef unsigned long uint64;
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <x86intrin.h>
 
-typedef char int8;
-typedef short int16;
-typedef int int32;
-typedef long int64;
+/*缩减名称*/
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
 
-/*x64平台，地址8字节*/
-typedef uint64 uintn;
+typedef int8_t int8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
 
-/*逻辑类型*/
-typedef uint8 boolean;
-#define true ((boolean)(1==1))
-#define false ((boolean)(1==0))
+/*地址位宽类型*/
+typedef size_t uintn;
 
 #endif /*__AOS_BASE_TYPE_H__*/

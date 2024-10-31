@@ -72,7 +72,7 @@ typedef struct _boot_graphics_info
 typedef struct _boot_cpu_info
 {
 	uint32 max_processors; /*CPU拥有的逻辑处理器核心数*/
-	boolean level5;		   /*是否支持五级页*/
+	bool level5;		   /*是否支持五级页*/
 } boot_cpu_info;
 
 /*描述符寄存器内容*/
@@ -138,6 +138,7 @@ typedef struct _boot_params
 
 	boot_code_info modules[BOOT_MODULE_COUNT]; /*启动模块信息*/
 	void* boot_device;						   /*启动设备路径*/
+	char* boot_log;							   /*启动日志*/
 } boot_params;
 
 #endif /*__AOS_BOOT_PARAM_H__*/

@@ -10,7 +10,7 @@ foreach(BOOT_MODULE ${BOOT_MODULES})
 	add_custom_target(
 		copy_boot_${BOOT_MODULE}
 		ALL
-		COMMAND copy ${BOOT_MODULE}\\${BOOT_MODULE}.aem ${BOOT_MODULE}.aem "/Y"
+		COMMAND copy ${BOOT_MODULE}\\${BOOT_MODULE}.aem ${BOOT_MODULE}.aem "/Y" ">" "NUL"
 		DEPENDS ${PROJECT_BINARY_DIR}/${BOOT_MODULE}/${BOOT_MODULE}.aem
 		COMMENT "Copy ${BOOT_MODULE}.aem"
 	)

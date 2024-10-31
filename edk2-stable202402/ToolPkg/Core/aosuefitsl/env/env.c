@@ -463,7 +463,130 @@ aos_set_system_table(VOID)
 		}
 	}
 	ASSERT(boot_params.acpi!=NULL&&(boot_params.smbios!=NULL||boot_params.smbios3!=NULL));
-	DEBUG((DEBUG_INFO,"===AOS Table===\nacpi=0x%lX,smbios=%lu.\nsmbios3=0x%lX.\n",boot_params.acpi,boot_params.smbios,boot_params.smbios3));
+	DEBUG((DEBUG_INFO,"===AOS Table===\nacpi=0x%lX.\nsmbios=0x%lX.\nsmbios3=0x%lX.\n",boot_params.acpi,boot_params.smbios,boot_params.smbios3));
 	boot_params.runtime=gST->RuntimeServices;
 	return EFI_SUCCESS;
+}
+
+/*
+ * 显示MTRR属性。
+ */
+static
+UINT32
+aos_mtrr_type(
+	IN UINT64 type
+)
+{
+	UINT32 result=0x7F;
+	switch(type)
+	{
+		case MTRR_UC:
+			result=MTRR_UC;
+			break;
+		case MTRR_WC:
+			result=MTRR_WC;
+			break;
+		case MTRR_WT:
+			result=MTRR_WT;
+			break;
+		case MTRR_WP:
+			result=MTRR_WP;
+			break;
+		case MTRR_WB:
+			result=MTRR_WB;
+			break;
+		default:
+			break;
+	}
+	return result;
+}
+
+/*
+ * 检查MSR信息，按假设合理。
+ */
+VOID
+EFIAPI
+aos_check_msr(VOID)
+{
+	DEBUG((DEBUG_INFO,"===AOS MSR Info===\n"));
+	aos_log_printf("===AOS MSR Info===\n");
+	UINT64 mtrrcap=AsmReadMsr64(IA32_MTRRCAP);
+	UINT8 vcont=(UINT8)(mtrrcap&0xFF);
+	DEBUG((DEBUG_INFO,"MTRR Cap:VCNT=%lu,Fix=%c,WC=%c,SMRR=%c.\n",mtrrcap&0xFF,mtrrcap&BIT8?'Y':'N',mtrrcap&BIT10?'Y':'N',mtrrcap&BIT11?'Y':'N'));
+	aos_log_printf("MTRR Cap:VCNT=%lu,Fix=%c,WC=%c,SMRR=%c.\n",mtrrcap&0xFF,mtrrcap&BIT8?'Y':'N',mtrrcap&BIT10?'Y':'N',mtrrcap&BIT11?'Y':'N');
+	UINT64 mtrr_type=AsmReadMsr64(IA32_MTRR_DEF_TYPE);
+	DEBUG((DEBUG_INFO,"MTRR:FE=%c,E=%c,DefaultType=%u.\n",mtrr_type&BIT10?'E':'D',mtrr_type&BIT11?'E':'D',aos_mtrr_type(mtrr_type&0xFF)));
+	aos_log_printf("MTRR:FE=%c,E=%c,DefaultType=%u.\n",mtrr_type&BIT10?'E':'D',mtrr_type&BIT11?'E':'D',aos_mtrr_type(mtrr_type&0xFF));
+	if(mtrrcap&BIT8)
+	{
+		UINT64 fixed=AsmReadMsr64(IA32_MTRR_FIX64K_00000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed 00000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed 00000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+		fixed=AsmReadMsr64(IA32_MTRR_FIX16K_80000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed 80000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed 80000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+		fixed=AsmReadMsr64(IA32_MTRR_FIX16K_A0000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed A0000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed A0000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+		fixed=AsmReadMsr64(IA32_MTRR_FIX4K_C0000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed C0000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed C0000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+		fixed=AsmReadMsr64(IA32_MTRR_FIX4K_C8000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed C8000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed C8000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+		fixed=AsmReadMsr64(IA32_MTRR_FIX4K_D0000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed D0000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed D0000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+		fixed=AsmReadMsr64(IA32_MTRR_FIX4K_D8000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed D8000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed D8000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+		fixed=AsmReadMsr64(IA32_MTRR_FIX4K_E0000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed E0000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed E0000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+		fixed=AsmReadMsr64(IA32_MTRR_FIX4K_E8000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed E8000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed E8000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+		fixed=AsmReadMsr64(IA32_MTRR_FIX4K_F0000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed F0000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed F0000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+		fixed=AsmReadMsr64(IA32_MTRR_FIX4K_F8000);
+		DEBUG((DEBUG_INFO,"MTRR Fixed F8000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63))));
+		aos_log_printf("MTRR Fixed F8000:%u,%u,%u,%u,%u,%u,%u,%u\n",aos_mtrr_type(BitFieldRead64(fixed,0,7)),aos_mtrr_type(BitFieldRead64(fixed,8,15)),aos_mtrr_type(BitFieldRead64(fixed,16,23)),aos_mtrr_type(BitFieldRead64(fixed,24,31)),aos_mtrr_type(BitFieldRead64(fixed,32,39)),aos_mtrr_type(BitFieldRead64(fixed,40,47)),aos_mtrr_type(BitFieldRead64(fixed,48,55)),aos_mtrr_type(BitFieldRead64(fixed,56,63)));
+	}
+	UINT32 eax,ebx,ecx,edx;
+	UINT32 max;
+	AsmCpuid(CPUID_EXT_MAX,&eax,&ebx,&ecx,&edx);
+	if(eax>=CPUID_EXT_MAX)
+	{
+		AsmCpuid(CPUID_EXT_PCP,&eax,&ebx,&ecx,&edx);
+		max=eax&0xFF;
+	}
+	else
+	{
+		max=36;
+	}
+	DEBUG((DEBUG_INFO,"MAXPHYADDR=%u\n",max));
+	aos_log_printf("MAXPHYADDR=%u\n",max);
+	for(UINT8 index=0;index<vcont;index++)
+	{
+		UINT64 vbase=AsmReadMsr64(VMTRR_BASE(index));
+		UINT64 vmask=AsmReadMsr64(VMTRR_MASK(index));
+		DEBUG((DEBUG_INFO,"MTRR Variable %u:V=%c",index,vmask&BIT11?'E':'D'));
+		aos_log_printf("MTRR Variable %u:V=%c",index,vmask&BIT11?'E':'D');
+		if(vmask&BIT11)
+		{
+			UINT64 rbase=BitFieldRead64(vbase,12,63)<<12;
+			UINT64 rlimit=rbase+(~((vmask&(__UINT64_MAX__<<12))|(__UINT64_MAX__<<max)));
+			DEBUG((DEBUG_INFO,",Addr=0x%lX-0x%lX,Type=%u.\n",rbase,rlimit,aos_mtrr_type(vbase&0xFF)));
+			aos_log_printf(",Addr=0x%lX-0x%lX,Type=%u.\n",rbase,rlimit,aos_mtrr_type(vbase&0xFF));
+		}
+		else
+		{
+			DEBUG((DEBUG_INFO,".\n"));
+			aos_log_printf(".\n");
+		}
+	}
+	UINT64 enable=AsmReadMsr64(IA32_MISC_ENABLE);
+	DEBUG((DEBUG_INFO,"Fast Rep Movs:%c\n",enable&BIT1?'E':'D'));
+	aos_log_printf("Fast Rep Movs:%c\n",enable&BIT1?'E':'D');
 }

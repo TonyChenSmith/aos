@@ -13,6 +13,7 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/DebugLib.h>
+#include <Library/PrintLib.h>
 
 #pragma pack(1)
 
@@ -283,6 +284,7 @@ typedef struct _AOS_BOOT_PARAMS
 	AOS_BOOTSTRAP_CODE_INFO modules[AOS_BOOT_MODULE_COUNT];
 	/*引导设备*/
 	VOID* boot_device;
+	CHAR8* boot_log; /*日志信息*/
 } AOS_BOOT_PARAMS;
 
 /*启动参数*/
