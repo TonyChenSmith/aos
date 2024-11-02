@@ -17,7 +17,7 @@ endforeach()
 
 #引导器核心目标
 set(TARGET_FILE_NAME mem.aem)
-set(TARGET_ENTRY boot_init_memory)
+set(TARGET_ENTRY aos_boot_trampoline)
 add_executable(${TARGET_FILE_NAME} ${SRC_LIST})
 target_include_directories(${TARGET_FILE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/base PRIVATE ${CMAKE_SOURCE_DIR}/include/boot)
 target_link_options(${TARGET_FILE_NAME} PRIVATE "--entry=${TARGET_ENTRY}")

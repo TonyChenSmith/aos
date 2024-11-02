@@ -14,9 +14,12 @@
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses]
   UefiLib
+  MtrrLib
+  DebugLib
   UefiApplicationEntryPoint
   UefiBootServicesTableLib
 

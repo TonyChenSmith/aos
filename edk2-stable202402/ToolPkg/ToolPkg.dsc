@@ -46,10 +46,13 @@
 
   # Use the package directly without creating a new one.
   ToolPkg/Core/aosuefitsl/aosuefitsl.inf
-  UefiCpuPkg/Application/Cpuid/Cpuid.inf
+  #UefiCpuPkg/Application/Cpuid/Cpuid.inf
 
-  #ToolPkg/Application/Memory/Memory.inf
+#  ToolPkg/Application/Memory/Memory.inf{
+#	<LibraryClasses>
+#		DebugLib|MdePkg/Library/UefiDebugLibConOut/UefiDebugLibConOut.inf
+#  }
 
 [PcdsFixedAtBuild]
   gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x2F
-  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x8000007F
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x8020007F

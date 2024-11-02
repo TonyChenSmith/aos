@@ -8,6 +8,7 @@
 #include <Library/BaseLib.h>
 #include <Library/UefiApplicationEntryPoint.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Library/MtrrLib.h>
 
 typedef union {
   UINT64 value;
@@ -249,5 +250,7 @@ CommandEntry(
 		}
 		Print(L"4l 4k:%u 2M:%u 1G:%u\n",count[0],count[1],count[2]);
 	}
+
+	MtrrDebugPrintAllMtrrs();
 	return EFI_SUCCESS;
 }
