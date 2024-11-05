@@ -8,6 +8,12 @@
 /*启动参数*/
 AOS_BOOT_PARAMS boot_params={0};
 
+/*基础模块初始化函数*/
+typedef VOID* (*aos_boot_base_trampoline)(const AOS_BOOT_PARAMS* params);
+
+/*内存模块跳板函数，自此不返回*/
+typedef VOID (*aos_boot_trampoline)(const AOS_BOOT_PARAMS* params,const VOID* base_func);
+
 /*
  * 入口函数。理论上不会返回。
  * @param image_handle 程序句柄。
@@ -82,13 +88,14 @@ aos_uefi_entry(
 		return status;
 	}
 
-	/*输出日志，此后才能获取系统表*/
+	/*输出日志，此后才能获取系统表
 	status=aos_log_tsl();
 	if(EFI_ERROR(status))
 	{
 		DEBUG((DEBUG_ERROR,"Failed to log.\nError code:%u.\n",status));
 		return status;
 	}
+	*/
 
 	/*获取内存表*/
 	UINTN key;
@@ -127,15 +134,19 @@ aos_uefi_entry(
 	DEBUG((DEBUG_INFO,".smbios=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,smbios)));
 	DEBUG((DEBUG_INFO,".smbios3=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,smbios3)));
 	DEBUG((DEBUG_INFO,".runtime=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,runtime)));
-	DEBUG((DEBUG_INFO,".modules=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,modules)));
 	DEBUG((DEBUG_INFO,".boot_device=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,boot_device)));
-	DEBUG((DEBUG_INFO,".boot_log=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,boot_log)));
-	DEBUG((DEBUG_INFO,"===Jump aos.boot===\n"));
+	DEBUG((DEBUG_INFO,".modules=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,modules)));
+	DEBUG((DEBUG_INFO,"=== aos.boot===\n"));
 
-	SWITCH_STACK_ENTRY_POINT aos_boot_trampoline=NULL;
-	/*跳转入口，可能会提前调用一个aos.boot.base模块作为最小c库*/
-	aos_boot_trampoline=(SWITCH_STACK_ENTRY_POINT)(boot_params.modules[0].entry+boot_params.modules[0].base);
-	aos_boot_trampoline(params_region,NULL);
+	/*初始化基础模块*/
+	aos_boot_base_trampoline base_init=(aos_boot_base_trampoline)(boot_params.modules[0].entry+boot_params.modules[0].base);
+	VOID* funcs=base_init(&boot_params);
 	
+	/*初始化内存模块*/
+	aos_boot_trampoline trampoline=(aos_boot_trampoline)(boot_params.modules[1].entry+boot_params.modules[1].base);
+	trampoline(&boot_params,funcs);
+
+	/*原则不可达*/
+	CpuDeadLoop();
 	return EFI_SUCCESS;
 }

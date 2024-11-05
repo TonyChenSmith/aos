@@ -9,7 +9,7 @@
 #include "efi.h"
 
 /*启动模块个数*/
-#define BOOT_MODULE_COUNT 1
+#define BOOT_MODULE_COUNT 3
 
 /*PCI总线范围*/
 typedef struct _boot_pci_bus
@@ -73,6 +73,7 @@ typedef struct _boot_cpu_info
 {
 	uint32 max_processors; /*CPU拥有的逻辑处理器核心数*/
 	bool level5;		   /*是否支持五级页*/
+	bool erms;			   /*ERMS支持*/
 } boot_cpu_info;
 
 /*描述符寄存器内容*/
@@ -104,14 +105,9 @@ typedef struct _boot_env_info
 /*引导程序信息*/
 typedef struct _boot_code_info
 {
-	uintn base; 	 /*程序基址，物理地址*/
-	uintn entry; 	 /*入口偏移*/
-	uintn r_offset;  /*只读页面偏移，为相对偏移*/
-	uintn r_pages; 	 /*只读页面数*/
-	uintn rx_offset; /*运行页面偏移*/
-	uintn rx_pages;  /*运行页面数*/
-	uintn rw_offset; /*读写页面偏移*/
-	uintn rw_pages;	 /*读写页面数*/
+	uintn base;	 /*程序基址，物理地址*/
+	uintn entry; /*入口偏移*/
+	uintn pages; /*页面数目*/
 } boot_code_info;
 
 /*启动参数*/
@@ -136,9 +132,8 @@ typedef struct _boot_params
 	void* smbios3;							   /*SMBIOS3表*/
 	efi_runtime_services* runtime;			   /*UEFI运行服务*/
 
-	boot_code_info modules[BOOT_MODULE_COUNT]; /*启动模块信息*/
 	void* boot_device;						   /*启动设备路径*/
-	char* boot_log;							   /*启动日志*/
+	boot_code_info modules[BOOT_MODULE_COUNT]; /*启动模块信息*/
 } boot_params;
 
 #endif /*__AOS_BOOT_PARAM_H__*/

@@ -190,6 +190,7 @@ typedef struct
 {
 	UINT32 max_processors; /*CPU拥有的逻辑处理器核心数*/
 	BOOLEAN level5; /*是否支持五级页*/
+	BOOLEAN erms; /*增强rep movs*/
 } AOS_CPU_INFO;
 
 /*段、分页和中断信息*/
@@ -214,14 +215,7 @@ typedef struct
 {
 	UINTN base; /*程序基址，物理地址*/
 	UINTN entry; /*入口偏移*/
-	
-	/*理论上应该有且仅有三个部分，这一段用于页表设置属性*/
-	UINTN r_offset; /*只读页面偏移，为相对偏移*/
-	UINTN r_pages; /*只读页面数*/
-	UINTN rx_offset; /*运行页面偏移*/
-	UINTN rx_pages; /*运行页面数*/
-	UINTN rw_offset; /*读写页面偏移*/
-	UINTN rw_pages; /*读写页面数*/
+	UINTN pages; /*页面数目*/
 } AOS_BOOTSTRAP_CODE_INFO;
 
 /*内存*/
@@ -251,7 +245,7 @@ typedef struct
 #define AOS_KERNEL_IDT_PAGES aos_size_to_pages(SIZE_4KB)
 
 /*启动模块数目*/
-#define AOS_BOOT_MODULE_COUNT 1
+#define AOS_BOOT_MODULE_COUNT 3
 
 /*启动参数*/
 typedef struct _AOS_BOOT_PARAMS
@@ -280,11 +274,10 @@ typedef struct _AOS_BOOT_PARAMS
 	VOID* smbios3;
 	EFI_RUNTIME_SERVICES* runtime;
 
-	/*引导程序*/
-	AOS_BOOTSTRAP_CODE_INFO modules[AOS_BOOT_MODULE_COUNT];
 	/*引导设备*/
 	VOID* boot_device;
-	CHAR8* boot_log; /*日志信息*/
+	/*引导程序*/
+	AOS_BOOTSTRAP_CODE_INFO modules[AOS_BOOT_MODULE_COUNT];
 } AOS_BOOT_PARAMS;
 
 /*启动参数*/

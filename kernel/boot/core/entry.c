@@ -55,9 +55,8 @@ static void print_boot(void)
 	line(".smbios=",offset_of(boot_params,smbios));
 	line(".smbios3=",offset_of(boot_params,smbios3));
 	line(".runtime=",offset_of(boot_params,runtime));
-	line(".modules=",offset_of(boot_params,modules));
 	line(".boot_device=",offset_of(boot_params,boot_device));
-	line(".boot_log=",offset_of(boot_params,boot_log));
+	line(".modules=",offset_of(boot_params,modules));
 }
 
 /*

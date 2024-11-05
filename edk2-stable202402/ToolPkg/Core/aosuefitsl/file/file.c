@@ -8,6 +8,8 @@
  * 需要在引导器环节加载的内核文件。每个索引固定了一个对应的专门模块。
  */
 CHAR16* aos_boot_files[]={
+	L"aos\\boot\\base.aem",
+	L"aos\\boot\\mem.aem",
 	L"aos\\boot\\core.aem"
 };
 
@@ -94,36 +96,8 @@ aos_load_bootstrap_module(
 	{
 		if(aos_read_32(file,ppointer+P_TYPE)==ELF_P_TYPE_LOAD)
 		{
-			UINTN pbase=aos_pages_to_size(aos_read_64(file,ppointer+P_VADDR)>>12);
 			UINTN ppages=aos_size_to_pages((aos_read_64(file,ppointer+P_VADDR)&0xFFF)+aos_read_64(file,ppointer+P_MEMSZ));
 			pages=pages+ppages;
-			switch(aos_read_32(file,ppointer+P_FLAGS))
-			{
-				case ELF_P_FLAGS_R:
-					{
-						/*只读段*/
-						boot_params.modules[index].r_offset=pbase;
-						boot_params.modules[index].r_pages=ppages;
-					}
-					break;
-				case ELF_P_FLAGS_RW:
-					{
-						/*读写段*/
-						boot_params.modules[index].rw_offset=pbase;
-						boot_params.modules[index].rw_pages=ppages;
-					}
-					break;
-				case ELF_P_FLAGS_RX:
-					{
-						/*运行段*/
-						boot_params.modules[index].rx_offset=pbase;
-						boot_params.modules[index].rx_pages=ppages;
-					}
-					break;
-				default:
-					/*原则不可达*/
-					return EFI_LOAD_ERROR;
-			}
 		}
 		ppointer=ppointer+56;
 	}
@@ -133,6 +107,7 @@ aos_load_bootstrap_module(
 	{
 		return status;
 	}
+	boot_params.modules[index].pages=pages;
 	ZeroMem((VOID*)boot_params.modules[index].base,aos_pages_to_size(pages));
 	/*写入内存*/
 	ppointer=poffset;
@@ -227,17 +202,18 @@ aos_load_bootstrap(VOID)
 	return EFI_SUCCESS;
 }
 
+/*
 static VOID* buffer=NULL;
 static UINTN buffer_size=0;
 
-/*
+ *
  * 记录系统信息到日志文件。负责记录基础启动环境的不可控制的约定设置，在日志系统启动后添加到开头。
- */
+ *
 EFI_STATUS
 EFIAPI
 aos_log_tsl(VOID)
 {
-	/*EFI_STATUS status;
+	*EFI_STATUS status;
 	
 	status=aos_get_esp_root();
 	if(EFI_ERROR(status))
@@ -259,17 +235,17 @@ aos_log_tsl(VOID)
 	{
 		return status;
 	}
-	*/
+	*
 
-	/*第三步，申请内存空间用于记录*/
+	*第三步，申请内存空间用于记录*
 	buffer=aos_allocate_pool(AOS_LOG_SIZE);
 	buffer_size=AOS_LOG_SIZE;
 	boot_params.boot_log=buffer;
 
-	/*第四步，调用信息检查函数*/
+	*第四步，调用信息检查函数*
 	aos_check_msr();
 
-	/*第五步，写入*
+	*第五步，写入*
 	UINTN bsize=AOS_LOG_SIZE-buffer_size;
 	*status=log->Write(log,&bsize,buffer);
 	if(EFI_ERROR(status))
@@ -281,13 +257,13 @@ aos_log_tsl(VOID)
 	log->Close(log);
 	logdir->Close(logdir);
 	esp_root->Close(esp_root);
-	esp_root=NULL;*/
+	esp_root=NULL;*
 	return EFI_SUCCESS;
 }
 
-/*
+ *
  * 实现一个打印函数用于日志输出。
- */
+ *
 VOID
 EFIAPI
 aos_log_printf(
@@ -303,3 +279,4 @@ aos_log_printf(
 	ASSERT(buffer_size-used-1>0);
 	buffer_size=buffer_size-used;
 }
+*/

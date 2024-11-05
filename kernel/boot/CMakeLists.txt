@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5.0)
 project(aos.boot VERSION 0.0.1 LANGUAGES C ASM_NASM)
 
 #引导器项目，下分几个组件/模块项目。
-list(APPEND BOOT_MODULES "base" "core")
+list(APPEND BOOT_MODULES "base" "core" "mem")
 
 foreach(BOOT_MODULE ${BOOT_MODULES})
 	add_subdirectory(${BOOT_MODULE})

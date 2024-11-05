@@ -246,7 +246,7 @@ aos_init_cpu_info(VOID)
 	if(eax>=CPUID_STD_SEFID)
 	{
 		UINT32 bax,bbx,bcx,bdx;
-		AsmCpuid(CPUID_STD_SEFID,&bax,&bbx,&bcx,&bdx);
+		AsmCpuidEx(CPUID_STD_SEFID,CPUID_STD_SEFID_0,&bax,&bbx,&bcx,&bdx);
 		if(bcx&BIT16)
 		{
 			boot_params.env.cpu_info.level5=TRUE;
@@ -254,6 +254,14 @@ aos_init_cpu_info(VOID)
 		else
 		{
 			boot_params.env.cpu_info.level5=FALSE;
+		}
+		if(bbx&BIT9)
+		{
+			boot_params.env.cpu_info.erms=TRUE;
+		}
+		else
+		{
+			boot_params.env.cpu_info.erms=FALSE;
 		}
 	}
 	else
@@ -470,7 +478,7 @@ aos_set_system_table(VOID)
 
 /*
  * 显示MTRR属性。
- */
+ *
 static
 UINT32
 aos_mtrr_type(
@@ -501,9 +509,9 @@ aos_mtrr_type(
 	return result;
 }
 
-/*
+ *
  * 检查MSR信息，按假设合理。
- */
+ *
 VOID
 EFIAPI
 aos_check_msr(VOID)
@@ -590,3 +598,4 @@ aos_check_msr(VOID)
 	DEBUG((DEBUG_INFO,"Fast Rep Movs:%c\n",enable&BIT1?'E':'D'));
 	aos_log_printf("Fast Rep Movs:%c\n",enable&BIT1?'E':'D');
 }
+*/

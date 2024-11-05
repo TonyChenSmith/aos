@@ -47,6 +47,7 @@ typedef struct
 #define CPU_AMD_ID_EDX 0X69746E65
 
 #define CPUID_STD_SEFID 0x7
+#define CPUID_STD_SEFID_0 0
 
 #define CPUID_STD_ETE 0xB
 #define CPUID_STD_V2ETE 0x1F
