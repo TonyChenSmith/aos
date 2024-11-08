@@ -15,14 +15,14 @@ foreach(SRC_PATH ${SRC_PATHS})
 	list(APPEND SRC_LIST ${INPUTS})
 endforeach()
 
-#引导器核心目标
+#引导器内存目标
 set(TARGET_FILE_NAME mem.aem)
 set(TARGET_ENTRY aos_boot_trampoline)
 add_executable(${TARGET_FILE_NAME} ${SRC_LIST})
 target_include_directories(${TARGET_FILE_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include/base PRIVATE ${CMAKE_SOURCE_DIR}/include/boot)
 target_link_options(${TARGET_FILE_NAME} PRIVATE "--entry=${TARGET_ENTRY}")
 
-#引导器核心反汇编目标
+#引导器内存反汇编目标
 add_custom_target(
 	${TARGET_FILE_NAME}.d.txt
 	ALL
@@ -31,7 +31,7 @@ add_custom_target(
 	COMMENT "Disassemble ${TARGET_FILE_NAME}"
 )
 
-#引导器核心文件头目标
+#引导器内存文件头目标
 add_custom_target(
 	${TARGET_FILE_NAME}.h.txt
 	ALL

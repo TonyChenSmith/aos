@@ -82,7 +82,7 @@
 		"C_Cpp.clang_format_fallbackStyle": "LLVM",
 		"C_Cpp.formatting": "clangFormat",
 		"edk2code.generateIgnoreFile": true,
-		"C_Cpp.default.intelliSenseMode": "",
+		"C_Cpp.default.intelliSenseMode": "windows-clang-x64",
 		"C_Cpp.refactoring.includeHeader": "ifNeeded",
 	}
 }

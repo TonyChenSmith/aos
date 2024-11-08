@@ -46,6 +46,8 @@ typedef struct
 #define CPU_AMD_ID_ECX 0x444D4163
 #define CPU_AMD_ID_EDX 0X69746E65
 
+#define CPUID_STD_FEAT 0x1
+
 #define CPUID_STD_SEFID 0x7
 #define CPUID_STD_SEFID_0 0
 
@@ -56,6 +58,8 @@ typedef struct
 #define CPUID_STD_BASE_CPU 1
 
 #define CPUID_EXT_MAX 0x80000000
+
+#define CPUID_EXT_FEAT 0x80000001
 
 #define CPUID_EXT_PCP 0x80000008
 

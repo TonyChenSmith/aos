@@ -73,6 +73,8 @@ typedef struct _boot_cpu_info
 {
 	uint32 max_processors; /*CPU拥有的逻辑处理器核心数*/
 	bool level5;		   /*是否支持五级页*/
+	bool page1gb;		   /*1GB大页*/
+	bool pge;			   /*全局页*/
 	bool erms;			   /*ERMS支持*/
 } boot_cpu_info;
 

@@ -246,22 +246,22 @@ aos_init_cpu_info(VOID)
 	if(eax>=CPUID_STD_SEFID)
 	{
 		UINT32 bax,bbx,bcx,bdx;
+		AsmCpuid(CPUID_STD_FEAT,&bax,&bbx,&bcx,&bdx);
+		boot_params.env.cpu_info.pge=bdx&BIT13?TRUE:FALSE;
 		AsmCpuidEx(CPUID_STD_SEFID,CPUID_STD_SEFID_0,&bax,&bbx,&bcx,&bdx);
-		if(bcx&BIT16)
+		boot_params.env.cpu_info.level5=bcx&BIT16?TRUE:FALSE;
+		boot_params.env.cpu_info.erms=bbx&BIT9?TRUE:FALSE;
+		AsmCpuid(CPUID_EXT_MAX,&bax,&bbx,&bcx,&bdx);
+		if(bax>=CPUID_EXT_FEAT)
 		{
-			boot_params.env.cpu_info.level5=TRUE;
+			AsmCpuid(CPUID_EXT_FEAT,&bax,&bbx,&bcx,&bdx);
+			boot_params.env.cpu_info.page1gb=bdx&BIT26?TRUE:FALSE;
 		}
 		else
 		{
-			boot_params.env.cpu_info.level5=FALSE;
-		}
-		if(bbx&BIT9)
-		{
-			boot_params.env.cpu_info.erms=TRUE;
-		}
-		else
-		{
-			boot_params.env.cpu_info.erms=FALSE;
+			/*正常不存在这种情况*/
+			DEBUG((DEBUG_ERROR,"Error CPU.\n"));
+			return EFI_DEVICE_ERROR;
 		}
 	}
 	else
@@ -424,7 +424,7 @@ aos_set_memmap(
 		for(;offset<map_size;offset=offset+entry_size)
 		{
 			EFI_MEMORY_DESCRIPTOR* current=(EFI_MEMORY_DESCRIPTOR*)(base+offset);
-			if(current->Type==EfiConventionalMemory&&(current->NumberOfPages>max_page||(current->NumberOfPages=max_page&&current->PhysicalStart>max_base)))
+			if(current->Type==EfiConventionalMemory&&current->NumberOfPages>max_page)
 			{
 				max_base=current->PhysicalStart;
 				max_page=current->NumberOfPages;
