@@ -18,9 +18,4 @@
 /*页面分配池位映射数组长度*/
 #define BOOT_PTP_BITMAP (BOOT_PTP_PAGE>>6)
 
-/*物理内存管理配置*/
-
-/*物理内存列表预留长度*/
-#define BOOT_PMML_SIZE 1024
-
 #endif /*__AOS_BOOT_BOOT_H__*/

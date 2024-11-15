@@ -6,8 +6,6 @@
 #define __AOS_BOOT_MEM_H__
 
 #include "boot.h"
-#include "param.h"
-#include "base.h"
 #include "type.h"
 
 #pragma pack(1)
@@ -206,7 +204,7 @@ typedef union _ia32_page_entry
  * 
  * @return 因为切换运行栈，不能返回。
  */
-extern void boot_init_memory(const boot_params* params,const boot_base_functions* base_funcs);
+extern void boot_init_memory();
 
 /*
  * 初始化内核页表。
@@ -216,6 +214,6 @@ extern void boot_init_memory(const boot_params* params,const boot_base_functions
  *
  * @return 无返回值。
  */
-extern void boot_init_kpt(const boot_params* restrict params,const boot_base_functions* restrict base_funcs);
+extern void boot_init_kpt();
 
 #endif /*__AOS_BOOT_MEM_H__*/

@@ -118,6 +118,7 @@ aos_uefi_entry(
 	status=gBS->ExitBootServices(gImageHandle,key);
 	ASSERT(status==EFI_SUCCESS);
 
+	SIZE_512GB;
 	DEBUG((DEBUG_INFO,"===AOS UEFI TSL Module Summary===\n"));
 	DEBUG((DEBUG_INFO,"boot_params_size=%lu\n",sizeof(boot_params)));
 	DEBUG((DEBUG_INFO,".pool=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,pool)));

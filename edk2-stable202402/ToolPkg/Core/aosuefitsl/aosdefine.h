@@ -190,8 +190,8 @@ typedef struct
 {
 	UINT32 max_processors; /*CPU拥有的逻辑处理器核心数*/
 	BOOLEAN level5; /*是否支持五级页*/
-	BOOLEAN page1gb;		   /*1GB大页*/
-	BOOLEAN pge;			   /*全局页*/
+	BOOLEAN page1gb; /*1GB大页*/
+	BOOLEAN pge; /*全局页*/
 	BOOLEAN erms; /*增强rep movs*/
 } AOS_CPU_INFO;
 
