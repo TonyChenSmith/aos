@@ -17,6 +17,8 @@
 extern void boot_init_memory(const boot_params* params,const boot_base_functions* base_funcs)
 {
 	boot_init_kpt(params,base_funcs);
+	extern int test();
+	test();
 	
 	while(1)
 	{

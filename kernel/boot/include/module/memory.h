@@ -1,11 +1,10 @@
 /*
- * 内存模块函数和结构定义。定义了所有导出函数和入口函数。
+ * aos.boot.mem模块公开函数接口。
  * @date 2024-10-28
  */
-#ifndef __AOS_BOOT_MEM_H__
-#define __AOS_BOOT_MEM_H__
+#ifndef __AOS_BOOT_MEMORY_H__
+#define __AOS_BOOT_MEMORY_H__
 
-#include "boot.h"
 #include "param.h"
 #include "base.h"
 #include "type.h"
@@ -209,6 +208,15 @@ typedef union _ia32_page_entry
 extern void boot_init_memory(const boot_params* params,const boot_base_functions* base_funcs);
 
 /*
+ * 初始化物理内存管理列表。
+ *
+ * @param param 启动参数结构指针。
+ *
+ * @return 无返回值。
+ */
+extern void boot_pmm_init(const boot_params* restrict param);
+
+/*
  * 初始化内核页表。
  *
  * @param params	 启动参数结构指针。
@@ -218,4 +226,4 @@ extern void boot_init_memory(const boot_params* params,const boot_base_functions
  */
 extern void boot_init_kpt(const boot_params* restrict params,const boot_base_functions* restrict base_funcs);
 
-#endif /*__AOS_BOOT_MEM_H__*/
+#endif /*__AOS_BOOT_MEMORY_H__*/

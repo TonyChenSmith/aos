@@ -2,7 +2,7 @@
  * 内存模块分页管理函数。
  * @date 2024-11-10
  */
-#include "mem.h"
+#include "include\paging.h"
 
 /*页面位映射*/
 static uint64 page_bitmap[BOOT_PTP_BITMAP]={0};
@@ -49,6 +49,18 @@ static void boot_init_pm(boot_params* restrict params)
 }
 
 /*
+ * 给一个页面置零。
+ * 
+ * @param page 页面基址。
+ *
+ * @return 无返回值。
+ */
+static void boot_zero_page(void* page)
+{
+	__builtin_memset_inline(page,0,4096);
+}
+
+/*
  * 申请一页。
  *
  * @return 申请成功返回指针，申请失败返回NULL。
@@ -63,7 +75,7 @@ static void* boot_page_alloc()
 		{
 			page_bitmap[index]=(uint64)1<<63;
 			void* result=(void*)(page_base+(index<<18)+(63<<12));
-			__builtin_memset_inline(result,0,4096);
+			boot_zero_page(result);
 			return result;
 		}
 		else
@@ -85,7 +97,7 @@ static void* boot_page_alloc()
 					}
 					page_bitmap[index]=page_bitmap[index]|((uint64)1<<bit);
 					void* result=(void*)(page_base+(index<<18)+(bit<<12));
-					__builtin_memset_inline(result,0,4096);
+					boot_zero_page(result);
 					return result;
 				}
 			}
@@ -152,7 +164,7 @@ static uintn boot_get_vaddr(const uintn paddr)
 }
 
 /*系统页表，一般是PML5或PML4*/
-static ia32_page_entry* kernel_page_table=0;
+static page_entry* kernel_page_table=0;
 
 /*系统是否开启五级页表*/
 static bool is5level=false;
@@ -171,7 +183,7 @@ static void boot_into_virtual(const void* ptp)
 {
 	page_pbase=page_base;
 	page_base=(uintn)ptp;
-	kernel_page_table=(ia32_page_entry*)((uintn)kernel_page_table-page_pbase+(uintn)ptp);
+	kernel_page_table=(page_entry*)((uintn)kernel_page_table-page_pbase+(uintn)ptp);
 }
 
 /*
@@ -185,7 +197,7 @@ static void boot_into_virtual(const void* ptp)
  *
  * @return 成功分配时返回页面数目，失败返回0。
  */
-static uintn boot_map_pt(ia32_page_entry* restrict pt,const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
+static uintn boot_map_pt(page_entry* restrict pt,const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
 {
 
 }
@@ -201,7 +213,7 @@ static uintn boot_map_pt(ia32_page_entry* restrict pt,const uintn paddr,const ui
  *
  * @return 成功分配时返回页面数目，失败返回0。
  */
-static uintn boot_map_pd(ia32_page_entry* restrict pd,const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
+static uintn boot_map_pd(page_entry* restrict pd,const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
 {
 
 }
@@ -217,7 +229,7 @@ static uintn boot_map_pd(ia32_page_entry* restrict pd,const uintn paddr,const ui
  *
  * @return 成功分配时返回页面数目，失败返回0。
  */
-static uintn boot_map_pdpt(ia32_page_entry* restrict pdpt,const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
+static uintn boot_map_pdpt(page_entry* restrict pdpt,const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
 {
 	uintn cpages=pages;
 	uintn cpaddr=paddr;
@@ -225,13 +237,13 @@ static uintn boot_map_pdpt(ia32_page_entry* restrict pdpt,const uintn paddr,cons
 	while(cpages>0)
 	{
 		uintn index=(cvaddr>>30)&0x1FF;
-		ia32_page_entry* pd;
+		page_entry* pd;
 		if(pdpt[index].pml_entry.p)
 		{
 		}
 		else
 		{
-			pdpt=(ia32_page_entry*)boot_page_alloc();
+			pdpt=(page_entry*)boot_page_alloc();
 			if(pdpt==NULL)
 			{
 				return 0;
@@ -267,7 +279,7 @@ static uintn boot_map_pdpt(ia32_page_entry* restrict pdpt,const uintn paddr,cons
  *
  * @return 成功分配时返回页面数目，失败返回0。
  */
-static uintn boot_map_pml4(ia32_page_entry* restrict pml4,const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
+static uintn boot_map_pml4(page_entry* restrict pml4,const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
 {
 	uintn cpages=pages;
 	uintn cpaddr=paddr;
@@ -275,14 +287,14 @@ static uintn boot_map_pml4(ia32_page_entry* restrict pml4,const uintn paddr,cons
 	while(cpages>0)
 	{
 		uintn index=(cvaddr>>39)&0x1FF;
-		ia32_page_entry* pdpt;
+		page_entry* pdpt;
 		if(pml4[index].pml_entry.p)
 		{
-			pdpt=(ia32_page_entry*)boot_get_vaddr((uintn)pml4[index].pml_entry.addr_up<<32|pml4[index].pml_entry.addr_down<<12);
+			pdpt=(page_entry*)boot_get_vaddr((uintn)pml4[index].pml_entry.addr_up<<32|pml4[index].pml_entry.addr_down<<12);
 		}
 		else
 		{
-			pdpt=(ia32_page_entry*)boot_page_alloc();
+			pdpt=(page_entry*)boot_page_alloc();
 			if(pdpt==NULL)
 			{
 				return 0;
@@ -355,10 +367,10 @@ static void boot_map_address(const uintn paddr,const uintn vaddr,const uintn pag
  */
 extern void boot_init_kpt(const boot_params* restrict params,const boot_base_functions* restrict base_funcs)
 {
-	kernel_page_table=(ia32_page_entry*)boot_page_alloc();
+	kernel_page_table=(page_entry*)boot_page_alloc();
 	if(params->env.cpu_info.level5)
 	{
-		is5level=_base_rdcr4()&0x1000;
+		is5level=builtin_rdcr4()&0x1000;
 	}
 	else
 	{

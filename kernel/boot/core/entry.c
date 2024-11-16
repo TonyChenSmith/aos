@@ -20,7 +20,7 @@ static void print_num(uintn number)
 	{
 		buffer1[num]=buffer[index-1-num];
 	}
-	print_bytes(buffer1,index);
+	//print_bytes(buffer1,index);
 }
 
 static void line(const char* str,uintn number)
@@ -30,14 +30,15 @@ static void line(const char* str,uintn number)
 	{
 		size++;
 	}
-	print_bytes(str,size);
+	//print_bytes(str,size);
 	print_num(number);
-	print_bytes("\n",1);
+	//print_bytes("\n",1);
 }
 
 #undef offset_of
 #define offset_of(a,b) ((uintn)__builtin_offsetof(a,b))
 
+/*
 static void print_boot(void)
 {
 	line("===AOS Boot Module Summary===\nboot_params_size=",sizeof(boot_params));
@@ -58,18 +59,18 @@ static void print_boot(void)
 	line(".boot_device=",offset_of(boot_params,boot_device));
 	line(".modules=",offset_of(boot_params,modules));
 }
-
+*/
 /*
  * 内核入口。
  * 目前测试用。
  */
 uint64 aos_bootstrap_entry(void* arg1,void* arg2)
 {
-	print_bytes("Hello aos kernel.\n",sizeof("Hello aos kernel.\n")-1);
-	print_boot();
+	//print_bytes("Hello aos kernel.\n",sizeof("Hello aos kernel.\n")-1);
+	//print_boot();
 	while(1)
 	{
-		aos_cpu_hlt();
+		//aos_cpu_hlt();
 	}
 	return (uint64)arg1;
 }

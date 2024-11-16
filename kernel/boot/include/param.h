@@ -6,7 +6,7 @@
 #define __AOS_BOOT_PARAM_H__
 
 #include "type.h"
-#include "efi.h"
+#include "fw\efi.h"
 
 /*启动模块个数*/
 #define BOOT_MODULE_COUNT 3
