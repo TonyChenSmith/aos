@@ -5,7 +5,7 @@ project(aos.boot VERSION 0.0.1 LANGUAGES C ASM_NASM)
 list(APPEND INCLUDE_DIR_AOS_BOOT ${INCLUDE_DIR_AOS} ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 #引导器项目，下分几个组件/模块项目。"base" "core" 
-list(APPEND BOOT_MODULES "mem")
+list(APPEND BOOT_MODULES "memory")
 
 foreach(BOOT_MODULE ${BOOT_MODULES})
 	add_subdirectory(${BOOT_MODULE})

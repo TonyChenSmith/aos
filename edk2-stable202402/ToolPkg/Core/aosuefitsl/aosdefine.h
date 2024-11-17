@@ -198,15 +198,7 @@ typedef struct
 /*段、分页和中断信息*/
 typedef struct
 {
-	VOID* max_free; /*最大自由区，用于内核进行内存分配*/
-	UINTN max_pages; /*最大自由区页面数目*/
 	AOS_CPU_INFO cpu_info;
-	IA32_DESCRIPTOR gdtr; /*GDT信息*/
-	IA32_DESCRIPTOR idtr; /*IDT信息*/
-	UINTN ist; /*IST基址，这里为中断异常栈*/
-	UINTN ist_length; /*IST长度*/
-	UINTN tss; /*TSS基址，这里为每个核心的TSS集合*/
-	UINTN tss_length; /*TSS总长*/
 	EFI_MEMORY_DESCRIPTOR* memmap; /*内存图*/
 	UINTN entry_size; /*单项的大小*/
 	UINTN memmap_length; /*内存图长度，字节计数*/

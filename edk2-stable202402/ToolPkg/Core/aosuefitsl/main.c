@@ -80,19 +80,11 @@ aos_uefi_entry(
 		return status;
 	}
 
-	/*预分配配置空间*/
+	/*预分配配置空间
 	status=aos_create_config();
 	if(EFI_ERROR(status))
 	{
 		DEBUG((DEBUG_ERROR,"Pre-allocation of configuration space failed.\nError code:%u.\n",status));
-		return status;
-	}
-
-	/*输出日志，此后才能获取系统表
-	status=aos_log_tsl();
-	if(EFI_ERROR(status))
-	{
-		DEBUG((DEBUG_ERROR,"Failed to log.\nError code:%u.\n",status));
 		return status;
 	}
 	*/
@@ -118,26 +110,7 @@ aos_uefi_entry(
 	status=gBS->ExitBootServices(gImageHandle,key);
 	ASSERT(status==EFI_SUCCESS);
 
-	SIZE_512GB;
-	DEBUG((DEBUG_INFO,"===AOS UEFI TSL Module Summary===\n"));
-	DEBUG((DEBUG_INFO,"boot_params_size=%lu\n",sizeof(boot_params)));
-	DEBUG((DEBUG_INFO,".pool=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,pool)));
-	DEBUG((DEBUG_INFO,".pool_length=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,pool_length)));
-	DEBUG((DEBUG_INFO,".stack=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,stack)));
-	DEBUG((DEBUG_INFO,".stack_length=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,stack_length)));
-	DEBUG((DEBUG_INFO,".root_bridges=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,root_bridges)));
-	DEBUG((DEBUG_INFO,".root_bridge_length=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,root_bridge_length)));
-	DEBUG((DEBUG_INFO,".devices=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,devices)));
-	DEBUG((DEBUG_INFO,".device_length=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,device_length)));
-	DEBUG((DEBUG_INFO,".graphics_info=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,graphics_info)));
-	DEBUG((DEBUG_INFO,".env=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,env)));
-	DEBUG((DEBUG_INFO,".acpi=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,acpi)));
-	DEBUG((DEBUG_INFO,".smbios=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,smbios)));
-	DEBUG((DEBUG_INFO,".smbios3=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,smbios3)));
-	DEBUG((DEBUG_INFO,".runtime=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,runtime)));
-	DEBUG((DEBUG_INFO,".boot_device=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,boot_device)));
-	DEBUG((DEBUG_INFO,".modules=%lu\n",aos_offset_of(AOS_BOOT_PARAMS,modules)));
-	DEBUG((DEBUG_INFO,"=== aos.boot===\n"));
+	DEBUG((DEBUG_INFO,"===Into aos.boot===\n"));
 
 	/*初始化基础模块*/
 	aos_boot_base_trampoline base_init=(aos_boot_base_trampoline)(boot_params.modules[0].entry+boot_params.modules[0].base);

@@ -22,10 +22,11 @@ static uintn page_pbase=0;
  */
 static void boot_init_pm(boot_params* restrict params)
 {
+	/*
 	page_base=((uintn)params->env.max_free)+(params->env.max_pages<<12)-BOOT_PTP_SIZE;
 	if(params->env.max_pages<BOOT_PTP_PAGE)
 	{
-		/*按照搜索规则，原则上这一段是无意义的，但为了未来代码参考依旧保留*/
+		按照搜索规则，原则上这一段是无意义的，但为了未来代码参考依旧保留
 		uintn reserved=BOOT_PTP_PAGE-params->env.max_pages;
 		uintn index=0;
 		while(reserved>=64)
@@ -46,6 +47,7 @@ static void boot_init_pm(boot_params* restrict params)
 	{
 		params->env.max_pages=params->env.max_pages-BOOT_PTP_PAGE;
 	}
+	*/
 }
 
 /*

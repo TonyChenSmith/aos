@@ -115,11 +115,6 @@ EFI_STATUS
 EFIAPI
 aos_init_cpu_info(VOID);
 
-/*创建配置*/
-EFI_STATUS
-EFIAPI
-aos_create_config(VOID);
-
 /*获取内存图*/
 EFI_STATUS
 EFIAPI

@@ -90,15 +90,7 @@ typedef struct _dtr_info
 /*环境信息*/
 typedef struct _boot_env_info
 {
-	void* max_free; 			   /*最大自由区，用于内核进行内存分配*/
-	uintn max_pages;			   /*最大自由区页面数目*/
 	boot_cpu_info cpu_info;		   /*CPU信息*/
-	dtr_info gdtr;				   /*gdt信息*/
-	dtr_info idtr;				   /*idt信息*/
-	uintn ist;					   /*ist基址，这里为中断异常栈*/
-	uintn ist_length;			   /*ist长度*/
-	uintn tss;					   /*tss基址，这里为每个核心的tss集合*/
-	uintn tss_length;		   	   /*tss总长*/
 	efi_memory_descriptor* memmap; /*内存图*/
 	uintn entry_size;			   /*单项的大小*/
 	uintn memmap_length; 		   /*内存图长度，字节计数*/

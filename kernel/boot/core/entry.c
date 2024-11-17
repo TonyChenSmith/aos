@@ -2,7 +2,7 @@
  * 测试用入口程序。
  * @date 2024-10-17
  */
-#include "boot.h"
+#include "module/boot.h"
 
 static char buffer[512];
 static char buffer1[512];

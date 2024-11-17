@@ -9,7 +9,7 @@
  */
 CHAR16* aos_boot_files[]={
 	L"aos\\boot\\base.aem",
-	L"aos\\boot\\mem.aem",
+	L"aos\\boot\\memory.aem",
 	L"aos\\boot\\core.aem"
 };
 
@@ -201,82 +201,3 @@ aos_load_bootstrap(VOID)
 	esp_root=NULL;
 	return EFI_SUCCESS;
 }
-
-/*
-static VOID* buffer=NULL;
-static UINTN buffer_size=0;
-
- *
- * 记录系统信息到日志文件。负责记录基础启动环境的不可控制的约定设置，在日志系统启动后添加到开头。
- *
-EFI_STATUS
-EFIAPI
-aos_log_tsl(VOID)
-{
-	*EFI_STATUS status;
-	
-	status=aos_get_esp_root();
-	if(EFI_ERROR(status))
-	{
-		return status;
-	}
-	*第一步，打开log文件夹，不存在则创建。*
-	EFI_FILE_HANDLE logdir=NULL;
-	status=esp_root->Open(esp_root,&logdir,L"log",EFI_FILE_MODE_READ|EFI_FILE_MODE_WRITE|EFI_FILE_MODE_CREATE,EFI_FILE_DIRECTORY);
-	if(EFI_ERROR(status))
-	{
-		return status;
-	}
-
-	*第二步，打开日志文件，不存在则创建。*
-	EFI_FILE_HANDLE log=NULL;
-	status=logdir->Open(logdir,&log,L"aos.uefi.tsl.log",EFI_FILE_MODE_READ|EFI_FILE_MODE_WRITE|EFI_FILE_MODE_CREATE,0);
-	if(EFI_ERROR(status))
-	{
-		return status;
-	}
-	*
-
-	*第三步，申请内存空间用于记录*
-	buffer=aos_allocate_pool(AOS_LOG_SIZE);
-	buffer_size=AOS_LOG_SIZE;
-	boot_params.boot_log=buffer;
-
-	*第四步，调用信息检查函数*
-	aos_check_msr();
-
-	*第五步，写入*
-	UINTN bsize=AOS_LOG_SIZE-buffer_size;
-	*status=log->Write(log,&bsize,buffer);
-	if(EFI_ERROR(status))
-	{
-		return status;
-	}
-
-	*第六步，关闭全部内容*
-	log->Close(log);
-	logdir->Close(logdir);
-	esp_root->Close(esp_root);
-	esp_root=NULL;*
-	return EFI_SUCCESS;
-}
-
- *
- * 实现一个打印函数用于日志输出。
- *
-VOID
-EFIAPI
-aos_log_printf(
-	IN CONST CHAR8* fmt,
-	...
-)
-{
-	VA_LIST arg;
-	CHAR8* buf_start=(VOID*)(((UINTN)buffer)+AOS_LOG_SIZE-buffer_size);
-	VA_START(arg,fmt);
-	UINTN used=AsciiVSPrint(buf_start,buffer_size,fmt,arg);
-	VA_END(arg);
-	ASSERT(buffer_size-used-1>0);
-	buffer_size=buffer_size-used;
-}
-*/

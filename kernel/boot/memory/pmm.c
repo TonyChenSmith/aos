@@ -38,6 +38,7 @@ static void boot_pmm_nodecpy(const uintn dest,const uintn src)
  */
 static int boot_pmm_nodecmp(const uintn node,const uintn base,const uintn amount)
 {
+	/*逻辑应该是index与输入比较*/
 	uintn base1=nodes[node].base;
 	uintn limit1=nodes[node].base+(nodes[node].amount<<12);
 	uintn base2=base;
@@ -46,11 +47,11 @@ static int boot_pmm_nodecmp(const uintn node,const uintn base,const uintn amount
 	{
 		return 0;
 	}
-	else if(limit2<=base1)
+	else if(limit1<=base2)
 	{
 		return -1;
 	}
-	else if(base2>=limit1)
+	else if(base1>=limit2)
 	{
 		return 1;
 	}
@@ -210,14 +211,14 @@ static bool boot_pmm_merge(const uintn index,const mtype type)
 	uintn amount=nodes[index].amount;
 	uintn i=index;
 	uint8 count=0;
-	if(index>0&&nodes[index-1].type==type)
+	if(index>0&&nodes[index-1].type==type&&base==(nodes[index-1].base+(nodes[index-1].amount<<12)))
 	{
 		i--;
 		count++;
 		base=nodes[index-1].base;
 		amount=nodes[index-1].amount+amount;
 	}
-	if(index<nodes_size-1&&nodes[index+1].type==type)
+	if(index<nodes_size-1&&nodes[index+1].type==type&&nodes[index+1].base==(base+(amount<<12)))
 	{
 		count++;
 		amount=amount+nodes[index+1].amount;
@@ -341,7 +342,6 @@ static mtype boot_pmm_efi2mtype(const uint32 efi_type)
  */
 extern void boot_pmm_init(const boot_params* restrict param)
 {
-	/*添加整个已有映射到列表*/
 	efi_memory_descriptor* dsc=param->env.memmap;
 	uintn offset=param->env.entry_size;
 	uintn end=param->env.memmap_length+(uintn)dsc;
@@ -350,17 +350,18 @@ extern void boot_pmm_init(const boot_params* restrict param)
 		uintn index=boot_pmm_search(dsc->physical_start,dsc->pages);
 		mtype type=boot_pmm_efi2mtype(dsc->type);
 		boot_pmm_insert(index,dsc->physical_start,dsc->pages,type);
-		if(type==AVAILABLE)
-		{
-			boot_pmm_merge(index,type);
-		}
+		boot_pmm_merge(index,type);
 		dsc=(efi_memory_descriptor*)((uintn)dsc+offset);
+	}
+
+	void line(uintn index,uintn start,uintn end,uintn amount,uintn type);
+	for(uintn index=0;index<nodes_size;index++)
+	{
+		line(index,nodes[index].base,nodes[index].base+(nodes[index].amount<<12)-1,nodes[index].amount,nodes[index].type);
 	}
 }
 
-int test()
+extern void boot_pmm_alloc()
 {
-	boot_pmm_merge(0,0);
-	boot_pmm_split(0,1,0,0);
-	return boot_pmm_nodecmp(1,0,0);
+	_Alignof()
 }
