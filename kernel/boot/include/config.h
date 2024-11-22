@@ -12,6 +12,9 @@
 
 /*物理内存管理配置*/
 
+/*物理内存链表池*/
+#define BOOT_PM_POOL ((uintn)0x400000)
+
 /*物理内存列表预留长度*/
 #define BOOT_PMML_SIZE ((uintn)1024)
 

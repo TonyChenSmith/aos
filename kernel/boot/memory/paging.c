@@ -201,7 +201,7 @@ static void boot_into_virtual(const void* ptp)
  */
 static uintn boot_map_pt(page_entry* restrict pt,const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
 {
-
+	return 0;
 }
 
 /*
@@ -217,7 +217,7 @@ static uintn boot_map_pt(page_entry* restrict pt,const uintn paddr,const uintn v
  */
 static uintn boot_map_pd(page_entry* restrict pd,const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
 {
-
+	return 0;
 }
 
 /*
@@ -341,7 +341,7 @@ static uintn boot_map_pml4(page_entry* restrict pml4,const uintn paddr,const uin
  */
 static uintn boot_map_pml5(const uintn paddr,const uintn vaddr,const uintn pages,const uint32 attr)
 {
-	
+	return 0;
 }
 
 /*

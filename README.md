@@ -9,6 +9,7 @@
 1. `java`-AOS相关Java项目。
 1. `kernel`-内核项目。
 1. `test`-测试项目集。
+1. `vm`-虚拟机。
 
 在目录`edk2-stable202402`下，目前与本项目相关包如下：
 1. `ToolPkg`-工具包。编译出来的EFI文件都是`UEFI_APPLICATION`，在UEFI Shell中检查系统信息，或是测试小功能。现在组件`aos.uefi.tsl`作为AOS的`UEFI Bootstrap`编译包使用。
@@ -24,9 +25,12 @@
 1. `paging`-借系统运行环境和调试器，对分页管理算法进行检查和测试的项目。这里使用Virtual Studio的调试器进行调试运行，用于实时检查内存空间。
 1. `latex`-LaTeX编写、学习与测试。
 
+在目录`vm`为虚拟机相关配置和启动命令。
+
 由于分类和实际使用的区别，组件与项目名（或文件名）有以下对应关系：
 |组件|项目名|目标文件名|说明|
 |:---:|:---:|:---:|:---:|
 |`aos.uefi.tsl`|`${EDK2}/ToolPkg/Core/aosuefilts.inf`|`/EFI/BOOT/BOOTX64.EFI`|UEFI引导器。|
-|`aos.boot.core`|`${kernel}/boot/core`|`/aos/boot/core.aem`|ESP分区内系统内核核心模块。|
-|`aos.boot.base`|`${kernel}/boot/base`|`/aos/boot/base.aem`|ESP分区内系统内核基础模块。|
+|`aos.boot.core`|`${kernel}/boot/core`|`/aos/boot/core.aem`|ESP分区内核核心模块。|
+|`aos.boot.base`|`${kernel}/boot/base`|`/aos/boot/base.aem`|ESP分区内核基础模块。|
+|`aos.boot.memory`|`${kernel}/boot/memory`|`/aos/boot/memory.aem`|ESP分区内核内存模块。|

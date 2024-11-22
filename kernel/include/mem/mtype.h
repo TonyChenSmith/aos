@@ -30,4 +30,12 @@ typedef enum _mtype
  * 3.内核代码、内核数据、用户代码、用户数据取消映射改为可用。
  */
 
+/*内存申请类型*/
+typedef enum _malloc_type
+{
+	ANY,	/*任意。遵循使用最大地址的最小可用结点*/
+	MAX,	/*最大地址范围*/
+	ADDRESS	/*指定地址范围*/
+} malloc_type;
+
 #endif /*__AOS_MEM_MTYPE_H__*/

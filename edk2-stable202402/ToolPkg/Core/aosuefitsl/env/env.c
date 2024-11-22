@@ -132,9 +132,6 @@ CONST AOS_GDT_ENTRIES entries={
 
 /*局部量。*/
 
-/*当前未使用内存指针*/
-static VOID* current_pointer;
-
 /*池结尾*/
 static UINTN pool_end;
 
@@ -164,7 +161,7 @@ aos_init_memory(VOID)
 	DEBUG((DEBUG_INFO,"==AOS Memory Allocate==\n"));
 	DEBUG((DEBUG_INFO,"Memory Pool:B=0x%lX,E=0x%lX\n",pool,pool_end));
 
-	current_pointer=boot_params.pool;
+	boot_params.current_pointer=boot_params.pool;
 
 	/*
 	ist=SIZE_4GB-1;
@@ -204,13 +201,13 @@ aos_allocate_pages(
 	UINTN address_pages;
 	VOID* address=NULL;
 	UINTN address_size=aos_pages_to_size(pages);
-	address_pages=aos_size_to_pages((UINTN)current_pointer);
+	address_pages=aos_size_to_pages((UINTN)boot_params.current_pointer);
 	address=(VOID*)aos_pages_to_size(address_pages);
 	if((aos_pages_to_size(address_pages)+address_size)>pool_end)
 	{
 		return NULL;
 	}
-	current_pointer=(VOID*)(aos_pages_to_size(address_pages)+address_size);
+	boot_params.current_pointer=(VOID*)(aos_pages_to_size(address_pages)+address_size);
 	return address;
 }
 
@@ -224,12 +221,12 @@ aos_allocate_pool(
 )
 {
 	VOID* address=NULL;
-	if(((UINTN)current_pointer+size)>pool_end)
+	if(((UINTN)boot_params.current_pointer+size)>pool_end)
 	{
 		return NULL;
 	}
-	address=current_pointer;
-	current_pointer=(VOID*)((UINTN)current_pointer+size);
+	address=boot_params.current_pointer;
+	boot_params.current_pointer=(VOID*)((UINTN)boot_params.current_pointer+size);
 	return address;
 }
 

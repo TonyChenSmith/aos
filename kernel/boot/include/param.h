@@ -109,8 +109,7 @@ typedef struct _boot_params
 {
 	void* pool; 							   /*内存池基址*/
 	uintn pool_length; 						   /*内存池长度*/
-	void* stack; 							   /*栈基址*/
-	uintn stack_length; 					   /*栈长度*/
+	void* current_pointer; 					   /*内存池当前未用区域指针*/
 
 	boot_pci_root_info* root_bridges; 		   /*根桥信息数组*/
 	uintn root_bridge_length; 				   /*根桥数目*/

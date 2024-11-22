@@ -49,11 +49,24 @@ static void print_hex(uintn number)
 	print_bytes(buffer1,index);
 }
 
-void line(uintn index,uintn start,uintn end,uintn amount,uintn type)
+void list(uintn list,uintn head,uintn tail)
 {
-	print_bytes("Node-",sizeof("Node-")-1);
+	print_bytes("List-",sizeof("List-")-1);
+	print_num(list);
+	print_bytes("[",sizeof("[")-1);
+	print_num(head);
+	print_bytes(",",sizeof(",")-1);
+	print_num(tail);
+	print_bytes("]:\n",sizeof("]:\n")-1);
+}
+
+void line(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type)
+{
+	print_bytes("Index-",sizeof("Index-")-1);
 	print_num(index);
-	print_bytes(":0x",sizeof(":0x")-1);
+	print_bytes("(Node-",sizeof("(Node-")-1);
+	print_num(node);
+	print_bytes("):0x",sizeof("):0x")-1);
 	print_hex(start);
 	print_bytes("-0x",sizeof("-0x")-1);
 	print_hex(end);

@@ -247,8 +247,7 @@ typedef struct _AOS_BOOT_PARAMS
 	/*存储池信息*/
 	VOID* pool; /*内存池基址*/
 	UINTN pool_length; /*内存池长度*/
-	VOID* stack; /*栈基址*/
-	UINTN stack_length; /*栈长度*/
+	VOID* current_pointer; /*当前指针*/
 
 	/*PCI设备信息*/
 	PCI_ROOT_BRIDGE_INFO* root_bridges; /*根桥信息数组*/
