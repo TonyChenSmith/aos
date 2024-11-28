@@ -23,4 +23,16 @@ typedef int64_t int64;
 /*地址位宽类型*/
 typedef size_t uintn;
 
+/*内核句柄类型，用于底层结构封装*/
+typedef uintn khandle;
+
+/*调试块*/
+#ifdef DEBUG
+#define QEMU_START do{
+#define QEMU_END }while(false);
+#else
+#define QEMU_START while(false){
+#define QEMU_END }
+#endif
+
 #endif /*__AOS_TYPE_H__*/

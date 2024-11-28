@@ -5,6 +5,7 @@
 #include "include/pmm.h"
 #include "mem/mtype.h"
 #include "type.h"
+#include <stdbool.h>
 
 /*物理内存结点位映射*/
 static uint64 node_bitmap[BOOT_PM_BITMAP]={0};
@@ -15,8 +16,8 @@ static boot_pm_node* pool=NULL;
 /*结点池上限*/
 static uintn pool_limit=0;
 
-/*物理内存链表数组，0为头结点，1为尾结点，0-47为自由内存链表，48为已分配内存链表*/
-static uintn pmem[2][49]={{[0 ... 48]=BOOT_PM_NODE},{[0 ... 48]=BOOT_PM_NODE}};
+/*物理内存链表数组，0为头结点，1为尾结点，0-51为自由内存链表，52为已分配内存链表，53为内存映射链表，54为非内存资源链表*/
+static uintn pmem[2][55]={{[0 ... 54]=BOOT_PM_NODE},{[0 ... 54]=BOOT_PM_NODE}};
 
 /*
  * 位映射初始化。
@@ -25,20 +26,20 @@ static uintn pmem[2][49]={{[0 ... 48]=BOOT_PM_NODE},{[0 ... 48]=BOOT_PM_NODE}};
  *
  * @return 无返回值。
  */
-static void boot_pmm_bitmap_init(boot_params param)
+static void boot_pmm_bitmap_init(boot_params* param)
 {
-	pool=(boot_pm_node*)((uintn)param.current_pointer&0xFFF?(((uintn)param.current_pointer>>12)+1)<<12:(uintn)param.current_pointer);
+	pool=(boot_pm_node*)((uintn)param->current_pointer&0xFFF?(((uintn)param->current_pointer>>12)+1)<<12:(uintn)param->current_pointer);
 	uintn amount=0;
-	if((uintn)pool+BOOT_PM_POOL>(uintn)param.pool+param.pool_length)
+	if((uintn)pool+BOOT_PM_POOL>(uintn)param->pool+param->pool_length)
 	{
-		param.current_pointer=(void*)((uintn)param.pool+param.pool_length);
-		pool_limit=((uintn)param.current_pointer-(uintn)pool)/sizeof(boot_pm_node);
+		param->current_pointer=(void*)((uintn)param->pool+param->pool_length);
+		pool_limit=((uintn)param->current_pointer-(uintn)pool)/sizeof(boot_pm_node);
 		amount=BOOT_PM_NODE-pool_limit;
 	}
 	else
 	{
 		pool_limit=BOOT_PM_NODE;
-		param.current_pointer=(void*)((uintn)pool+BOOT_PM_POOL);
+		param->current_pointer=(void*)((uintn)pool+BOOT_PM_POOL);
 	}
 	uintn index=BOOT_PM_BITMAP-1;
 	while(amount>=64)
@@ -110,6 +111,7 @@ static void boot_pmm_nfree(uintn index)
 	{
 		return;
 	}
+	pool[index].amount=0;
 	uintn bitmap=0;
 	while(index>=64)
 	{
@@ -169,8 +171,13 @@ static int boot_pmm_ncomp(const uintn node,const uintn base,const uintn amount)
 static bool boot_pmm_nadd(const uintn list,const uintn base,const uintn amount,const mtype type)
 {
 	uintn node=boot_pmm_nalloc();
-	if(list>=49||amount==0||node>=BOOT_PM_NODE)
+	if(node>=pool_limit)
 	{
+		return false;
+	}
+	else if(list>=55||amount==0)
+	{
+		boot_pmm_nfree(node);
 		return false;
 	}
 	pool[node].base=base;
@@ -239,7 +246,7 @@ static bool boot_pmm_nadd(const uintn list,const uintn base,const uintn amount,c
  */
 static void boot_pmm_nremove(const uintn list,const uintn node)
 {
-	if(list>=49||node>=BOOT_PM_NODE)
+	if(list>=55||node>=pool_limit)
 	{
 		return;
 	}
@@ -321,7 +328,7 @@ static bool boot_pmm_fspilt(uintn base,uintn amount)
  */
 static void boot_pmm_fmerga(void)
 {
-	for(uint8 index=0;index<47;index++)
+	for(uint8 index=0;index<52;index++)
 	{
 		uintn a=pmem[0][index];
 		uintn length=(uintn)1<<(index+12);
@@ -366,6 +373,7 @@ static mtype boot_pmm_efi2mtype(const uint32 efi_type)
 			return RESERVED;
 		case EFI_LOADER_CODE:
 		case EFI_LOADER_DATA:
+			return BOOT_DATA;
 		case EFI_BOOT_SERVICES_CODE:
 		case EFI_BOOT_SERVICES_DATA:
 		case EFI_CONVENTIONAL_MEMORY:
@@ -391,32 +399,73 @@ static mtype boot_pmm_efi2mtype(const uint32 efi_type)
  *
  * @return 无返回值。
  */
-extern void boot_pmm_init(const boot_params* restrict param)
+extern void boot_pmm_init(boot_params* restrict param)
 {
+	uintn boot_data[]={(uintn)param->pool,param->modules[0].base,param->modules[1].base,param->modules[2].base};
+	uintn bdsize=sizeof(boot_data)/sizeof(uintn);
 	efi_memory_descriptor* dsc=param->env.memmap;
 	uintn offset=param->env.entry_size;
 	uintn end=param->env.memmap_length+(uintn)dsc;
+	boot_pmm_bitmap_init(param);
 	while((uintn)dsc<end)
 	{
 		mtype type=boot_pmm_efi2mtype(dsc->type);
-		if(type!=AVAILABLE)
+		if(type==AVAILABLE)
 		{
-			boot_pmm_nadd(48,dsc->physical_start,dsc->pages,type);
+			if(dsc->physical_start<0x100000)
+			{
+				/*最低1MB区*/
+				boot_pmm_nadd(53,dsc->physical_start,dsc->pages,LOWEST);
+			}
+			else
+			{
+				/*自由内存区域*/
+				boot_pmm_fspilt(dsc->physical_start,dsc->pages);
+			}
+		}
+		else if(type==BOOT_DATA)
+		{
+			uintn start=dsc->physical_start;
+			uintn end=dsc->physical_start+(dsc->pages<<12);
+			bool added=false;
+			for(uintn i=0;i<bdsize;i++)
+			{
+				if(start<=boot_data[i]&&end>boot_data[i])
+				{
+					boot_pmm_nadd(52,dsc->physical_start,dsc->pages,BOOT_DATA);
+					added=true;
+					break;
+				}
+			}
+			if(!added)
+			{
+				boot_pmm_fspilt(dsc->physical_start,dsc->pages);
+			}
+		}
+		else if(type==MMIO||type==RESERVED)
+		{
+			/*其他内存资源，MMIO也算*/
+			boot_pmm_nadd(54,dsc->physical_start,dsc->pages,type);
 		}
 		else
 		{
-			boot_pmm_fspilt(dsc->physical_start,dsc->pages);
+			/*一般的内存区域*/
+			boot_pmm_nadd(52,dsc->physical_start,dsc->pages,type);
 		}
 		dsc=(efi_memory_descriptor*)((uintn)dsc+offset);
 	}
+	
 	boot_pmm_fmerga();
+
+	QEMU_START
+
 	void list(uintn list,uintn head,uintn tail);
 	void line(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type);
-	for(uintn index=0;index<49;index++)
+	for(uintn index=0;index<55;index++)
 	{
 		list(index,pmem[0][index],pmem[1][index]);
 	}
-	for(uintn index=0;index<49;index++)
+	for(uintn index=0;index<55;index++)
 	{
 		list(index,pmem[0][index],pmem[1][index]);
 		uintn head=pmem[0][index];
@@ -427,47 +476,301 @@ extern void boot_pmm_init(const boot_params* restrict param)
 			head=pool[head].next;
 		}
 	}
+
+	QEMU_END
 }
 
 /*
- * 申请一段指定物理内存。
+ * 判断地址是否在结点区间内。
  *
- * @param addr	地址参数。这里为指定位置的基址。
- * @param pages	页数。
- * @param type	申请内存类型。该模式无视内存类型优先级。
+ * @param index 结点索引。
+ * @param addr	地址参数。
  *
- * @return 起始地址，或NULL。这里为了方便运算转为整数类型。
+ * @return 包含返回0，区间大于地址返回1，小于地址返回-1。
  */
-static uintn boot_pmm_alloc_addr(const uintn addr,const uintn pages,const mtype type)
+static int boot_pmm_ninclude(const uintn index,const uintn addr)
 {
-	return 0;
+	uintn base=pool[index].base;
+	uintn limit=base+(pool[index].amount<<12);
+	if(base>addr)
+	{
+		return 1;
+	}
+	else if(limit<=addr)
+	{
+		return -1;
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 /*
- * 申请一段最大范围的物理内存。
+ * 检查结点是否属于该链表。
  *
- * @param addr	地址参数。这里为开区间地址上限大小。
- * @param pages	页数。
- * @param type	申请内存类型。该模式无视内存类型优先级。
+ * @param list 链表索引。
+ * @param node 结点索引。
  *
- * @return 起始地址，或NULL。这里为了方便运算转为整数类型。
+ * @return 包含返回真，不包含或链表不存在返回假。
  */
-static uintn boot_pmm_alloc_max(const uintn addr,const uintn pages,const mtype type)
+static bool boot_pmm_ncontain(const uintn list,const uintn node)
 {
-	return 0;
+	if(list>=55||node>=pool_limit)
+	{
+		return false;
+	}
+	uintn head=pmem[0][list];
+	while(head<BOOT_PM_NODE)
+	{
+		if(head==node)
+		{
+			return true;
+		}
+		head=pool[head].next;
+	}
+	return false;
+}
+
+/*
+ * 对已存在结点上的部分地址进行映射，将剩余空闲内存进行拆分。仅用于内存内部分配。
+ *
+ * @param list	链表。
+ * @param node	结点。
+ * @param base	地址。
+ * @param pages	页数。
+ * @param type	申请内存类型。
+ *
+ * @return 无返回值。
+ */
+static void boot_pmm_map_free(const uintn list,const uintn node,const uintn base,const uintn pages,const mtype type)
+{
+	boot_pm_node pnode={pool[node].base,pool[node].amount,pool[node].type,0,0};
+	boot_pmm_nremove(list,node);
+	boot_pmm_nadd(52,base,pages,type);
+	boot_pmm_fspilt(pnode.base, (base-pnode.base)>>12);
+	boot_pmm_fspilt(base+(pages<<12), (pnode.base+(pnode.amount<<12)-base-(pages<<12))>>12);
+}
+
+/*
+ * 申请一段在最大范围物理地址的自由内存。找到内存块时优先从低地址开始切割，用于保证物理内存的对齐性质。
+ *
+ * @param addr	 最大基址。
+ * @param pages	 页数。
+ * @param type	 申请内存类型。
+ * @param target 申请成功时获得的地址。
+ *
+ * @return 成功返回真，失败返回假。
+ */
+static bool boot_pmm_falloc_max(const uintn addr,const uintn pages,const mtype type,uintn* restrict target)
+{
+	uintn index=0;
+	uintn max=(uintn)1<<index;
+	while(pages>max)
+	{
+		index++;
+		max=(uintn)1<<index;
+	}
+	uintn tail=pmem[1][index];
+	while(index<52)
+	{
+		if(tail>=BOOT_PM_NODE)
+		{
+			index++;
+			tail=pmem[1][index];
+			continue;
+		}
+		switch(boot_pmm_ncomp(tail,0,addr>>12))
+		{
+			case -1:
+				index++;
+				tail=pmem[1][index];
+				continue;
+			case 1:
+				tail=pool[tail].prev;
+				continue;
+			case 3:
+				/*在范围内*/
+				*target=pool[tail].base;
+				boot_pmm_map_free(index,tail,*target,pages,type);
+				return true;
+			case 2:
+				/*仅存在上界交错*/
+				if(((addr-pool[tail].base)>>12)<pages)
+				{
+					return false;
+				}
+				else
+				{
+					*target=pool[tail].base;
+					boot_pmm_map_free(index,tail,*target,pages,type);
+					return true;
+				}
+			case 0:
+				/*被囊括，原则上不会出现。因为最低1MB的内存不能连续且也不存在于可分配自由内存*/
+			default:
+				return false;
+		}
+	}
+	return false;
 }
 
 /*
  * 申请一段物理内存。
  *
- * @param alloc_t 申请内存类型。
- * @param addr	  地址参数。仅在申请为最大地址或指定地址时需要。
- * @param pages	  页数。
- * @param type	  申请内存类型。
+ * @param max	是否有最大上限。
+ * @param addr	地址参数。仅在申请为最大地址时需要。
+ * @param pages	页数。
+ * @param type	申请内存类型。
  *
  * @return 起始地址，或NULL。这里为了方便运算转为整数类型。
  */
-extern uintn boot_pmm_alloc(const malloc_type alloc_t,const uintn addr,const uintn pages,const mtype type)
+extern uintn boot_pmm_alloc(const bool max,const uintn addr,const uintn pages,const mtype type)
 {
-	return 0;
+	if(type==KERNEL_CODE||type==KERNEL_DATA||type==USER_CODE||type==USER_DATA||pages==0||(max&&__builtin_ctzg(addr,(int)sizeof(uintn)*8-1)<12))
+	{
+		return 0;
+	}
+	uintn result=0;
+	if(boot_pmm_falloc_max(max?addr:(__SIZE_MAX__>>12)<<12,pages,type,&result))
+	{
+		return result;
+	}
+	else
+	{
+		/*尝试整理空闲页面*/
+		boot_pmm_fmerga();
+		if(boot_pmm_falloc_max(max?addr:(__SIZE_MAX__>>12)<<12,pages,type,&result))
+		{
+			return result;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+}
+
+/*
+ * 释放已分配自由内存。
+ *
+ * @param pointer 地址。并不强制要求在申请区间的基地址，在申请区间有效范围就行。
+ *
+ * @return 无返回值。
+ */
+extern void boot_pmm_free(const uintn pointer)
+{
+	if(pointer==0)
+	{
+		return;
+	}
+	uintn tail=pmem[1][52];
+	while(tail<BOOT_PM_NODE)
+	{
+		if(boot_pmm_ninclude(tail,pointer))
+		{
+			uintn base=pool[tail].base;
+			uintn pages=pool[tail].amount;
+			boot_pmm_nremove(52,tail);
+			boot_pmm_fspilt(base,pages);
+			return;
+		}
+		tail=pool[tail].prev;
+	}
+}
+
+/*
+ * 映射一段内存，不需要验证其合法性，该函数仅记录映射。
+ *
+ * @param base	内存映射基址。
+ * @param pages 页面数目。
+ * @param type	内存类型。
+ *
+ * @return 无返回值。
+ */
+extern void boot_pmm_map(const uintn base,const uintn pages,const mtype type)
+{
+	uintn tail=pmem[1][53];
+	boot_pm_node pnode;
+	while(tail<BOOT_PM_NODE)
+	{
+		switch(boot_pmm_ncomp(tail,base,pages))
+		{
+			case 1:
+				tail=pool[tail].prev;
+				continue;
+			case 0:
+				pnode.base=pool[tail].base;
+				pnode.amount=pool[tail].amount;
+				pnode.type=pool[tail].type;
+				boot_pmm_nremove(53,tail);
+				boot_pmm_nadd(53,base,pages,type);
+				boot_pmm_nadd(53,pnode.base, (base-pnode.base)>>12,pnode.type);
+				boot_pmm_nadd(53,base+(pages<<12), (pnode.base+(pnode.amount<<12)-base-(pages<<12))>>12,pnode.type);
+				return;
+			case -1:
+				/*没被拦截说明没有对应项*/
+				boot_pmm_nadd(53,base,pages,type);
+				return;
+			case 2:
+			case 3:
+				return;
+		}
+	}
+}
+
+/*
+ * 获取映射列表的迭代器。该迭代器仅有查看的功能。
+ *
+ * @return 新迭代器。
+ */
+extern phandle boot_pmm_map_iterator(void)
+{
+	return pmem[0][53];
+}
+
+/*
+ * 获取已分配列表的迭代器。该迭代器仅有查看的功能。
+ *
+ * @return 新迭代器。
+ */
+extern phandle boot_pmm_allocated_iterator(void)
+{
+	return pmem[0][52];
+}
+
+/*
+ * 获取迭代器当前结点的结点信息。
+ *
+ * @param handle 迭代器句柄。
+ * @param base	 结点基址。
+ * @param amount 结点页数。
+ * @param type	 结点内存类型。
+ *
+ * @return 成功返回真，到达结尾或结点不存在返回假。
+ */
+extern bool boot_pmm_nread(phandle handle,uintn* restrict base,uintn* restrict amount,mtype* restrict type)
+{
+	if(handle>=pool_limit||pool[handle].amount==0)
+	{
+		return false;
+	}
+	*base=pool[handle].base;
+	*amount=pool[handle].amount;
+	*type=pool[handle].type;
+	return true;
+}
+
+/*
+ * 获取迭代器的下一个结点。
+ * 
+ * @return 下一个结点。
+ */
+extern phandle boot_pmm_nnext(phandle handle)
+{
+	if(handle>=pool_limit||pool[handle].amount==0)
+	{
+		return BOOT_PM_NODE;
+	}
+	return pool[handle].next;
 }

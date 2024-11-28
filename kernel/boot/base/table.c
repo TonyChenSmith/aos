@@ -2,9 +2,10 @@
  * 基础模块函数表实现。
  * @date 2024-10-27
  */
-#include "base.h"
+#include "module/base.h"
 #include "impl.h"
 #include "param.h"
+#include "builtin.h"
 
 /*基础模块函数表*/
 static boot_base_functions table;
@@ -23,7 +24,7 @@ extern boot_base_functions* boot_init_base(const boot_params* params)
 {
 	if(params->env.cpu_info.erms)
 	{
-		_base_wrmsr(IA32_MISC_ENABLE,_base_rdmsr(IA32_MISC_ENABLE)|1);
+		builtin_wrmsr(IA32_MISC_ENABLE,builtin_rdmsr(IA32_MISC_ENABLE)|1);
 	}
 	table.boot_ms_call_2=base_ms_call_2;
 	table.boot_ms_call_4=base_ms_call_4;

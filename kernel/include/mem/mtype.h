@@ -18,7 +18,9 @@ typedef enum _mtype
 	KERNEL_DATA, /*内核数据*/
 	USER_CODE,	 /*用户代码*/
 	USER_DATA,	 /*用户数据*/
-	MMIO		 /*内存映射*/
+	MMIO,		 /*内存映射*/
+	LOWEST,		 /*最低1MB区*/
+	BOOT_DATA	 /*启动数据，仅构建表使用*/
 } mtype;
 
 /*
@@ -29,13 +31,5 @@ typedef enum _mtype
  * 2.可用被映射为内核代码、内核数据、用户代码、用户数据。
  * 3.内核代码、内核数据、用户代码、用户数据取消映射改为可用。
  */
-
-/*内存申请类型*/
-typedef enum _malloc_type
-{
-	ANY,	/*任意。遵循使用最大地址的最小可用结点*/
-	MAX,	/*最大地址范围*/
-	ADDRESS	/*指定地址范围*/
-} malloc_type;
 
 #endif /*__AOS_MEM_MTYPE_H__*/

@@ -205,7 +205,7 @@ typedef union _ia32_page_entry
  * 
  * @return 因为切换运行栈，不能返回。
  */
-extern void boot_init_memory(const boot_params* params,const boot_base_functions* base_funcs);
+extern void boot_init_memory(boot_params* params,const boot_base_functions* base_funcs);
 
 /*
  * 初始化物理内存管理列表。
@@ -214,7 +214,7 @@ extern void boot_init_memory(const boot_params* params,const boot_base_functions
  *
  * @return 无返回值。
  */
-extern void boot_pmm_init(const boot_params* restrict param);
+extern void boot_pmm_init(boot_params* restrict param);
 
 /*
  * 初始化内核页表。

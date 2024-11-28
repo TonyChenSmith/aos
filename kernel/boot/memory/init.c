@@ -9,7 +9,7 @@ static char buffer[512];
 static char buffer1[512];
 extern void print_bytes(const char*,uintn);
 
-static void print_num(uintn number)
+void print_num(uintn number)
 {
 	uintn index=0;
 	uintn num=number;
@@ -25,7 +25,7 @@ static void print_num(uintn number)
 	print_bytes(buffer1,index);
 }
 
-static void print_hex(uintn number)
+void print_hex(uintn number)
 {
 	uintn index=0;
 	uintn num=number;
@@ -85,7 +85,7 @@ void line(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type)
  * 
  * @return 因为切换运行栈，不能返回。
  */
-extern void boot_init_memory(const boot_params* params,const boot_base_functions* base_funcs)
+extern void boot_init_memory(boot_params* params,const boot_base_functions* base_funcs)
 {
 	boot_pmm_init(params);
 	while(1)
