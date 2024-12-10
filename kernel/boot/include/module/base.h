@@ -53,6 +53,35 @@ typedef void* (*boot_memcpy)(void* restrict s1,const void* restrict s2,uintn n);
  */
 typedef void* (*boot_memset)(void* restrict str,const uint8 c,uintn n);
 
+/*端口位宽*/
+#define PORT_WIDTH_8 0
+#define PORT_WIDTH_16 1
+#define PORT_WIDTH_32 2
+
+/*
+ * 端口读取。
+ *
+ * @param dest	输出内存。
+ * @param width	读入位宽。
+ * @param port	读入端口。
+ * @param len	读取长度。
+ *
+ * @return 输出内存。
+ */
+typedef void* (*boot_readport)(void* restrict dest,uint8 width,uint16 port,uintn len);
+
+/*
+ * 端口写入。
+ *
+ * @param src	写入内存。
+ * @param width	写入位宽。
+ * @param port	写入端口。
+ * @param len	写入长度。
+ *
+ * @return 写入内存。
+ */
+typedef void* (*boot_writeport)(const void* restrict src,uint8 width,uint16 port,uintn len);
+
 /*
  * 基础模块函数表。
  */
@@ -62,6 +91,8 @@ typedef struct _boot_base_functions
 	boot_ms_call_4 boot_ms_call_4; /*MS ABI四参数调用*/
 	boot_memcpy boot_memcpy;	   /*内存复制*/
 	boot_memset boot_memset;	   /*内存设置*/
+	boot_readport boot_readport;   /*端口读取*/
+	boot_writeport boot_writeport; /*端口写入*/
 } boot_base_functions;
 
 #endif /*__AOS_BOOT_BASE_H__*/

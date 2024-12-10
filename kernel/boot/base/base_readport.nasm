@@ -9,18 +9,34 @@ section .text
 ; 端口读取。
 ;
 ; @param (rdi) 输出内存。
-; @param (rsi) 。
-; @param (rdx) 写入端口。
-; @param (rcx) 读取字节数。
+; @param (rsi) 读入位宽。
+; @param (rdx) 读入端口。
+; @param (rcx) 读取长度。
 ; 
 ; @return 输出内存。
 ;------------------------------------------------------------------------------
-global base_memset
-base_memset:
-	mov rcx,rdx
-	mov rax,rsi
-	mov rdx,rdi
+global base_readport
+base_readport:
+	mov eax,esi
+	mov rsi,rdi
 	cld
-	rep stosb
-	mov rax,rdx
+.rb:
+	cmp eax,0
+	ja .rw
+	rep insb
+	jmp .rend
+.rw:
+	cmp eax,1
+	ja .rd
+	rep insw
+	jmp .rend
+.rd:
+	cmp eax,2
+	ja .rfault
+	rep insd
+.rend:
+	mov rax,rsi
+	ret
+.rfault:
+	xor rax,rax
 	ret

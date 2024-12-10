@@ -15,6 +15,8 @@ print_bytes:
 	mov rcx,rdi
 	mov rdx,0x402 ;debugcon
 	cld
+	rep outsd
+	rep outsw
 	rep outsb
 	ret
 

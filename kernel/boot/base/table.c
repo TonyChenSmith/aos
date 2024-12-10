@@ -3,6 +3,7 @@
  * @date 2024-10-27
  */
 #include "include/table.h"
+#include "include/impl.h"
 
 /*基础模块函数表*/
 static boot_base_functions table;
@@ -24,5 +25,6 @@ extern boot_base_functions* boot_init_base(const boot_params* params)
 	table.boot_ms_call_4=base_ms_call_4;
 	table.boot_memcpy=base_memcpy;
 	table.boot_memset=base_memset;
+	base_readport((void*)0x100000004,255,0x402,0x100000001);
 	return &table;
 }

@@ -53,4 +53,28 @@ extern void* base_memcpy(void* restrict s1,const void* restrict s2,uintn n);
  */
 extern void* base_memset(void* restrict str,const uint8 c,uintn n);
 
+/*
+ * 端口读取，对函数指针类型boot_readport的实现。
+ *
+ * @param dest	输出内存。
+ * @param width	读入位宽。
+ * @param port	读入端口。
+ * @param len	读取长度。
+ *
+ * @return 输出内存。
+ */
+extern void* base_readport(void* restrict dest,uint8 width,uint16 port,uintn len);
+
+/*
+ * 端口写入，对函数指针类型boot_writeport的实现。
+ *
+ * @param src	写入内存。
+ * @param width	写入位宽。
+ * @param port	写入端口。
+ * @param len	写入长度。
+ *
+ * @return 写入内存。
+ */
+extern void* base_writeport(const void* restrict src,uint8 width,uint16 port,uintn len);
+
 #endif /*__AOS_BOOT_BASE_IMPL_H__*/
