@@ -1,15 +1,16 @@
 /*
- * 分页管理函数。
+ * 页表管理函数。
  * @date 2024-11-15
  */
-#ifndef __AOS_BOOT_MEMORY_PAGING_H__
-#define __AOS_BOOT_MEMORY_PAGING_H__
+#ifndef __AOS_BOOT_MEMORY_PTM_H__
+#define __AOS_BOOT_MEMORY_PTM_H__
 
 #include "type.h"
 #include "config.h"
 #include "module/base.h"
 #include "param.h"
 #include "builtin.h"
+#include "pmm.h"
 
 #pragma pack(1)
 
@@ -133,10 +134,26 @@ typedef union _page_entry
 
 #pragma pack()
 
-/*页面分配池页数*/
-#define BOOT_PTP_PAGE (BOOT_PTP_SIZE>>12)
+/*页表分配池结点*/
+typedef struct _boot_ptp_node
+{
+	struct _boot_ptp_node* prev; /*前一个结点*/
+	struct _boot_ptp_node* next; /*后一个结点*/
+	uint16 pages;				 /*管理页面总数*/
+	uint16 free;				 /*空闲页面数目*/
+	uint16 bitmap;				 /*位映射数组长度，单位为一个64位无符号整数*/
+	uint16 offset;				 /*结点管辖页面偏移，一般为一个页面大小*/
+} boot_ptp_node;
 
-/*页面分配池位映射数组长度*/
-#define BOOT_PTP_BITMAP (BOOT_PTP_PAGE>>6)
+/*配置范围检查*/
+#if BOOT_PT_POOL<10||BOOT_PT_POOL>((4096-24)<<3)
+#error The value of BOOT_PT_POOL is not within the supported range.
+#endif
 
-#endif /*__AOS_BOOT_MEM_PAGING_H__*/
+/*单个页面分配池位映射数组长度*/
+#define BOOT_PT_BITMAP (((uintn)BOOT_PT_POOL)>>6)
+
+/*单个页面分配池页数*/
+#define BOOT_PT_PAGE (BOOT_PT_BITMAP>>6)
+
+#endif /*__AOS_BOOT_MEM_PTM_H__*/

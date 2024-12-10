@@ -5,17 +5,15 @@
 #ifndef __AOS_BOOT_CONFIG_H__
 #define __AOS_BOOT_CONFIG_H__
 
-/*页表池配置*/
+/*内存模块配置*/
 
-/*页面分配池大小，PTP指代page table pool*/
-#define BOOT_PTP_SIZE ((uintn)0x800000)
+/*物理内存链表池大小。默认为4MB*/
+#define BOOT_PM_POOL 0x400000
 
-/*物理内存管理配置*/
+/*单个页面分配池可分配页数，大小支持从10到32576。默认为1023（补1页可有4MB）*/
+#define BOOT_PT_POOL 1023
 
-/*物理内存链表池*/
-#define BOOT_PM_POOL ((uintn)0x400000)
-
-/*物理内存列表预留长度*/
-#define BOOT_PMML_SIZE ((uintn)1024)
+/*单个内存映射分配池可分配结点数，大小支持从64到32576。默认为26112（补1页可有1MB）*/
+#define BOOT_MM_POOL 26112
 
 #endif /*__AOS_BOOT_CONFIG_H__*/

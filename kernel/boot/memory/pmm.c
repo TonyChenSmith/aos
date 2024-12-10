@@ -1,11 +1,8 @@
 /*
- * 内存模块物理内存管理函数。
+ * 物理内存管理函数。
  * @date 2024-11-14
  */
 #include "include/pmm.h"
-#include "mem/mtype.h"
-#include "type.h"
-#include <stdbool.h>
 
 /*物理内存结点位映射*/
 static uint64 node_bitmap[BOOT_PM_BITMAP]={0};
@@ -442,6 +439,7 @@ extern void boot_pmm_init(boot_params* restrict param)
 				boot_pmm_fspilt(dsc->physical_start,dsc->pages);
 			}
 		}
+
 		else if(type==MMIO||type==RESERVED)
 		{
 			/*其他内存资源，MMIO也算*/
@@ -449,8 +447,8 @@ extern void boot_pmm_init(boot_params* restrict param)
 		}
 		else
 		{
-			/*一般的内存区域*/
-			boot_pmm_nadd(52,dsc->physical_start,dsc->pages,type);
+			/*其他内存区域*/
+			boot_pmm_nadd(53,dsc->physical_start,dsc->pages,type);
 		}
 		dsc=(efi_memory_descriptor*)((uintn)dsc+offset);
 	}
@@ -461,9 +459,15 @@ extern void boot_pmm_init(boot_params* restrict param)
 
 	void list(uintn list,uintn head,uintn tail);
 	void line(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type);
-	for(uintn index=0;index<55;index++)
+	dsc=param->env.memmap;
+	offset=param->env.entry_size;
+	end=param->env.memmap_length+(uintn)dsc;
+
+	while((uintn)dsc<end)
 	{
-		list(index,pmem[0][index],pmem[1][index]);
+		void node(efi_memory_descriptor* dsc);
+		node(dsc);
+		dsc=(efi_memory_descriptor*)((uintn)dsc+offset);
 	}
 	for(uintn index=0;index<55;index++)
 	{

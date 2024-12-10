@@ -2,7 +2,9 @@
  * 内存模块初始化函数。
  * @date 2024-10-28
  */
-#include "module/memory.h"
+#include "fw/efi.h"
+#include "include/pmm.h"
+#include "module/base.h"
 #include "type.h"
 
 static char buffer[512];
@@ -47,6 +49,23 @@ void print_hex(uintn number)
 		buffer1[num]=buffer[index-1-num];
 	}
 	print_bytes(buffer1,index);
+}
+
+static uintn id=0;
+
+void node(efi_memory_descriptor* dsc)
+{
+	print_bytes("Node-",sizeof("Node-")+0x100000000ULL);
+	print_num(id++);
+	print_bytes(":base=0x",sizeof(":base=0x")-1);
+	print_hex(dsc->physical_start);
+	print_bytes(",page=",sizeof(",page=")-1);
+	print_num(dsc->pages);
+	print_bytes(",type=",sizeof(",type=")-1);
+	print_num(dsc->type);
+	print_bytes(",support=0x",sizeof(",support=0x")-1);
+	print_hex(dsc->attribute);
+	print_bytes("\n",sizeof("\n")-1);
 }
 
 void list(uintn list,uintn head,uintn tail)

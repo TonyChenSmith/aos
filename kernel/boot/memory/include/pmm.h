@@ -20,11 +20,25 @@ typedef struct _boot_pm_node
 	uint32 next;  /*下一结点*/
 } boot_pm_node;
 
+/*配置范围检查*/
+#if BOOT_PM_POOL<0x3200||BOOT_PM_POOL>0x400000
+#error The value of BOOT_PM_POOL is not within the supported range.
+#endif
+
 /*物理内存结点最大数目*/
-#define BOOT_PM_NODE (BOOT_PM_POOL/sizeof(boot_pm_node))
+#define BOOT_PM_NODE (((uintn)BOOT_PM_POOL)/sizeof(boot_pm_node))
 
 /*物理内存结点位映射*/
 #define BOOT_PM_BITMAP (BOOT_PM_NODE/64)
+
+/*
+ * 初始化物理内存管理列表。
+ *
+ * @param param 启动参数结构指针。
+ *
+ * @return 无返回值。
+ */
+extern void boot_pmm_init(boot_params* restrict param);
 
 /*
  * 申请一段物理内存。

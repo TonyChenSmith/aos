@@ -208,15 +208,6 @@ typedef union _ia32_page_entry
 extern void boot_init_memory(boot_params* params,const boot_base_functions* base_funcs);
 
 /*
- * 初始化物理内存管理列表。
- *
- * @param param 启动参数结构指针。
- *
- * @return 无返回值。
- */
-extern void boot_pmm_init(boot_params* restrict param);
-
-/*
  * 初始化内核页表。
  *
  * @param params	 启动参数结构指针。

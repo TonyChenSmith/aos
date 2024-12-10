@@ -1,11 +1,11 @@
 /*
- * 内存模块分页管理函数。
+ * 页表管理函数。
  * @date 2024-11-10
  */
-#include "include\paging.h"
+#include "include/ptm.h"
 
 /*页面位映射*/
-static uint64 page_bitmap[BOOT_PTP_BITMAP]={0};
+static uint64 page_bitmap[2]={0};
 
 /*管理页面基址，连续内存*/
 static uintn page_base=0;
@@ -69,7 +69,7 @@ static void boot_zero_page(void* page)
  */
 static void* boot_page_alloc()
 {
-	uintn index=BOOT_PTP_BITMAP;
+	uintn index=2;
 	while(index>0)
 	{
 		index--;

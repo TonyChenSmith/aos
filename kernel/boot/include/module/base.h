@@ -32,24 +32,36 @@ typedef uintn (*boot_ms_call_2)(void* restrict func,uintn arg1,uintn arg2);
 typedef uintn (*boot_ms_call_4)(void* restrict func,uintn arg1,uintn arg2,uintn arg3,uintn arg4);
 
 /*
- * 内存复制。行为类似于string.h的memcpy函数。
+ * 内存复制，行为类似于string.h的memcpy函数。
  *
- * @param s1 输出内存指针。
- * @param s2 输入内存指针。
- * @param n  复制数目。
+ * @param s1 输出内存。
+ * @param s2 输入内存。
+ * @param n  复制字节数。
  * 
- * @return 输出内存指针。
+ * @return 输出内存。
  */
 typedef void* (*boot_memcpy)(void* restrict s1,const void* restrict s2,uintn n);
+
+/*
+ * 内存设置，行为类似于string.h的memset函数。
+ *
+ * @param str 写入内存。
+ * @param c	  写入值。
+ * @param n	  写入字节数。
+ * 
+ * @return 写入内存。
+ */
+typedef void* (*boot_memset)(void* restrict str,const uint8 c,uintn n);
 
 /*
  * 基础模块函数表。
  */
 typedef struct _boot_base_functions
 {
-	boot_ms_call_2 boot_ms_call_2;
-	boot_ms_call_4 boot_ms_call_4;
-	boot_memcpy boot_memcpy;
+	boot_ms_call_2 boot_ms_call_2; /*MS ABI两参数调用*/
+	boot_ms_call_4 boot_ms_call_4; /*MS ABI四参数调用*/
+	boot_memcpy boot_memcpy;	   /*内存复制*/
+	boot_memset boot_memset;	   /*内存设置*/
 } boot_base_functions;
 
 #endif /*__AOS_BOOT_BASE_H__*/
