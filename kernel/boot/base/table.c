@@ -11,9 +11,9 @@ static boot_base_functions table;
 /*
  * 基础模块初始化函数，主要是在支持ERMS的CPU上确保开启了ERMS。
  *
- * @param params 启动参数结构指针。
+ * @param params 启动参数结构。
  * 
- * @return 基础模块函数表指针。
+ * @return 基础模块函数表。
  */
 extern boot_base_functions* boot_init_base(const boot_params* params)
 {
@@ -25,6 +25,7 @@ extern boot_base_functions* boot_init_base(const boot_params* params)
 	table.boot_ms_call_4=base_ms_call_4;
 	table.boot_memcpy=base_memcpy;
 	table.boot_memset=base_memset;
-	base_readport((void*)0x100000004,255,0x402,0x100000001);
+	table.boot_readport=base_readport;
+	table.boot_writeport=base_writeport;
 	return &table;
 }

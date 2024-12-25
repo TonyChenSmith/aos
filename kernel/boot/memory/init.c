@@ -3,13 +3,29 @@
  * @date 2024-10-28
  */
 #include "fw/efi.h"
-#include "include/pmm.h"
+#include "memory/memory_defs.h"
 #include "module/base.h"
-#include "type.h"
+#include "basic_type.h"
+#include "param.h"
+#include "include/pmm.h"
 
 static char buffer[512];
 static char buffer1[512];
-extern void print_bytes(const char*,uintn);
+static boot_base_functions* bf;
+extern void print_bytes(const char* src,uintn n)
+{
+	bf->boot_writeport(src,PORT_WIDTH_8,0x402,n);
+}
+
+extern void prints(const char* src)
+{
+	uintn l=0;
+	while(src[l])
+	{
+		l++;
+	}
+	print_bytes(src,l);
+}
 
 void print_num(uintn number)
 {
@@ -53,9 +69,9 @@ void print_hex(uintn number)
 
 static uintn id=0;
 
-void node(efi_memory_descriptor* dsc)
+void pnode(efi_memory_descriptor* dsc)
 {
-	print_bytes("Node-",sizeof("Node-")+0x100000000ULL);
+	print_bytes("Node-",sizeof("Node-")-1);
 	print_num(id++);
 	print_bytes(":base=0x",sizeof(":base=0x")-1);
 	print_hex(dsc->physical_start);
@@ -68,7 +84,7 @@ void node(efi_memory_descriptor* dsc)
 	print_bytes("\n",sizeof("\n")-1);
 }
 
-void list(uintn list,uintn head,uintn tail)
+void plist(uintn list,uintn head,uintn tail)
 {
 	print_bytes("List-",sizeof("List-")-1);
 	print_num(list);
@@ -79,7 +95,7 @@ void list(uintn list,uintn head,uintn tail)
 	print_bytes("]:\n",sizeof("]:\n")-1);
 }
 
-void line(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type)
+void pline(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type)
 {
 	print_bytes("Index-",sizeof("Index-")-1);
 	print_num(index);
@@ -99,14 +115,15 @@ void line(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type)
 /*
  * 初始化内存空间。其内有四个步骤：构造页表、切换页表、设置CPU寄存器和切换运行栈。
  *
- * @param params	 启动参数结构指针。
- * @param base_funcs 基础模块函数表指针。
+ * @param params 启动参数结构。
+ * @param bfuncs 基础模块函数表。
  * 
  * @return 因为切换运行栈，不能返回。
  */
-extern void boot_init_memory(boot_params* params,const boot_base_functions* base_funcs)
+extern void boot_init_memory(boot_params* params,const boot_base_functions* bfuncs)
 {
-	boot_pmm_init(params);
+	bf=(boot_base_functions*)bfuncs;
+	boot_pmm_init(params,bfuncs);
 	while(1)
 	{
 		__asm__("hlt"::);

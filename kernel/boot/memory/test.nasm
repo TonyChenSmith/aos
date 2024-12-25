@@ -5,19 +5,6 @@
 default REL
 section .text
 
-;打印字符。
-;extern void print_bytes(const char* buf,uint64 size)
-;buf rdi
-;size rsi
-global print_bytes
-print_bytes:
-	xchg rdi,rsi
-	mov rcx,rdi
-	mov rdx,0x402 ;debugcon
-	cld
-	rep outsb
-	ret
-
 ;设置代码段。
 global aos_set_cs
 aos_set_cs:

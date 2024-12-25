@@ -1,365 +1,227 @@
 /*
- * 物理内存管理函数。
- * @date 2024-11-14
+ * 物理内存伙伴系统。
+ * @date 2024-12-15
  */
 #include "include/pmm.h"
 
-/*物理内存结点位映射*/
-static uint64 node_bitmap[BOOT_PM_BITMAP]={0};
+/*伙伴系统*/
+static buddy_list buddy={
+	.pool=(void*)HANDLE_UNDEFINED,
+	.block={[0 ... 51]={HANDLE_UNDEFINED,HANDLE_UNDEFINED}}
+};
 
-/*物理内存结点池基址*/
-static boot_pm_node* pool=NULL;
-
-/*结点池上限*/
-static uintn pool_limit=0;
-
-/*物理内存链表数组，0为头结点，1为尾结点，0-51为自由内存链表，52为已分配内存链表，53为内存映射链表，54为非内存资源链表*/
-static uintn pmem[2][55]={{[0 ... 54]=BOOT_PM_NODE},{[0 ... 54]=BOOT_PM_NODE}};
+/*记录链表，0为已分配链表，1为映射链表，2为其他记录*/
+static linked_list record_list[3]={[0 ... 2]={HANDLE_UNDEFINED,HANDLE_UNDEFINED}};
 
 /*
- * 位映射初始化。
+ * 物理内存位映射池初始化。
  *
- * @param param 启动参数结构指针。
+ * @param param 启动参数结构。
+ * @param bbft	基础模块函数表。
  *
  * @return 无返回值。
  */
-static void boot_pmm_bitmap_init(boot_params* param)
+static void boot_pmm_bitmap_pool_init(boot_params* restrict param,const boot_base_functions* bbft)
 {
-	pool=(boot_pm_node*)((uintn)param->current_pointer&0xFFF?(((uintn)param->current_pointer>>12)+1)<<12:(uintn)param->current_pointer);
-	uintn amount=0;
-	if((uintn)pool+BOOT_PM_POOL>(uintn)param->pool+param->pool_length)
+	uintn base=(((uintn)param->current_pointer>>12)+((uintn)param->current_pointer&0xFFF?1:0))<<12;
+	if((uintn)param->pool+param->pool_length-base<BOOT_PMP_SIZE)
 	{
-		param->current_pointer=(void*)((uintn)param->pool+param->pool_length);
-		pool_limit=((uintn)param->current_pointer-(uintn)pool)/sizeof(boot_pm_node);
-		amount=BOOT_PM_NODE-pool_limit;
+		/*可用内存不足，可能是参数设置问题，也有可能是预设内存池大小问题*/
+		DEBUG_START
+		/*错误：引导器预设内存池空间不足以分配该数目的物理页框结点，请尝试重新配置BOOT_PHYSICAL_MEMORY_POOL。系统因此关机。*/
+		#define BOOT_PM_ERROR_MSG "Error:Insufficient space in the loader preset memory pool to allocate the specified number of physical page frame nodes.Please try reconfiguring BOOT_PHYSICAL_MEMORY_POOL.The system will shut down as a result.\n"
+		bbft->boot_writeport(BOOT_PM_ERROR_MSG,PORT_WIDTH_8,QEMU_DEBUGCON,sizeof(BOOT_PM_ERROR_MSG)-1);
+		DEBUG_END
+		bbft->boot_ms_call_4(param->runtime->reset_system,EFI_RESET_SHUTDOWN,EFI_OUT_OF_RESOURCES,0,0);
+		__builtin_unreachable();
 	}
-	else
-	{
-		pool_limit=BOOT_PM_NODE;
-		param->current_pointer=(void*)((uintn)pool+BOOT_PM_POOL);
-	}
-	uintn index=BOOT_PM_BITMAP-1;
-	while(amount>=64)
-	{
-		amount=amount-64;
-		node_bitmap[index--]=UINT64_MAX;
-	}
-	while(amount>0)
-	{
-		node_bitmap[index]=node_bitmap[index]>>1;
-		node_bitmap[index]=node_bitmap[index]|0x8000000000000000ULL;
-		amount--;
-	}
+	param->current_pointer=(void*)(base+BOOT_PMP_SIZE);
+	boot_bitmap_pool_init((void*)base,BOOT_PHYSICAL_MEMORY_POOL,sizeof(physical_page_frame),bbft);
+	buddy.pool=(bitmap_pool*)base;
 }
 
 /*
- * 给一个结点置零。
+ * 物理页框结点清空。
+ *
+ * @param node 结点。
  * 
- * @param index 结点索引。
- *
  * @return 无返回值。
  */
-static void boot_pmm_zero(const uintn index)
+static void boot_pmm_clear(const handle node)
 {
-	__builtin_memset_inline(&pool[index],0,sizeof(boot_pm_node));
+	__builtin_memset_inline(boot_bitmap_pool_content(buddy.pool,node,sizeof(physical_page_frame)),0,sizeof(physical_page_frame));
 }
 
 /*
- * 申请一个结点。
+ * 物理页框区间比较。
  *
- * @return 一个结点，失败返回结点索引边界。
+ * @param left	左页框。
+ * @param right	右页框。
+ * 
+ * @return -1小于，0等于或左覆盖右，1大于，2左右交错，3右左交错，4右覆盖左。
  */
-static uintn boot_pmm_nalloc(void)
+static int32 boot_pmm_compare(const physical_page_frame* left,const physical_page_frame*right)
 {
-	uintn bitmap=0;
-	while(bitmap<BOOT_PM_BITMAP)
-	{
-		if(node_bitmap[bitmap]==UINT64_MAX)
-		{
-			bitmap++;
-			continue;
-		}
-		else
-		{
-			uintn index=0;
-			while(node_bitmap[bitmap]&((uintn)1<<index))
-			{
-				index++;
-			}
-			node_bitmap[bitmap]=node_bitmap[bitmap]|((uintn)1<<index);
-			index=(bitmap<<6)+index;
-			boot_pmm_zero(index);
-			return index;
-		}
-	}
-	return BOOT_PM_NODE;
-}
-
-/*
- * 释放一个结点。
- *
- * @param index 结点索引。
- *
- * @return 无返回值。
- */
-static void boot_pmm_nfree(uintn index)
-{
-	if(index>=pool_limit)
-	{
-		return;
-	}
-	pool[index].amount=0;
-	uintn bitmap=0;
-	while(index>=64)
-	{
-		bitmap++;
-		index=index-64;
-	}
-	node_bitmap[bitmap]=node_bitmap[bitmap]&(~((uintn)1<<index));
-}
-
-/*
- * 结点比较。
- *
- * @param node	 比较左式。
- * @param base	 比较右式基址。
- * @param amount 比较右式页数。
- *
- * @return 小于返回-1，包含或相等返回0，大于返回1，部分重叠返回2，覆盖返回3。
- */
-static int boot_pmm_ncomp(const uintn node,const uintn base,const uintn amount)
-{
-	uintn base1=pool[node].base;
-	uintn limit1=pool[node].base+(pool[node].amount<<12);
-	uintn base2=base;
-	uintn limit2=base+(amount<<12);
-	if(base1<=base2&&limit1>=limit2)
-	{
-		return 0;
-	}
-	else if(limit1<=base2)
+	uintn la=left->base;
+	uintn lb=la-1+(left->pages<<12);
+	uintn ra=right->base;
+	uintn rb=ra-1+(right->pages<<12);
+	if(lb<ra)
 	{
 		return -1;
 	}
-	else if(base1>=limit2)
+	else if(rb<la)
 	{
 		return 1;
 	}
-	else if(base1>=base2&&limit1<=limit2)
+	else if(la<=ra&&rb<=lb)
 	{
-		return 3;
+		return 0;
 	}
-	else
+	else if(ra<=la&&lb<=rb&&!(ra==la&&rb==lb))
+	{
+		return 4;
+	}
+	else if(la<ra&&ra<lb&&lb<rb)
 	{
 		return 2;
 	}
+	else
+	{
+		return 3;
+	}
 }
 
 /*
- * 物理内存链表添加结点。
+ * 链表添加结点。
  *
- * @param list	 链表索引。
- * @param base	 页面基址。
- * @param amount 页面数目。
- * @param type	 内存类型。
+ * @param list 链表。
+ * @param node 结点。需要提前初始化。
  *
- * @return 成功返回真，失败返回假，包括页数为零，链表索引超出范围、没有内存或添加结点违反分离原则。
+ * @return 成功返回真，失败返回假。
  */
-static bool boot_pmm_nadd(const uintn list,const uintn base,const uintn amount,const mtype type)
+static bool boot_pmm_list_add(linked_list* restrict list,const handle node)
 {
-	uintn node=boot_pmm_nalloc();
-	if(node>=pool_limit)
+	if(list->head==HANDLE_UNDEFINED)
 	{
-		return false;
-	}
-	else if(list>=55||amount==0)
-	{
-		boot_pmm_nfree(node);
-		return false;
-	}
-	pool[node].base=base;
-	pool[node].amount=amount;
-	pool[node].type=type;
-	uintn head=pmem[0][list];
-	if(head>=BOOT_PM_NODE)
-	{
-		pmem[0][list]=node;
-		pmem[1][list]=node;
-		pool[node].next=BOOT_PM_NODE;
-		pool[node].prev=BOOT_PM_NODE;
+		list->head=node;
+		list->tail=node;
 		return true;
 	}
 	else
 	{
-		while(head<BOOT_PM_NODE)
+		uintn head=list->head;
+		physical_page_frame* left;
+		physical_page_frame* right;
+		right=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,node,sizeof(physical_page_frame));
+		while(head!=HANDLE_UNDEFINED)
 		{
-			switch(boot_pmm_ncomp(head,base,amount))
+			left=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,head,sizeof(physical_page_frame));
+			switch(boot_pmm_compare(left,right))
 			{
 				case -1:
-					head=pool[head].next;
+					/*小于，到下一结点*/
+					head=left->next;
 					continue;
 				case 1:
-					pool[node].next=head;
-					uintn prev=pool[head].prev;
-					pool[head].prev=node;
-					if(prev>=BOOT_PM_NODE)
+					/*大于，添加结点*/
+					if(left->prev!=HANDLE_UNDEFINED)
 					{
-						/*最小结点*/
-						pool[node].prev=BOOT_PM_NODE;
-						pmem[0][list]=node;
+						physical_page_frame* pc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,left->prev,sizeof(physical_page_frame));
+						pc->next=node;
+						right->prev=left->prev;
+						right->next=head;
+						left->prev=node;
 					}
 					else
 					{
-						pool[prev].next=node;
-						pool[node].prev=prev;
+						list->head=node;
+						left->prev=node;
+						right->next=head;
 					}
 					return true;
-				case 0:
-					/*独立区域，不应该重合*/
-				case 2:
-				case 3:
 				default:
-					boot_pmm_nfree(node);
 					return false;
 			}
 		}
-		/*最大结点*/
-		head=pmem[1][list];
-		pool[node].prev=head;
-		pool[node].next=BOOT_PM_NODE;
-		pool[head].next=node;
-		pmem[1][list]=node;
+		/*全小于，添加到末尾*/
+		left=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,list->tail,sizeof(physical_page_frame));
+		left->next=node;
+		right->prev=list->tail;
+		list->tail=node;
 		return true;
 	}
 }
 
 /*
- * 物理内存链表删除结点。
+ * 链表删除结点。
  *
- * @param list 链表索引。
- * @param node 内存结点。
+ * @param list 链表。
+ * @param node 结点。
  *
- * @return 无返回值。
+ * @return 有删除行为返回真，无行为返回假。
  */
-static void boot_pmm_nremove(const uintn list,const uintn node)
+static bool boot_pmm_list_remove(linked_list* restrict list,const handle node)
 {
-	if(list>=55||node>=pool_limit)
+	handle head=list->head;
+	while(head!=HANDLE_UNDEFINED)
 	{
-		return;
-	}
-	uintn head=pmem[0][list];
-	while(head<BOOT_PM_NODE)
-	{
+		physical_page_frame* hc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,head,sizeof(physical_page_frame));
 		if(head==node)
 		{
-			uintn next=pool[head].next;
-			head=pool[head].prev;
-			if(head>=BOOT_PM_NODE)
+			if(hc->prev==HANDLE_UNDEFINED)
 			{
-				pmem[0][list]=next;
-				if(next>=BOOT_PM_NODE)
+				/*头结点或唯一结点*/
+				if(hc->next==HANDLE_UNDEFINED)
 				{
-					pmem[1][list]=BOOT_PM_NODE;
+					/*唯一结点*/
+					list->head=HANDLE_UNDEFINED;
+					list->tail=HANDLE_UNDEFINED;
 				}
 				else
 				{
-					pool[next].prev=BOOT_PM_NODE;
+					/*头结点*/
+					list->head=hc->next;
+					hc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,hc->next,sizeof(physical_page_frame));
+					hc->prev=HANDLE_UNDEFINED;
 				}
-				break;
 			}
-			else if(next>=BOOT_PM_NODE)
+			else if(hc->next==HANDLE_UNDEFINED) 
 			{
-				pmem[1][list]=head;
-				pool[head].next=BOOT_PM_NODE;
+				/*尾结点*/
+				list->tail=hc->prev;
+				hc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,hc->prev,sizeof(physical_page_frame));
+				hc->next=HANDLE_UNDEFINED;
 			}
 			else
 			{
-				pool[next].prev=head;
-				pool[head].next=next;
+				/*中间结点*/
+				physical_page_frame* nc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,hc->next,sizeof(physical_page_frame));
+				physical_page_frame* pc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,hc->prev,sizeof(physical_page_frame));
+				pc->next=hc->next;
+				nc->prev=hc->prev;
 			}
-			boot_pmm_nfree(node);
-			return;
-		}
-		head=pool[head].next;
-	}
-}
-
-/*
- * 物理内存拆分自由内存。
- *
- * @param base	 页面基址。
- * @param amount 页面数目。
- *
- * @return 成功返回真，失败返回假，主要是没有内存。
- */
-static bool boot_pmm_fspilt(uintn base,uintn amount)
-{
-	while(amount>0)
-	{
-		/*0可以视为63位0，因为64位0的大块不能被64位寻址表示，由于结构问题，基址必有12个0*/
-		uint8 mask=(uint8)__builtin_ctzg(base,(int)sizeof(uintn)*8-1);
-		uint8 index=mask-12;
-		uintn page=(uintn)1<<index;
-		while(amount<page)
-		{
-			index--;
-			page=(uintn)1<<index;
-		}
-		if(!boot_pmm_nadd(index,base,page,AVAILABLE))
-		{
-			return false;
+			boot_bitmap_pool_free(buddy.pool,node);
+			return true;
 		}
 		else
 		{
-			base=base+(page<<12);
-			amount=amount-page;
+			head=hc->next;
 		}
 	}
-	return true;
-}
-
-/*
- * 物理内存合并自由内存。
- *
- * @return 成功返回真，失败返回假，主要是没有内存。
- */
-static void boot_pmm_fmerga(void)
-{
-	for(uint8 index=0;index<52;index++)
-	{
-		uintn a=pmem[0][index];
-		uintn length=(uintn)1<<(index+12);
-		while(a<BOOT_PM_NODE&&pool[a].next<BOOT_PM_NODE)
-		{
-			/*index代表减12位后的位数，这里需要基址对应下一级的位数*/
-			if(__builtin_ctzg(pool[a].base,(int)sizeof(uintn)*8-1)>=index+13&&pool[pool[a].next].base==pool[a].base+length)
-			{
-				uintn b=pool[a].next;
-				uintn nbase=pool[a].base;
-				uintn npage=length>>11;
-				boot_pmm_nremove(index,a);
-				boot_pmm_nremove(index,b);
-				boot_pmm_nadd(index+1,nbase,npage,AVAILABLE);
-				a=pmem[0][index];
-			}
-			else
-			{
-				a=pool[a].next;			
-			}
-		}
-	}
+	return false;
 }
 
 /*
  * 将EFI内存类型转换为AOS内存类型。
  *
- * @param efi_type EFI内存类型。
+ * @param efimt EFI内存类型。
  *
- * @return 返回对应AOS内存类型。
+ * @return 对应AOS内存类型。
  */
-static mtype boot_pmm_efi2mtype(const uint32 efi_type)
+static memory_type boot_pmm_efi2aos(const uint32 efimt)
 {
-	switch(efi_type)
+	switch(efimt)
 	{
 		case EFI_RESERVED_MEMORY_TYPE:
 		case EFI_UNACCEPTED_MEMORY_TYPE:
@@ -367,414 +229,814 @@ static mtype boot_pmm_efi2mtype(const uint32 efi_type)
 		case EFI_PAL_CODE:
 		case EFI_UNUSABLE_MEMORY:
 		default:
-			return RESERVED;
+			return AOS_RESERVED;
 		case EFI_LOADER_CODE:
 		case EFI_LOADER_DATA:
-			return BOOT_DATA;
+			return AOS_LOADER_DATA;
 		case EFI_BOOT_SERVICES_CODE:
 		case EFI_BOOT_SERVICES_DATA:
 		case EFI_CONVENTIONAL_MEMORY:
-			return AVAILABLE;
+			return AOS_AVAILABLE;
 		case EFI_RUNTIME_SERVICES_CODE:
-			return FW_CODE;
+			return AOS_FIRMWARE_CODE;
 		case EFI_RUNTIME_SERVICES_DATA:
-			return FW_DATA;
+			return AOS_FIRMWARE_DATA;
 		case EFI_ACPI_RECLAIM_MEMORY:
-			return ACPI_TABLE;
+			return AOS_ACPI_TABLE;
 		case EFI_ACPI_MEMORY_NVS:
-			return ACPI_NVS;
+			return AOS_ACPI_NVS;
 		case EFI_MEMORY_MAPPED_IO:
 		case EFI_MEMORY_MAPPED_IO_PORT_SPACE:
-			return MMIO;
+			return AOS_MMIO;
 	}
 }
 
 /*
- * 初始化物理内存管理列表。
+ * 申请一个结点。
  *
- * @param param 启动参数结构指针。
+ * @param base	内存基址.
+ * @param pages	内存页数。
+ * @param type	内存类型。
+ *
+ * @return 结点句柄，申请失败返回未定义。
+ */
+static handle boot_pmm_node_alloc(const uintn base,const uintn pages,const uint16 type)
+{
+	handle result=boot_bitmap_pool_alloc(buddy.pool);
+	if(result==HANDLE_UNDEFINED)
+	{
+		/*如果出现未定义这里将来要申请新内存池*/
+		return result;
+	}
+	physical_page_frame* content=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,result,sizeof(physical_page_frame));
+	content->prev=HANDLE_UNDEFINED;
+	content->next=HANDLE_UNDEFINED;
+	content->base=base;
+	content->pages=pages;
+	content->type=type;
+	return result;
+}
+
+/*
+ * 对结点进行归并。将低层级块归并到高层级，仅适用于伙伴链表的内存块。
+ *
+ * @param block	内存块索引，不大于51。
  *
  * @return 无返回值。
  */
-extern void boot_pmm_init(boot_params* restrict param)
+static void boot_pmm_buddy_merge(const uintn block)
 {
-	uintn boot_data[]={(uintn)param->pool,param->modules[0].base,param->modules[1].base,param->modules[2].base};
-	uintn bdsize=sizeof(boot_data)/sizeof(uintn);
+	if(block>=51||buddy.block[block].head==HANDLE_UNDEFINED)
+	{
+		return;
+	}
+	uintn mask=((uintn)1<<(block+13))-1;
+	uintn head=buddy.block[block].head;
+	physical_page_frame* hc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,head,sizeof(physical_page_frame));
+	while(hc->next!=HANDLE_UNDEFINED)
+	{
+		physical_page_frame* nc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,hc->next,sizeof(physical_page_frame));
+		if(!(hc->base&mask))
+		{
+			if(nc->base==hc->base+(hc->pages<<12))
+			{
+				uintn tbase=hc->base;
+				uintn tpage=hc->pages<<1;
+				handle ra=head;
+				handle rb=hc->next;
+				boot_pmm_list_remove(&buddy.block[block],ra);
+				boot_pmm_list_remove(&buddy.block[block],rb);
+				head=boot_pmm_node_alloc(tbase,tpage,AOS_AVAILABLE);
+				boot_pmm_list_add(&buddy.block[block+1],head);
+				head=buddy.block[block].head;
+				if(head==HANDLE_UNDEFINED)
+				{
+					return;
+				}
+				else
+				{
+					hc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,head,sizeof(physical_page_frame));
+					continue;
+				}
+			}
+		}
+		head=hc->next;
+		hc=nc;
+	}
+}
+
+/*
+ * 在伙伴系统中释放空闲内存。
+ *
+ * @param base	内存基址。
+ * @param pages	内存页数。
+ *
+ * @return 成功返回真，失败返回假。
+ */
+static bool boot_pmm_buddy_free(uintn base,uintn pages)
+{
+	while(pages>0)
+	{
+		uint8 mask=__builtin_ctzg(base,(int)sizeof(uintn)*8-1);
+		uint8 index=mask-12;
+		uintn page=(uintn)1<<index;
+		while(pages<page)
+		{
+			index--;
+			page=(uintn)1<<index;
+		}
+		handle node=boot_pmm_node_alloc(base,page,AOS_AVAILABLE);
+		if(node==HANDLE_UNDEFINED||!boot_pmm_list_add(&buddy.block[index],node))
+		{
+			return false;
+		}
+		else
+		{
+			base=base+(page<<12);
+			pages=pages-page;
+		}
+	}
+	return true;
+}
+
+/*
+ * 在伙伴系统中分割空闲内存。
+ *
+ * @param block	内存块索引，大于0。
+ * @param node	结点。
+ *
+ * @return 成功返回真，失败返回假。
+ */
+static bool boot_pmm_buddy_spilt(const uintn block,const handle node)
+{
+	if(block==0||block>51||node==HANDLE_UNDEFINED)
+	{
+		return false;
+	}
+	physical_page_frame* nc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,node,sizeof(physical_page_frame));
+	uintn tbase=nc->base;
+	uintn tpage=nc->pages>>1;
+	boot_pmm_list_remove(&buddy.block[block],node);
+	handle a=boot_pmm_node_alloc(tbase,tpage,AOS_AVAILABLE);
+	handle b=boot_pmm_node_alloc(tbase+(tpage<<12),tpage,AOS_AVAILABLE);
+	if(b==HANDLE_UNDEFINED)
+	{
+		nc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,a,sizeof(physical_page_frame));
+		nc->pages=tpage<<1;
+		boot_pmm_list_add(&buddy.block[block],a);
+		return false;
+	}
+	boot_pmm_list_add(&buddy.block[block-1],a);
+	boot_pmm_list_add(&buddy.block[block-1],b);
+	return true;
+}
+
+/*
+ * 内存地址相对结点定位。结果为结点比较地址。
+ *
+ * @param node 结点。
+ * @param addr 内存地址。
+ * 
+ * @return -1小于，0包含，1大于。
+ */
+static int32 boot_pmm_position(const physical_page_frame* node,const uintn addr)
+{
+	if(addr<node->base)
+	{
+		return 1;
+	}
+	else if(addr<=(node->base-1+(node->pages<<12))) 
+	{
+		return 0;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+/*
+ * 将空闲内存记录到已分配内存中。
+ *
+ * @param content 结点内容。
+ * @param node	  结点索引。
+ * @param block	  内存块链表。
+ * @param pages	  内存页数。
+ * @param type	  内存类型。
+ *
+ * @return 已分配地址，或未定义。
+ */
+static uintn boot_pmm_record(const physical_page_frame* content,const uintn node,const uintn block,const uintn pages,const memory_type type)
+{
+	handle rnode=boot_pmm_node_alloc(content->base,pages,type);
+	if(rnode==HANDLE_UNDEFINED)
+	{
+		return HANDLE_UNDEFINED;
+	}
+	boot_pmm_list_add(&record_list[0],rnode);
+	uintn rbase=content->base;
+	uintn fbase=content->base+(pages<<12);
+	uintn fpage=content->pages-pages;
+	boot_pmm_list_remove(&buddy.block[block],node);
+	if(fpage>0)
+	{
+		boot_pmm_buddy_free(fbase,fpage);
+	}
+	return rbase;
+}
+
+/*
+ * 在伙伴系统中申请所需地址范围内，尽可能最大地址的内存。
+ *
+ * @param min	最小地址边界。
+ * @param max	最大地址边界。
+ * @param pages	申请页数。
+ * @param type	申请内存类型。
+ *
+ * @return 申请的地址，失败返回未定义。
+ */
+static uintn boot_pmm_buddy_alloc_max(const uintn min,const uintn max,const uintn pages,const memory_type type)
+{
+	uintn need=((sizeof(uintn)<<3)-1-__builtin_clzg(pages));
+	if(((uintn)1<<need)<pages)
+	{
+		need++;
+	}
+	if(max-min<((uintn)1<<need)-1)
+	{
+		/*用于优先保证对齐，允许这一部分的奢侈*/
+		return HANDLE_UNDEFINED;
+	}
+	uintn index=need;
+	while(index<52)
+	{
+		handle node=buddy.block[index].tail;
+		if(node==HANDLE_UNDEFINED)
+		{
+			index++;
+			continue;
+		}
+		while(node!=HANDLE_UNDEFINED)
+		{
+			physical_page_frame* nc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,node,sizeof(physical_page_frame));
+			int32 presult=boot_pmm_position(nc,max);
+			if(presult==1)
+			{
+				/*结点大于上限*/
+				node=nc->prev;
+				if(node==HANDLE_UNDEFINED)
+				{
+					index++;
+					break;
+				}
+				else
+				{
+					continue;
+				}
+			}
+			else if(presult==0)
+			{
+				/*包含*/
+				if(max-nc->base>=(pages<<12)-1)
+				{
+					/*足够*/
+					if(index==need)
+					{
+						return boot_pmm_record(nc,node,index,pages,type);
+					}
+					else
+					{
+						if(boot_pmm_buddy_spilt(index,node))
+						{
+							index--;
+							break;
+						}
+						else
+						{
+							return HANDLE_UNDEFINED;
+						}
+					}
+				}
+				else
+				{
+					node=nc->prev;
+					if(node==HANDLE_UNDEFINED)
+					{
+						index++;
+						break;
+					}
+					else
+					{
+						continue;
+					}
+				}
+			}
+			else
+			{
+				/*结点小于上限*/
+				presult=boot_pmm_position(nc,min);
+				if(presult==-1)
+				{
+					/*结点小于下限*/
+					index++;
+					break;
+				}
+				else if(presult==1)
+				{
+					/*结点大于上限*/
+					if(index==need)
+					{
+						return boot_pmm_record(nc,node,index,pages,type);
+					}
+					else
+					{
+						if(boot_pmm_buddy_spilt(index,node))
+						{
+							index--;
+							break;
+						}
+						else
+						{
+							return HANDLE_UNDEFINED;
+						}
+					}
+				}
+				else
+				{
+					/*包含*/
+					if(index==need)
+					{
+						if(min==nc->base)
+						{
+							return boot_pmm_record(nc,node,index,pages,type);
+						}
+						else
+						{
+							return HANDLE_UNDEFINED;
+						}
+					}
+					else
+					{
+						if(boot_pmm_buddy_spilt(index,node))
+						{
+							index--;
+							break;
+						}
+						else
+						{
+							return HANDLE_UNDEFINED;
+						}
+					}
+				}
+			}
+		}
+	}
+	return HANDLE_UNDEFINED;
+}
+
+/*
+ * 在伙伴系统中申请所需地址范围内，尽可能最小地址的内存。
+ *
+ * @param min	最小地址边界。
+ * @param max	最大地址边界。
+ * @param pages	申请页数。
+ * @param type	申请内存类型。
+ *
+ * @return 申请的地址，失败返回未定义。
+ */
+static uintn boot_pmm_buddy_alloc_min(const uintn min,const uintn max,const uintn pages,const memory_type type)
+{
+	uintn need=((sizeof(uintn)<<3)-1-__builtin_clzg(pages));
+	if(((uintn)1<<need)<pages)
+	{
+		need++;
+	}
+	if(max-min<((uintn)1<<need)-1)
+	{
+		/*用于优先保证对齐，允许这一部分的奢侈*/
+		return HANDLE_UNDEFINED;
+	}
+	uintn index=need;
+	while(index<52)
+	{
+		handle node=buddy.block[index].head;
+		if(node==HANDLE_UNDEFINED)
+		{
+			index++;
+			continue;
+		}
+		while(node!=HANDLE_UNDEFINED)
+		{
+			physical_page_frame* nc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,node,sizeof(physical_page_frame));
+			int32 presult=boot_pmm_position(nc,min);
+			if(presult==-1)
+			{
+				/*结点小于下限*/
+				node=nc->next;
+				if(node==HANDLE_UNDEFINED)
+				{
+					index++;
+					break;
+				}
+				else
+				{
+					continue;
+				}
+			}
+			else if(presult==0)
+			{
+				/*包含*/
+				if(index==need)
+				{
+					if(min==nc->base)
+					{
+						return boot_pmm_record(nc,node,index,pages,type);
+					}
+					else
+					{
+						node=nc->next;
+						if(node==HANDLE_UNDEFINED)
+						{
+							index++;
+							break;
+						}
+						else
+						{
+							continue;
+						}
+					}
+				}
+				else
+				{
+					if(boot_pmm_buddy_spilt(index,node))
+					{
+						index--;
+						break;
+					}
+					else
+					{
+						return HANDLE_UNDEFINED;
+					}
+				}
+			}
+			else
+			{
+				/*结点大于下限*/
+				presult=boot_pmm_position(nc,max);
+				if(presult==1)
+				{
+					/*结点大于上限*/
+					index++;
+					break;
+				}
+				else if(presult==-1)
+				{
+					/*结点小于上限*/
+					if(index==need)
+					{
+						return boot_pmm_record(nc,node,index,pages,type);
+					}
+					else
+					{
+						if(boot_pmm_buddy_spilt(index,node))
+						{
+							index--;
+							break;
+						}
+						else
+						{
+							return HANDLE_UNDEFINED;
+						}
+					}
+				}
+				else
+				{
+					/*包含*/
+					if(index==need)
+					{
+						if(max-nc->base>=(pages<<12))
+						{
+							return boot_pmm_record(nc,node,index,pages,type);
+						}
+						else
+						{
+							return HANDLE_UNDEFINED;
+						}
+					}
+					else
+					{
+						if(boot_pmm_buddy_spilt(index,node))
+						{
+							index--;
+							break;
+						}
+						else
+						{
+							return HANDLE_UNDEFINED;
+						}
+					}
+				}
+			}
+		}
+	}
+	return HANDLE_UNDEFINED;
+}
+
+/*
+ * 物理内存管理调试。
+ *
+ * @return 无返回值。
+ */
+static void boot_pmm_debug_dump(void)
+{
+	void plist(uintn list,uintn head,uintn tail);
+	void pline(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type);
+	for(uintn index=0;index<52;index++)
+	{
+		plist(index,buddy.block[index].head,buddy.block[index].tail);
+		handle head=buddy.block[index].head;
+		uintn i=0;
+		while(head!=HANDLE_UNDEFINED)
+		{
+			physical_page_frame* nc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,head,sizeof(physical_page_frame));
+			pline(i++,head,nc->base,nc->base+(nc->pages<<12)-1,nc->pages,nc->type);
+			head=nc->next;
+		}
+	}
+	for(uintn index=0;index<3;index++)
+	{
+		plist(index+52,record_list[index].head,record_list[index].tail);
+		handle head=record_list[index].head;
+		uintn i=0;
+		while(head!=HANDLE_UNDEFINED)
+		{
+			physical_page_frame* nc=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,head,sizeof(physical_page_frame));
+			pline(i++,head,nc->base,nc->base+(nc->pages<<12)-1,nc->pages,nc->type);
+			head=nc->next;
+		}
+	}
+}
+
+/*
+ * 物理内存管理初始化。
+ *
+ * @param param 启动参数结构。
+ * @param bbft	基础模块函数表。
+ *
+ * @return 无返回值。
+ */
+extern void boot_pmm_init(boot_params* restrict param,const boot_base_functions* bbft)
+{
+	static uintn loader_data[BOOT_MODULE_COUNT+1][2];
+	for(uintn index=0;index<BOOT_MODULE_COUNT;index++)
+	{
+		loader_data[index][0]=param->modules[index].base;
+		loader_data[index][1]=param->modules[index].base+(param->modules[index].pages<<12);
+	}
+	loader_data[BOOT_MODULE_COUNT][0]=(uintn)param->pool;
+	loader_data[BOOT_MODULE_COUNT][1]=(uintn)param->pool+param->pool_length;
+
+	boot_pmm_bitmap_pool_init(param,bbft);
+
 	efi_memory_descriptor* dsc=param->env.memmap;
 	uintn offset=param->env.entry_size;
 	uintn end=param->env.memmap_length+(uintn)dsc;
-	boot_pmm_bitmap_init(param);
 	while((uintn)dsc<end)
 	{
-		mtype type=boot_pmm_efi2mtype(dsc->type);
-		if(type==AVAILABLE)
+		memory_type type=boot_pmm_efi2aos(dsc->type);
+		if(type==AOS_AVAILABLE)
 		{
 			if(dsc->physical_start<0x100000)
 			{
 				/*最低1MB区*/
-				boot_pmm_nadd(53,dsc->physical_start,dsc->pages,LOWEST);
+				handle node=boot_pmm_node_alloc(dsc->physical_start,dsc->pages,AOS_LOWEST_MEMORY);
+				boot_pmm_list_add(&record_list[2],node);
 			}
 			else
 			{
 				/*自由内存区域*/
-				boot_pmm_fspilt(dsc->physical_start,dsc->pages);
+				boot_pmm_buddy_free(dsc->physical_start,dsc->pages);
 			}
 		}
-		else if(type==BOOT_DATA)
+		else if(type==AOS_LOADER_DATA)
 		{
+			/*预申请区*/
 			uintn start=dsc->physical_start;
 			uintn end=dsc->physical_start+(dsc->pages<<12);
 			bool added=false;
-			for(uintn i=0;i<bdsize;i++)
+			for(uintn i=0;i<BOOT_MODULE_COUNT+1;i++)
 			{
-				if(start<=boot_data[i]&&end>boot_data[i])
+				if(start<=loader_data[i][0]&&end>=loader_data[i][1])
 				{
-					boot_pmm_nadd(52,dsc->physical_start,dsc->pages,BOOT_DATA);
+					if(i==0xFF)
+					{
+						/*预留给多核初始化模块aos.boot.mpinit*/
+					}
+					else
+					{
+						/*启动内核文件*/
+						handle node=boot_pmm_node_alloc(dsc->physical_start,dsc->pages,AOS_LOADER_DATA);
+						boot_pmm_list_add(&record_list[0],node);
+					}
 					added=true;
 					break;
 				}
 			}
 			if(!added)
 			{
-				boot_pmm_fspilt(dsc->physical_start,dsc->pages);
+				/*自由内存区域*/
+				boot_pmm_buddy_free(dsc->physical_start,dsc->pages);
 			}
-		}
-
-		else if(type==MMIO||type==RESERVED)
-		{
-			/*其他内存资源，MMIO也算*/
-			boot_pmm_nadd(54,dsc->physical_start,dsc->pages,type);
 		}
 		else
 		{
-			/*其他内存区域*/
-			boot_pmm_nadd(53,dsc->physical_start,dsc->pages,type);
+			/*其他内存资源，MMIO也算*/
+			handle node=boot_pmm_node_alloc(dsc->physical_start,dsc->pages,type);
+			boot_pmm_list_add(&record_list[2],node);
 		}
 		dsc=(efi_memory_descriptor*)((uintn)dsc+offset);
 	}
 	
-	boot_pmm_fmerga();
-
-	QEMU_START
-
-	void list(uintn list,uintn head,uintn tail);
-	void line(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type);
-	dsc=param->env.memmap;
-	offset=param->env.entry_size;
-	end=param->env.memmap_length+(uintn)dsc;
-
-	while((uintn)dsc<end)
+	for(uintn index=0;index<51;index++)
 	{
-		void node(efi_memory_descriptor* dsc);
-		node(dsc);
-		dsc=(efi_memory_descriptor*)((uintn)dsc+offset);
+		boot_pmm_buddy_merge(index);
 	}
-	for(uintn index=0;index<55;index++)
+}
+
+/*
+ * 物理内存申请。其申请范围为闭区间。
+ * 
+ * @param mode	申请模式。
+ * @param min	申请范围下限。
+ * @param max	申请范围上限。
+ * @param pages 申请页数。
+ * @param type	申请类型。
+ *
+ * @return 对应内存基址，失败返回未定义。 
+ */
+extern uintn boot_pmm_alloc(const malloc_mode mode,const uintn min,const uintn max,const uintn pages,const memory_type type)
+{
+	if(pages==0||min>=max||type>=AOS_MAX_MEMORY_TYPE)
 	{
-		list(index,pmem[0][index],pmem[1][index]);
-		uintn head=pmem[0][index];
-		uintn i=0;
-		while(head<BOOT_PM_NODE)
+		return HANDLE_UNDEFINED;
+	}
+	uintn result=HANDLE_UNDEFINED;
+	switch(mode)
+	{
+		case MALLOC_MIN:
+			result=boot_pmm_buddy_alloc_min(min,SIZE_MAX,pages,type);
+			break;
+		case MALLOC_MAX:
+			result=boot_pmm_buddy_alloc_max(0,max,pages,type);
+			break;
+		case MALLOC_RANGE:
+			result=boot_pmm_buddy_alloc_max(min,max,pages,type);
+			break;
+		case MALLOC_ANY:
+			result=boot_pmm_buddy_alloc_max(0,SIZE_MAX,pages,type);
+			break;
+		default:
+			return HANDLE_UNDEFINED;
+	}
+	if(result==HANDLE_UNDEFINED)
+	{
+		for(uintn index=0;index<51;index++)
 		{
-			line(i++,head,pool[head].base,pool[head].base+(pool[head].amount<<12)-1,pool[head].amount,pool[head].type);
-			head=pool[head].next;
+			boot_pmm_buddy_merge(index);
 		}
-	}
-
-	QEMU_END
-}
-
-/*
- * 判断地址是否在结点区间内。
- *
- * @param index 结点索引。
- * @param addr	地址参数。
- *
- * @return 包含返回0，区间大于地址返回1，小于地址返回-1。
- */
-static int boot_pmm_ninclude(const uintn index,const uintn addr)
-{
-	uintn base=pool[index].base;
-	uintn limit=base+(pool[index].amount<<12);
-	if(base>addr)
-	{
-		return 1;
-	}
-	else if(limit<=addr)
-	{
-		return -1;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-/*
- * 检查结点是否属于该链表。
- *
- * @param list 链表索引。
- * @param node 结点索引。
- *
- * @return 包含返回真，不包含或链表不存在返回假。
- */
-static bool boot_pmm_ncontain(const uintn list,const uintn node)
-{
-	if(list>=55||node>=pool_limit)
-	{
-		return false;
-	}
-	uintn head=pmem[0][list];
-	while(head<BOOT_PM_NODE)
-	{
-		if(head==node)
+		switch(mode)
 		{
-			return true;
-		}
-		head=pool[head].next;
-	}
-	return false;
-}
-
-/*
- * 对已存在结点上的部分地址进行映射，将剩余空闲内存进行拆分。仅用于内存内部分配。
- *
- * @param list	链表。
- * @param node	结点。
- * @param base	地址。
- * @param pages	页数。
- * @param type	申请内存类型。
- *
- * @return 无返回值。
- */
-static void boot_pmm_map_free(const uintn list,const uintn node,const uintn base,const uintn pages,const mtype type)
-{
-	boot_pm_node pnode={pool[node].base,pool[node].amount,pool[node].type,0,0};
-	boot_pmm_nremove(list,node);
-	boot_pmm_nadd(52,base,pages,type);
-	boot_pmm_fspilt(pnode.base, (base-pnode.base)>>12);
-	boot_pmm_fspilt(base+(pages<<12), (pnode.base+(pnode.amount<<12)-base-(pages<<12))>>12);
-}
-
-/*
- * 申请一段在最大范围物理地址的自由内存。找到内存块时优先从低地址开始切割，用于保证物理内存的对齐性质。
- *
- * @param addr	 最大基址。
- * @param pages	 页数。
- * @param type	 申请内存类型。
- * @param target 申请成功时获得的地址。
- *
- * @return 成功返回真，失败返回假。
- */
-static bool boot_pmm_falloc_max(const uintn addr,const uintn pages,const mtype type,uintn* restrict target)
-{
-	uintn index=0;
-	uintn max=(uintn)1<<index;
-	while(pages>max)
-	{
-		index++;
-		max=(uintn)1<<index;
-	}
-	uintn tail=pmem[1][index];
-	while(index<52)
-	{
-		if(tail>=BOOT_PM_NODE)
-		{
-			index++;
-			tail=pmem[1][index];
-			continue;
-		}
-		switch(boot_pmm_ncomp(tail,0,addr>>12))
-		{
-			case -1:
-				index++;
-				tail=pmem[1][index];
-				continue;
-			case 1:
-				tail=pool[tail].prev;
-				continue;
-			case 3:
-				/*在范围内*/
-				*target=pool[tail].base;
-				boot_pmm_map_free(index,tail,*target,pages,type);
-				return true;
-			case 2:
-				/*仅存在上界交错*/
-				if(((addr-pool[tail].base)>>12)<pages)
-				{
-					return false;
-				}
-				else
-				{
-					*target=pool[tail].base;
-					boot_pmm_map_free(index,tail,*target,pages,type);
-					return true;
-				}
-			case 0:
-				/*被囊括，原则上不会出现。因为最低1MB的内存不能连续且也不存在于可分配自由内存*/
+			case MALLOC_MIN:
+				return boot_pmm_buddy_alloc_min(min,SIZE_MAX,pages,type);
+			case MALLOC_MAX:
+				return boot_pmm_buddy_alloc_max(0,max,pages,type);
+			case MALLOC_RANGE:
+				return boot_pmm_buddy_alloc_max(min,max,pages,type);
+			case MALLOC_ANY:
+				return boot_pmm_buddy_alloc_max(0,SIZE_MAX,pages,type);
 			default:
-				return false;
+				return HANDLE_UNDEFINED;
 		}
 	}
-	return false;
-}
-
-/*
- * 申请一段物理内存。
- *
- * @param max	是否有最大上限。
- * @param addr	地址参数。仅在申请为最大地址时需要。
- * @param pages	页数。
- * @param type	申请内存类型。
- *
- * @return 起始地址，或NULL。这里为了方便运算转为整数类型。
- */
-extern uintn boot_pmm_alloc(const bool max,const uintn addr,const uintn pages,const mtype type)
-{
-	if(type==KERNEL_CODE||type==KERNEL_DATA||type==USER_CODE||type==USER_DATA||pages==0||(max&&__builtin_ctzg(addr,(int)sizeof(uintn)*8-1)<12))
-	{
-		return 0;
-	}
-	uintn result=0;
-	if(boot_pmm_falloc_max(max?addr:(__SIZE_MAX__>>12)<<12,pages,type,&result))
+	else 
 	{
 		return result;
 	}
-	else
+}
+
+/*
+ * 物理内存释放。
+ * 
+ * @param addr 需要释放区域内的地址。
+ *
+ * @return 无返回值。 
+ */
+extern void boot_pmm_free(const uintn addr)
+{
+	handle node=record_list[0].head;
+	while(node!=HANDLE_UNDEFINED)
 	{
-		/*尝试整理空闲页面*/
-		boot_pmm_fmerga();
-		if(boot_pmm_falloc_max(max?addr:(__SIZE_MAX__>>12)<<12,pages,type,&result))
+		physical_page_frame* content=(physical_page_frame*)boot_bitmap_pool_content(buddy.pool,node,sizeof(physical_page_frame));
+		if(boot_pmm_position(content,addr)==0)
 		{
-			return result;
+			uintn base=content->base;
+			uintn pages=content->pages;
+			boot_pmm_list_remove(&record_list[0],node);
+			boot_pmm_buddy_free(base,pages);
+			return;
 		}
 		else
 		{
-			return 0;
+			node=content->next;
 		}
 	}
 }
 
 /*
- * 释放已分配自由内存。
- *
- * @param pointer 地址。并不强制要求在申请区间的基地址，在申请区间有效范围就行。
+ * 物理内存管理内存申请释放测试。
  *
  * @return 无返回值。
  */
-extern void boot_pmm_free(const uintn pointer)
+extern void boot_pmm_debug_test(void)
 {
-	if(pointer==0)
+	extern void prints(const char* src);
+	extern void print_num(uintn number);
+	extern void print_hex(uintn number);
+	prints("===Module aos.boot.memory Test===\ncurrent buddy:\n");
+	boot_pmm_debug_dump();
+	prints("===Test start===\n");
+	uintn tp=1;
+	for(uintn index=0;index<19;index++)
 	{
-		return;
-	}
-	uintn tail=pmem[1][52];
-	while(tail<BOOT_PM_NODE)
-	{
-		if(boot_pmm_ninclude(tail,pointer))
+		prints("test pages:");
+		print_num(tp);
+		prints("\nalloc max:[0x");
+		print_hex(0);
+		prints(",0x");
+		print_hex(0x3FFFFFFF);
+		prints("]=0x");
+		uintn tb=boot_pmm_alloc(MALLOC_MAX,0,0x3FFFFFFF,tp,AOS_KERNEL_DATA);
+		print_hex(tb);
+		prints("\n");
+		if(tb==HANDLE_UNDEFINED)
 		{
-			uintn base=pool[tail].base;
-			uintn pages=pool[tail].amount;
-			boot_pmm_nremove(52,tail);
-			boot_pmm_fspilt(base,pages);
-			return;
+			prints("alloc max fault.\n");
 		}
-		tail=pool[tail].prev;
-	}
-}
-
-/*
- * 映射一段内存，不需要验证其合法性，该函数仅记录映射。
- *
- * @param base	内存映射基址。
- * @param pages 页面数目。
- * @param type	内存类型。
- *
- * @return 无返回值。
- */
-extern void boot_pmm_map(const uintn base,const uintn pages,const mtype type)
-{
-	uintn tail=pmem[1][53];
-	boot_pm_node pnode;
-	while(tail<BOOT_PM_NODE)
-	{
-		switch(boot_pmm_ncomp(tail,base,pages))
+		else
 		{
-			case 1:
-				tail=pool[tail].prev;
-				continue;
-			case 0:
-				pnode.base=pool[tail].base;
-				pnode.amount=pool[tail].amount;
-				pnode.type=pool[tail].type;
-				boot_pmm_nremove(53,tail);
-				boot_pmm_nadd(53,base,pages,type);
-				boot_pmm_nadd(53,pnode.base, (base-pnode.base)>>12,pnode.type);
-				boot_pmm_nadd(53,base+(pages<<12), (pnode.base+(pnode.amount<<12)-base-(pages<<12))>>12,pnode.type);
-				return;
-			case -1:
-				/*没被拦截说明没有对应项*/
-				boot_pmm_nadd(53,base,pages,type);
-				return;
-			case 2:
-			case 3:
-				return;
+			boot_pmm_free(tb);
 		}
+		prints("alloc min:[0x");
+		print_hex(0x40000000);
+		prints(",0x");
+		print_hex(0xFFFFFFFF);
+		prints("]=0x");
+		tb=boot_pmm_alloc(MALLOC_MIN,0x40000000,0xFFFFFFFF,tp,AOS_KERNEL_DATA);
+		print_hex(tb);
+		prints("\n");
+		if(tb==HANDLE_UNDEFINED)
+		{
+			prints("alloc min fault.\n");
+		}
+		else
+		{
+			boot_pmm_free(tb);
+		}
+		prints("alloc range:[0x");
+		print_hex(0x40000000);
+		prints(",0x");
+		print_hex(0x14FFFFFFFF);
+		prints("]=0x");
+		tb=boot_pmm_alloc(MALLOC_RANGE,0x40000000,0x14FFFFFFFF,tp,AOS_KERNEL_DATA);
+		print_hex(tb);
+		prints("\n");
+		if(tb==HANDLE_UNDEFINED)
+		{
+			prints("alloc range fault.\n");
+		}
+		else
+		{
+			boot_pmm_free(tb);
+		}
+		prints("alloc any:[0x");
+		print_hex(0x40000000);
+		prints(",0x");
+		print_hex(0x14FFFFFFFF);
+		prints("]=0x");
+		tb=boot_pmm_alloc(MALLOC_ANY,0x40000000,0x14FFFFFFFF,tp,AOS_KERNEL_DATA);
+		print_hex(tb);
+		prints("\n");
+		if(tb==HANDLE_UNDEFINED)
+		{
+			prints("alloc any fault.\n");
+		}
+		else
+		{
+			boot_pmm_free(tb);
+		}
+		prints("===\n");
+		boot_pmm_debug_dump();
+		prints("===\n");
+		tp=(tp<<1)+1;
 	}
-}
-
-/*
- * 获取映射列表的迭代器。该迭代器仅有查看的功能。
- *
- * @return 新迭代器。
- */
-extern phandle boot_pmm_map_iterator(void)
-{
-	return pmem[0][53];
-}
-
-/*
- * 获取已分配列表的迭代器。该迭代器仅有查看的功能。
- *
- * @return 新迭代器。
- */
-extern phandle boot_pmm_allocated_iterator(void)
-{
-	return pmem[0][52];
-}
-
-/*
- * 获取迭代器当前结点的结点信息。
- *
- * @param handle 迭代器句柄。
- * @param base	 结点基址。
- * @param amount 结点页数。
- * @param type	 结点内存类型。
- *
- * @return 成功返回真，到达结尾或结点不存在返回假。
- */
-extern bool boot_pmm_nread(phandle handle,uintn* restrict base,uintn* restrict amount,mtype* restrict type)
-{
-	if(handle>=pool_limit||pool[handle].amount==0)
-	{
-		return false;
-	}
-	*base=pool[handle].base;
-	*amount=pool[handle].amount;
-	*type=pool[handle].type;
-	return true;
-}
-
-/*
- * 获取迭代器的下一个结点。
- * 
- * @return 下一个结点。
- */
-extern phandle boot_pmm_nnext(phandle handle)
-{
-	if(handle>=pool_limit||pool[handle].amount==0)
-	{
-		return BOOT_PM_NODE;
-	}
-	return pool[handle].next;
 }

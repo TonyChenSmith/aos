@@ -2,8 +2,8 @@
  * 测试用入口程序。
  * @date 2024-10-17
  */
-#include "config.h"
-#include "type.h"
+//#include "config.h"
+#include "basic_type.h"
 
 static char buffer[512];
 static char buffer1[512];

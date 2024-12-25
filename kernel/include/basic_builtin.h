@@ -1,12 +1,12 @@
 /*
- * AOS基本内建函数。
- * @date 2024-11-15
+ * 基础内建函数。
+ * @date 2024-12-12
  */
-#ifndef __AOS_BUILTIN_H__
-#define __AOS_BUILTIN_H__
+#ifndef __AOS_BASIC_BUILTIN_H__
+#define __AOS_BASIC_BUILTIN_H__
 
 #include <x86intrin.h>
-#include "type.h"
+#include "basic_type.h"
 
 /*
  * 读取64位MSR内容，作为内联函数实现。
@@ -46,4 +46,4 @@ static inline uint64 __attribute__((__always_inline__,__nodebug__)) builtin_rdcr
 	return cr4;
 }
 
-#endif /*__AOS_BUILTIN_H__*/
+#endif /*__AOS_BASIC__BUILTIN_H__*/

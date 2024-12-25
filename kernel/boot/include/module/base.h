@@ -5,7 +5,7 @@
 #ifndef __AOS_BOOT_BASE_H__
 #define __AOS_BOOT_BASE_H__
 
-#include "type.h"
+#include "basic_type.h"
 
 /*
  * 对MS ABI两参数函数的调用。
@@ -45,13 +45,13 @@ typedef void* (*boot_memcpy)(void* restrict s1,const void* restrict s2,uintn n);
 /*
  * 内存设置，行为类似于string.h的memset函数。
  *
- * @param str 写入内存。
- * @param c	  写入值。
- * @param n	  写入字节数。
+ * @param s	写入内存。
+ * @param c	写入值。
+ * @param n	写入字节数。
  * 
  * @return 写入内存。
  */
-typedef void* (*boot_memset)(void* restrict str,const uint8 c,uintn n);
+typedef void* (*boot_memset)(void* restrict s,uint32 c,uintn n);
 
 /*端口位宽*/
 #define PORT_WIDTH_8 0
@@ -64,11 +64,11 @@ typedef void* (*boot_memset)(void* restrict str,const uint8 c,uintn n);
  * @param dest	输出内存。
  * @param width	读入位宽。
  * @param port	读入端口。
- * @param len	读取长度。
+ * @param n		读取长度。
  *
  * @return 输出内存。
  */
-typedef void* (*boot_readport)(void* restrict dest,uint8 width,uint16 port,uintn len);
+typedef void* (*boot_readport)(void* restrict dest,uint8 width,uint16 port,uintn n);
 
 /*
  * 端口写入。
@@ -76,11 +76,11 @@ typedef void* (*boot_readport)(void* restrict dest,uint8 width,uint16 port,uintn
  * @param src	写入内存。
  * @param width	写入位宽。
  * @param port	写入端口。
- * @param len	写入长度。
+ * @param n		写入长度。
  *
  * @return 写入内存。
  */
-typedef void* (*boot_writeport)(const void* restrict src,uint8 width,uint16 port,uintn len);
+typedef void* (*boot_writeport)(const void* restrict src,uint8 width,uint16 port,uintn n);
 
 /*
  * 基础模块函数表。

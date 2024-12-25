@@ -5,7 +5,7 @@
 #ifndef __AOS_FW_EFI_H__
 #define __AOS_FW_EFI_H__
 
-#include "type.h"
+#include "basic_type.h"
 
 /*EFI返回类型*/
 typedef uintn efi_status;
@@ -71,5 +71,20 @@ typedef enum _efi_memory_type
 	EFI_UNACCEPTED_MEMORY_TYPE,		 /*未接受*/
 	EFI_MAX_MEMORY_TYPE				 /*最大内存类型*/
 } efi_memory_type;
+
+/*EFI重置类型*/
+typedef enum _efi_reset_type
+{
+	EFI_RESET_COLD,				/*冷重启*/
+	EFI_RESET_WARM,				/*暖重启*/
+	EFI_RESET_SHUTDOWN,			/*关机*/
+	EFI_RESET_PLATFORM_SPECIFIC	/*平台自定义*/
+} efi_reset_type;
+
+/*EFI成功*/
+#define EFI_SUCCESS 0
+
+/*EFI资源不足*/
+#define EFI_OUT_OF_RESOURCES 9
 
 #endif /*__AOS_FW_EFI_H__*/
