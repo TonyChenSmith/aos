@@ -2,6 +2,7 @@
  * 位映射池启动内核实现。
  * @date 2024-12-13
  */
+#include "basic_type.h"
 #include "include/boot_bitmap.h"
 
 /*
@@ -14,7 +15,7 @@
  *
  * @return 初始化后返回真，参数出错返回假。
  */
-extern bool boot_bitmap_pool_init(void* restrict pool,const uint16 psize,const uintn nsize,const boot_base_functions* bbft)
+extern bool boot_bitmap_pool_init(void* restrict pool,const uint16 psize,const uint32 nsize,const boot_base_functions* bbft)
 {
 	if(psize==0||nsize==0||(uintn)pool==UINT64_MAX)
 	{
@@ -23,8 +24,9 @@ extern bool boot_bitmap_pool_init(void* restrict pool,const uint16 psize,const u
 	bitmap_pool* bpinfo=(bitmap_pool*)pool;
 	bpinfo->node.prev=HANDLE_UNDEFINED;
 	bpinfo->node.prev=HANDLE_UNDEFINED;
-	bpinfo->size=psize;
+	bpinfo->psize=psize;
 	bpinfo->free=psize;
+	bpinfo->nsize=nsize;
 	bpinfo->offset=bitmap_pool_bitmap_page(psize)<<12;
 	uint8* bitmap=(uint8*)((uintn)pool+sizeof(bitmap_pool));
 	uintn limit=bpinfo->offset-sizeof(bitmap_pool);
@@ -88,7 +90,7 @@ extern handle boot_bitmap_pool_alloc(bitmap_pool* restrict pool)
 	uint16 index=0;
 	uint16 bindex=0;
 	uint8* bitmap=(uint8*)((uintn)pool+sizeof(bitmap_pool));
-	while(index<pool->size)
+	while(index<pool->psize)
 	{
 		if(bitmap[bindex]&(1<<index))
 		{
@@ -121,7 +123,7 @@ extern void boot_bitmap_pool_free(bitmap_pool* restrict pool,const handle node)
 {
 	uint16 nindex=node&0xFFFF;
 	pool=boot_bitmap_pool_current(pool,node>>16);
-	if((uintn)pool==HANDLE_UNDEFINED||nindex>=pool->size)
+	if((uintn)pool==HANDLE_UNDEFINED||nindex>=pool->psize)
 	{
 		return;
 	}
@@ -139,17 +141,61 @@ extern void boot_bitmap_pool_free(bitmap_pool* restrict pool,const handle node)
  *
  * @param pool 位映射池。应为位映射池链表起始。
  * @param node 需要读取的结点。
- * @param size 结点大小。
  *
  * @return 结点地址，读取失败时返回未定义。
  */
-extern void* boot_bitmap_pool_content(bitmap_pool* restrict pool,const handle node,const uintn size)
+extern void* boot_bitmap_pool_content(bitmap_pool* restrict pool,const handle node)
 {
-	uintn nindex=node&0xFFFF;
-	pool=boot_bitmap_pool_current(pool,node>>16);
-	if((uintn)pool==HANDLE_UNDEFINED||nindex>=pool->size)
+	if(node==HANDLE_UNDEFINED)
 	{
 		return (void*)HANDLE_UNDEFINED;
 	}
-	return (void*)((uintn)pool+pool->offset+nindex*size);
+	uintn nindex=node&0xFFFF;
+	pool=boot_bitmap_pool_current(pool,node>>16);
+	if((uintn)pool==HANDLE_UNDEFINED||nindex>=pool->psize)
+	{
+		return (void*)HANDLE_UNDEFINED;
+	}
+	return (void*)((uintn)pool+pool->offset+nindex*pool->nsize);
+}
+
+/*
+ * 位映射池获得可用结点数目。
+ *
+ * @param pool 位映射池。应为位映射池链表起始。
+ *
+ * @return 可用结点数目。
+ */
+extern uintn boot_bitmap_pool_available(bitmap_pool* restrict pool)
+{
+	uintn result=0;
+	while((uintn)pool!=HANDLE_UNDEFINED)
+	{
+		result=result+pool->free;
+		pool=(bitmap_pool*)pool->node.next;
+	}
+	return result;
+}
+
+/*
+ * 位映射池检查需求结点数目。
+ *
+ * @param pool	  位映射池。应为位映射池链表起始。
+ * @param require 需求结点数目
+ *
+ * @return 有足够结点返回真，没有返回假。
+ */
+extern bool boot_bitmap_pool_require(bitmap_pool* restrict pool,const uintn require)
+{
+	uintn result=0;
+	while((uintn)pool!=HANDLE_UNDEFINED)
+	{
+		result=result+pool->free;
+		if(result>=require)
+		{
+			return true;
+		}
+		pool=(bitmap_pool*)pool->node.next;
+	}
+	return false;
 }

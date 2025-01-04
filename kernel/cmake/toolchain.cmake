@@ -58,5 +58,6 @@ set(CMAKE_ASM_NASM_FLAGS_MINSIZEREL "${CMAKE_ASM_NASM_FLAGS} -Ox -DNDEBUG")
 set(CMAKE_ASM_NASM_FLAGS_RELEASE "${CMAKE_ASM_NASM_FLAGS} -Ox -DNDEBUG")
 set(CMAKE_ASM_NASM_FLAGS_RELWITHDEBINFO "${CMAKE_ASM_NASM_FLAGS} -Ox -g -DNDEBUG")
 set(CMAKE_C_FLAGS "-m64 -flto -fPIE -nostdlibinc -ffreestanding")
+#-mno-red-zone
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
 add_link_options("--pie" "-nostdlib" "--library-path=${CMAKE_SOURCE_DIR}/lib" "--library=rtbuiltins")

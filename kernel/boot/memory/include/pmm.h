@@ -12,11 +12,11 @@
 #include "config/boot.h"
 #include "param.h"
 
-#if BOOT_PHYSICAL_MEMORY_POOL<1000||BOOT_PHYSICAL_MEMORY_POOL>26112
+#if BOOT_PHYSICAL_MEMORY_POOL<1000||BOOT_PHYSICAL_MEMORY_POOL>32576
 #error The value of BOOT_PHYSICAL_MEMORY_POOL is not within the supported range. Please reconfigure.
 #endif
 
-/*物理位映射池大小*/
+/*初始物理位映射池大小*/
 #define BOOT_PMP_SIZE (bitmap_pool_page(BOOT_PHYSICAL_MEMORY_POOL,sizeof(physical_page_frame))<<12)
 
 /*

@@ -5,16 +5,16 @@
 #ifndef __AOS_UTIL_BITMAP_POOL_H__
 #define __AOS_UTIL_BITMAP_POOL_H__
 
-#include "basic_type.h"
 #include "util/linked_list.h"
 
 /*位映射池*/
 typedef struct _bitmap_pool
 {
 	list_node node; /*链表结点*/
-	uint16 size;	/*拥有的结点数*/
+	uint16 psize;	/*单个池结点容量*/
 	uint16 free;	/*可分配结点数*/
-	uint32 offset;	/*分配内存偏移*/
+	uint32 nsize;	/*单个结点大小*/
+	uintn offset;	/*分配内存偏移*/
 } bitmap_pool;
 
 /*位映射作用大小*/
