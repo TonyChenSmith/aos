@@ -52,4 +52,54 @@ extern void boot_tree_remove(bitmap_pool* restrict pool,handle* restrict root,ha
  */
 extern handle boot_tree_find(bitmap_pool* restrict pool,handle* restrict root,const boot_tree_compare compare,handle key);
 
+/*
+ * 红黑树深度计算。
+ *
+ * @param pool 位映射池。
+ * @param root 树根结点。
+ *
+ * @return 返回该树高度。
+ */
+extern uintn boot_tree_depth(bitmap_pool* restrict pool,const handle root);
+
+/*
+ * 红黑树获取头结点。
+ *
+ * @param pool 位映射池。
+ * @param root 树根结点。
+ *
+ * @return 返回该树的最小结点。
+ */
+extern handle boot_tree_head(bitmap_pool* restrict pool,const handle root);
+
+/*
+ * 红黑树获取尾结点。
+ *
+ * @param pool 位映射池。
+ * @param root 树根结点。
+ *
+ * @return 返回该树的最大结点。
+ */
+extern handle boot_tree_tail(bitmap_pool* restrict pool,const handle root);
+
+/*
+ * 红黑树获取下一个结点。结点需要使用者保证在树上。
+ *
+ * @param pool 位映射池。
+ * @param node 结点句柄。
+ *
+ * @return 返回该结点的后继结点。
+ */
+extern handle boot_tree_next(bitmap_pool* restrict pool,const handle node);
+
+/*
+ * 红黑树获取上一个结点。结点需要使用者保证在树上。
+ *
+ * @param pool 位映射池。
+ * @param node 结点句柄。
+ *
+ * @return 返回该结点的前驱结点。
+ */
+extern handle boot_tree_previous(bitmap_pool* restrict pool,const handle node);
+
 #endif /*__AOS_BOOT_MEMORY_BOOT_TREE_H__*/

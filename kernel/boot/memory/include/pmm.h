@@ -12,7 +12,7 @@
 #include "config/boot.h"
 #include "param.h"
 
-#if BOOT_PHYSICAL_MEMORY_POOL<1000||BOOT_PHYSICAL_MEMORY_POOL>32576
+#if BOOT_PHYSICAL_MEMORY_POOL<1000||BOOT_PHYSICAL_MEMORY_POOL>32384
 #error The value of BOOT_PHYSICAL_MEMORY_POOL is not within the supported range. Please reconfigure.
 #endif
 

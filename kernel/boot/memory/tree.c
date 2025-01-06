@@ -2,6 +2,8 @@
  * 红黑树启动内核实现。
  * @date 2025-01-03
  */
+#include "util/tree.h"
+#include "basic_type.h"
 #include "include/boot_tree.h"
 
 /*
@@ -308,6 +310,32 @@ static handle boot_tree_find_maximum(bitmap_pool* restrict pool,const handle nod
 }
 
 /*
+ * 红黑树寻找前驱结点。
+ *
+ * @param pool 位映射池。
+ * @param node 结点句柄。
+ *
+ * @return 返回前驱结点。
+ */
+static handle boot_tree_find_predecessor(bitmap_pool* restrict pool,handle node)
+{
+	tree_node* nodec=boot_bitmap_pool_content(pool,node);
+	if(nodec->right!=HANDLE_UNDEFINED)
+	{
+		return boot_tree_find_maximum(pool,nodec->left);
+	}
+	handle parent=nodec->parent;
+	tree_node* parentc=boot_bitmap_pool_content(pool,parent);
+	while(parent!=HANDLE_UNDEFINED&&node==parentc->left)
+	{
+		node=parent;
+		parent=parentc->parent;
+		parentc=boot_bitmap_pool_content(pool,parent);
+	}
+	return parent;
+}
+
+/*
  * 红黑树寻找后继结点。
  *
  * @param pool 位映射池。
@@ -608,4 +636,95 @@ extern handle boot_tree_find(bitmap_pool* restrict pool,handle* restrict root,co
 		}
 	}
 	return HANDLE_UNDEFINED;
+}
+
+/*
+ * 红黑树深度计算。
+ *
+ * @param pool 位映射池。
+ * @param root 树根结点。
+ *
+ * @return 返回该树高度。
+ */
+extern uintn boot_tree_depth(bitmap_pool* restrict pool,const handle root)
+{
+	if(root==HANDLE_UNDEFINED)
+	{
+		return 0;
+	}
+	else
+	{
+		tree_node* rootc=boot_bitmap_pool_content(pool,root);
+		uintn leftd=boot_tree_depth(pool,rootc->left);
+		uintn rightd=boot_tree_depth(pool,rootc->right);
+		return leftd>rightd?leftd+1:rightd+1;
+	}
+}
+
+/*
+ * 红黑树获取下一个结点。结点需要使用者保证在树上。
+ *
+ * @param pool 位映射池。
+ * @param node 结点句柄。
+ *
+ * @return 返回该结点的后继结点。
+ */
+extern handle boot_tree_next(bitmap_pool* restrict pool,const handle node)
+{
+	if(node==HANDLE_UNDEFINED)
+	{
+		return HANDLE_UNDEFINED;
+	}
+	return boot_tree_find_successor(pool,node);
+}
+
+/*
+ * 红黑树获取上一个结点。结点需要使用者保证在树上。
+ *
+ * @param pool 位映射池。
+ * @param node 结点句柄。
+ *
+ * @return 返回该结点的前驱结点。
+ */
+extern handle boot_tree_previous(bitmap_pool* restrict pool,const handle node)
+{
+	if(node==HANDLE_UNDEFINED)
+	{
+		return HANDLE_UNDEFINED;
+	}
+	return boot_tree_find_predecessor(pool,node);
+}
+
+/*
+ * 红黑树获取头结点。
+ *
+ * @param pool 位映射池。
+ * @param root 树根结点。
+ *
+ * @return 返回该树的最小结点。
+ */
+extern handle boot_tree_head(bitmap_pool* restrict pool,const handle root)
+{
+	if(root==HANDLE_UNDEFINED)
+	{
+		return HANDLE_UNDEFINED;
+	}
+	return boot_tree_find_minimum(pool,root);
+}
+
+/*
+ * 红黑树获取尾结点。
+ *
+ * @param pool 位映射池。
+ * @param root 树根结点。
+ *
+ * @return 返回该树的最大结点。
+ */
+extern handle boot_tree_tail(bitmap_pool* restrict pool,const handle root)
+{
+	if(root==HANDLE_UNDEFINED)
+	{
+		return HANDLE_UNDEFINED;
+	}
+	return boot_tree_find_maximum(pool,root);
 }
