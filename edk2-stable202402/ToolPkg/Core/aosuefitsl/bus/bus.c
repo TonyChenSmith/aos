@@ -2,6 +2,10 @@
  * AOS UEFI Bootloader总线管理。
  * 主要用于扫描PCI总线映射内存空间。
  * 2024-09-22创建。
+ * 
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #include "bus/aosbus.h"
 

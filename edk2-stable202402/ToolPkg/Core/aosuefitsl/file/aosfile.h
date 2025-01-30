@@ -1,6 +1,10 @@
 /*
  * AOS Loader文件操作头文件。
  * 2024-10-15创建。 
+ * 
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_FILE_H__
 #define __AOS_FILE_H__

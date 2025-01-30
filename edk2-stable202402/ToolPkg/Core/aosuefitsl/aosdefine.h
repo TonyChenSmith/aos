@@ -1,6 +1,10 @@
 /*
  * AOS Loader定义头文件。
  * 2024-05-28创建。 
+ * 
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_DEFINE_H__
 #define __AOS_DEFINE_H__

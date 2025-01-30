@@ -1,6 +1,10 @@
 /*
  * AOS UEFI Bootloader总线管理。
  * 2024-09-22创建。
+ * 
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_BUS_H__
 #define __AOS_BUS_H__

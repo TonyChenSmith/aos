@@ -1,6 +1,10 @@
 /*
  * AOS Loader文件操作。
  * 2024-10-15创建。 
+ * 
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #include "file/aosfile.h"
 
@@ -8,9 +12,9 @@
  * 需要在引导器环节加载的内核文件。每个索引固定了一个对应的专门模块。
  */
 CHAR16* aos_boot_files[]={
-	L"aos\\boot\\base.aem",
+	L"aos\\boot\\init.aem",
 	L"aos\\boot\\memory.aem",
-	L"aos\\boot\\core.aem"
+	L"aos\\boot\\util.aem"
 };
 
 /*根目录*/

@@ -1,6 +1,10 @@
 /*
  * AOS UEFI Bootloader环境管理。
  * 2024-05-29创建。
+ * 
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #include "env/aosenv.h"
 

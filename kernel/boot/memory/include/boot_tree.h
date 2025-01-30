@@ -1,6 +1,10 @@
 /*
  * 红黑树结构功能定义。
  * @date 2025-01-03
+ *
+ * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_BOOT_MEMORY_BOOT_TREE_H__
 #define __AOS_BOOT_MEMORY_BOOT_TREE_H__

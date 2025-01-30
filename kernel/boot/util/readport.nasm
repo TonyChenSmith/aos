@@ -1,22 +1,26 @@
 ;
 ; 端口读取。
-; @date 2024-12-08
+; @date 2025-01-17
 ;
-default REL
+; Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+;
+; SPDX-License-Identifier: MIT
+;
+default rel
 section .text
 
 ;------------------------------------------------------------------------------
 ; 端口读取。
 ;
-; @param (rdi) 输出内存。
+; @param (rdi) 目的起始。
 ; @param (rsi) 读入位宽。
 ; @param (rdx) 读入端口。
-; @param (rcx) 读取长度。
+; @param (rcx) 读取数目。
 ; 
 ; @return 输出内存。
 ;------------------------------------------------------------------------------
-global base_readport
-base_readport:
+global boot_readport
+boot_readport:
 	mov eax,esi
 	mov rsi,rdi
 	cld

@@ -1,6 +1,10 @@
 /*
  * 显示适配器加UEFI Shell引导，主程序入口。
  * @date 2024-05-12
+ * 
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #include <Uefi.h>
 #include <Library/UefiLib.h>

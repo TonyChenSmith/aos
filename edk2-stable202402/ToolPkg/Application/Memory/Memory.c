@@ -1,6 +1,10 @@
 /*
  * 研究OVMF内页表的设计。
  * @date 2024-09-15
+ * 
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 
 #include <Uefi.h>

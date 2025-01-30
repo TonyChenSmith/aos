@@ -1,0 +1,22 @@
+#
+# module "aos.uefi" statement
+#
+# Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = AOS
+  PACKAGE_UNI_FILE               = AOS.uni
+  PACKAGE_GUID                   = 028D11B3-BB26-329B-B715-3AD3F9FEEAB0 # UUID.nameUUIDFromBytes("aos.uefi.export".getBytes())
+  PACKAGE_VERSION                = 0.0.1
+
+[Includes]
+  include
+
+[Guids]
+
+[Protocols]
+
+[LibraryClasses]

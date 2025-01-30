@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ */
 /**
  * <b>AOS Java项目</b>
  * 

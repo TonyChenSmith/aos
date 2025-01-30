@@ -1,6 +1,10 @@
 /*
  * 基础类型。
  * @date 2024-12-12
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_BASIC_TYPE_H__
 #define __AOS_BASIC_TYPE_H__

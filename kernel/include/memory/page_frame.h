@@ -1,6 +1,10 @@
 /*
  * 页框定义。
  * @date 2024-12-12
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_MEMORY_PAGE_FRAME_H__
 #define __AOS_MEMORY_PAGE_FRAME_H__

@@ -1,8 +1,11 @@
 /*
  * 信息显示指令，主程序入口。
- * 反汇编程序
- llvm-objdump --x86-asm-syntax=intel -d --demangle Info.efi
+ * 反汇编程序:llvm-objdump --x86-asm-syntax=intel -d --demangle Info.efi
  * @date 2024-05-12
+ * 
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #include <Uefi.h>
 #include <Library/UefiLib.h>

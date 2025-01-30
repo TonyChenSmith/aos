@@ -1,6 +1,10 @@
 /*
  * 虚拟内存伙伴系统。
  * @date 2024-12-25
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #include "include/vmm.h"
 #include "basic_type.h"

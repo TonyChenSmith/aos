@@ -1,13 +1,17 @@
 /*
  * aos.boot.mem模块公开函数接口。
  * @date 2024-10-28
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_BOOT_MEMORY_H__
 #define __AOS_BOOT_MEMORY_H__
 
-#include "param.h"
-#include "base.h"
-#include "type.h"
+#include "params.h"
+#include "func_table.h"
+#include "memory/memory_defs.h"
 
 #pragma pack(1)
 
@@ -198,23 +202,45 @@ typedef union _ia32_page_entry
 #define boot_attr_type(attr) ((attr&PAGE_ATTRIBUTE_TYPE_MASK)>>4)
 
 /*
- * 初始化内存空间。其内有四个步骤：构造页表、切换页表、设置CPU寄存器和切换运行栈。
+ * 物理内存管理系统(PMMS)初始化。
  *
- * @param params	 启动参数结构指针。
- * @param base_funcs 基础模块函数表指针。
+ * @param global 全局函数表。
+ * @param params 启动核参数。
  * 
- * @return 因为切换运行栈，不能返回。
- */
-extern void boot_init_memory(boot_params* params,const boot_base_functions* base_funcs);
-
-/*
- * 初始化内核页表。
- *
- * @param params	 启动参数结构指针。
- * @param base_funcs 基础模块函数表指针。
- *
  * @return 无返回值。
  */
-extern void boot_init_kpt(const boot_params* restrict params,const boot_base_functions* restrict base_funcs);
+typedef void (*boot_memory_pmm_init)(const boot_function_table* global,const boot_params* params);
+
+/*
+ * 物理内存申请，其范围为闭区间。
+ * 
+ * @param mode	申请模式。
+ * @param min	申请范围下限。
+ * @param max	申请范围上限。
+ * @param pages 申请页数。
+ * @param type	申请类型。
+ *
+ * @return 对应内存基址，失败返回未定义。 
+ */
+typedef uintn (*boot_memory_pmm_alloc)(const malloc_mode mode,const uintn min,const uintn max,const uintn pages,const memory_type type);
+
+/*
+ * 物理内存释放。
+ * 
+ * @param addr 需要释放区域内的地址。
+ *
+ * @return 无返回值。 
+ */
+typedef void (*boot_memory_pmm_free)(const uintn addr);
+
+/*
+ * 内存模块函数表。
+ */
+typedef struct _boot_memory_function
+{
+	boot_memory_pmm_init pmm_init;	 /*PMMS初始化*/
+	boot_memory_pmm_alloc pmm_alloc; /*物理内存申请*/
+	boot_memory_pmm_free pmm_free;	 /*物理内存释放*/
+} boot_memory_function;
 
 #endif /*__AOS_BOOT_MEMORY_H__*/

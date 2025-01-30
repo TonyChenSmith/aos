@@ -2,6 +2,10 @@
 ; ESP内核入口函数，负责EFI的MS ABI与SystemV ABI转接。
 ; @date 2024-11-02
 ;
+; Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+;
+; SPDX-License-Identifier: MIT
+;
 default REL
 section .text
 

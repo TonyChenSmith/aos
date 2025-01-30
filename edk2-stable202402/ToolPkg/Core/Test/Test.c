@@ -1,5 +1,9 @@
 /*
  * 测试用应用程序。
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #include <Uefi.h>
 #include <Library/UefiLib.h>

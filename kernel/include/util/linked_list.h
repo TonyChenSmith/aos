@@ -1,6 +1,10 @@
 /*
  * 双向链表的结构。
  * @date 2024-12-14
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_UTIL_LINKED_LIST_H__
 #define __AOS_UTIL_LINKED_LIST_H__

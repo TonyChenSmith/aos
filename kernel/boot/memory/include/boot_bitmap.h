@@ -1,24 +1,28 @@
 /*
  * 位映射池的功能定义。
  * @date 2024-12-13
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_BOOT_MEMORY_BOOT_BITMAP_H__
 #define __AOS_BOOT_MEMORY_BOOT_BITMAP_H__
 
 #include "util/bitmap_pool.h"
-#include "module/base.h"
+#include "module/init.h"
 
 /*
  * 位映射池初始化。需要提前分配好的内存。
  *
- * @param pool	位映射池内存。
- * @param psize 位映射池大小，即结点数量。
- * @param nsize	结点大小。
- * @param bbft	基础模块函数表。	
+ * @param global 全局函数表。
+ * @param pool	 位映射池内存。
+ * @param psize  位映射池大小，即结点数量。
+ * @param nsize	 结点大小。	
  *
  * @return 初始化后返回真，参数出错返回假。
  */
-extern bool boot_bitmap_pool_init(void* restrict pool,const uint16 psize,const uint32 nsize,const boot_base_functions* bbft);
+extern bool boot_bitmap_pool_init(const boot_function_table* restrict global,void* restrict pool,const uint16 psize,const uint32 nsize);
 
 /*
  * 位映射池结点分配。

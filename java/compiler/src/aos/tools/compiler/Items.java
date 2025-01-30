@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ */
 package aos.tools.compiler;
 
 import java.io.Serializable;

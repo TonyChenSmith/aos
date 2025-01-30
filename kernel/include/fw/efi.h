@@ -1,6 +1,10 @@
 /*
  * AOS UEFI固件函数表。
  * @date 2024-10-24
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_FW_EFI_H__
 #define __AOS_FW_EFI_H__

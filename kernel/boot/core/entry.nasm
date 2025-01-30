@@ -2,6 +2,10 @@
 ; 入口汇编代码，负责EFI的MS ABI与SystemV ABI转接。
 ; 2024-10-18
 ;
+; Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+;
+; SPDX-License-Identifier: MIT
+;
 default REL
 section .text
 

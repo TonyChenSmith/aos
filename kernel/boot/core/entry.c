@@ -1,6 +1,10 @@
 /*
  * 测试用入口程序。
  * @date 2024-10-17
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 //#include "config.h"
 #include "basic_type.h"

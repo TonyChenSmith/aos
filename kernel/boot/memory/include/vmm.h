@@ -1,6 +1,10 @@
 /*
  * 虚拟内存管理函数。
  * @date 2024-12-25
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_BOOT_MEMORY_VMM_H__
 #define __AOS_BOOT_MEMORY_VMM_H__

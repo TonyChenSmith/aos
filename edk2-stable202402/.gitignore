@@ -1,10 +1,11 @@
 Build/
-.DS_Store
-*_extdep/
-*.pyc
-__pycache__/
 tags/
-.vscode/
 .edkCode/
+.venv/
+.vscode/
+*_extdep/
+__pycache__/
 BuildReport.log
 .ignore
+.DS_Store
+*.pyc

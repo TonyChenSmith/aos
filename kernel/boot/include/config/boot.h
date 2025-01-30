@@ -1,6 +1,10 @@
 /*
  * aos.boot模块配置。
  * @date 2024-10-17
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_BOOT_CONFIG_BOOT_H__
 #define __AOS_BOOT_CONFIG_BOOT_H__

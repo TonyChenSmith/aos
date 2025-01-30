@@ -2,6 +2,10 @@
  * 使用类似于linux内核的命名方式。
  * AOS UEFI Bootloader主入口程序。
  * 2024-05-28创建。
+ * 
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #include "aosloader.h"
 
@@ -79,15 +83,6 @@ aos_uefi_entry(
 		DEBUG((DEBUG_ERROR,"Failed to scan PCI bus.\nError code:%u.\n",status));
 		return status;
 	}
-
-	/*预分配配置空间
-	status=aos_create_config();
-	if(EFI_ERROR(status))
-	{
-		DEBUG((DEBUG_ERROR,"Pre-allocation of configuration space failed.\nError code:%u.\n",status));
-		return status;
-	}
-	*/
 
 	/*获取内存表*/
 	UINTN key;

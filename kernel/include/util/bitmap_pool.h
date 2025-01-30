@@ -1,6 +1,10 @@
 /*
  * 位映射池的结构。
  * @date 2024-12-13
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_UTIL_BITMAP_POOL_H__
 #define __AOS_UTIL_BITMAP_POOL_H__

@@ -1,4 +1,10 @@
+#
 # Mirror tools statement
+#
+# Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
 [Defines]
   DEC_SPECIFICATION              = 0x00010005
   PACKAGE_NAME                   = MirrorTool

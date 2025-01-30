@@ -1,6 +1,12 @@
+#
+# Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+
 cmake_minimum_required(VERSION 3.5.0)
 
-#引导器核心模块
+#启动核内存模块
 project(aos.boot.memory VERSION 0.0.1 LANGUAGES C ASM_NASM)
 
 #搜索源文件
@@ -15,14 +21,14 @@ foreach(SRC_PATH ${SRC_PATHS})
 	list(APPEND SRC_LIST ${INPUTS})
 endforeach()
 
-#引导器内存目标
+#启动核内存目标
 set(TARGET_FILE_NAME memory.aem)
-set(TARGET_ENTRY aos_boot_trampoline)
+set(TARGET_ENTRY boot_memory_table)
 add_executable(${TARGET_FILE_NAME} ${SRC_LIST})
 target_include_directories(${TARGET_FILE_NAME} PRIVATE ${INCLUDE_DIR_AOS_BOOT})
 target_link_options(${TARGET_FILE_NAME} PRIVATE "--entry=${TARGET_ENTRY}")
 
-#引导器内存反汇编目标
+#启动核内存反汇编目标
 add_custom_target(
 	${TARGET_FILE_NAME}.d.txt
 	ALL
@@ -31,7 +37,7 @@ add_custom_target(
 	COMMENT "Disassemble ${TARGET_FILE_NAME}"
 )
 
-#引导器内存文件头目标
+#启动核内存文件头目标
 add_custom_target(
 	${TARGET_FILE_NAME}.h.txt
 	ALL

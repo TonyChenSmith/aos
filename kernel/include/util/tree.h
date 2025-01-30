@@ -1,6 +1,10 @@
 /*
  * 红黑树的结构。
  * @date 2025-01-02
+ *
+ * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_UTIL_TREE_H__
 #define __AOS_UTIL_TREE_H__

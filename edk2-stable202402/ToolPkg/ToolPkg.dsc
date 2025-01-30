@@ -1,4 +1,10 @@
+#
 # Mirror tools describe
+#
+# Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
 [Defines]
   PLATFORM_NAME                  = MirrorTool
   PLATFORM_GUID                  = CB4A0B7C-37AA-3657-A14F-6F9E0AA5589F #UUID.nameUUIDFromBytes("MirrorTool_DSC".getBytes())

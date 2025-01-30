@@ -2,6 +2,10 @@
 ; 初始化内存空间第二阶段。负责切换运行栈。
 ; @date 2024-12-27
 ;
+; Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+;
+; SPDX-License-Identifier: MIT
+;
 default REL
 section .text
 

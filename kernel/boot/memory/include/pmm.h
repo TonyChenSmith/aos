@@ -1,18 +1,23 @@
 /*
  * 物理内存管理函数。
  * @date 2024-11-14
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #ifndef __AOS_BOOT_MEMORY_PMM_H__
 #define __AOS_BOOT_MEMORY_PMM_H__
 
 #include "boot_bitmap.h"
+#include "boot_tree.h"
 #include "memory/buddy.h"
 #include "memory/page_frame.h"
 #include "memory/memory_defs.h"
 #include "config/boot.h"
-#include "param.h"
+#include "params.h"
 
-#if BOOT_PHYSICAL_MEMORY_POOL<1000||BOOT_PHYSICAL_MEMORY_POOL>32384
+#if BOOT_PHYSICAL_MEMORY_POOL<1000||BOOT_PHYSICAL_MEMORY_POOL>21760
 #error The value of BOOT_PHYSICAL_MEMORY_POOL is not within the supported range. Please reconfigure.
 #endif
 
@@ -20,14 +25,14 @@
 #define BOOT_PMP_SIZE (bitmap_pool_page(BOOT_PHYSICAL_MEMORY_POOL,sizeof(physical_page_frame))<<12)
 
 /*
- * 物理内存管理初始化。
+ * 物理内存管理系统(PMMS)初始化。
  *
- * @param param 启动参数结构。
- * @param bbft	基础模块函数表。
- *
+ * @param global 全局函数表。
+ * @param params 启动核参数。
+ * 
  * @return 无返回值。
  */
-extern void boot_pmm_init(boot_params* restrict param,const boot_base_functions* bbft);
+extern void boot_pmm_init(const boot_function_table* restrict global,boot_params* restrict params);
 
 /*
  * 物理内存申请。其范围为闭区间。

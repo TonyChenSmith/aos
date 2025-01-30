@@ -1,10 +1,13 @@
 /*
  * 红黑树启动内核实现。
  * @date 2025-01-03
+ *
+ * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
-#include "util/tree.h"
-#include "basic_type.h"
 #include "include/boot_tree.h"
+#include <stdbool.h>
 
 /*
  * 红黑树找祖宗结点。
@@ -48,13 +51,16 @@ static void boot_tree_rotate_left(bitmap_pool* restrict pool,handle* restrict ro
 	tree_node* nodec=boot_bitmap_pool_content(pool,node);
 	handle right=nodec->right;
 	tree_node* rightc=boot_bitmap_pool_content(pool,right);
+
 	nodec->right=rightc->left;
 	if(rightc->left!=HANDLE_UNDEFINED)
 	{
 		tree_node* rleftc=boot_bitmap_pool_content(pool,rightc->left);
 		rleftc->parent=node;
 	}
+
 	rightc->parent=nodec->parent;
+
 	if(nodec->parent!=HANDLE_UNDEFINED)
 	{
 		tree_node* nparentc=boot_bitmap_pool_content(pool,nodec->parent);
@@ -71,6 +77,7 @@ static void boot_tree_rotate_left(bitmap_pool* restrict pool,handle* restrict ro
 	{
 		*root=right;
 	}
+
 	rightc->left=node;
 	nodec->parent=right;
 }
@@ -89,13 +96,16 @@ static void boot_tree_rotate_right(bitmap_pool* restrict pool,handle* restrict r
 	tree_node* nodec=boot_bitmap_pool_content(pool,node);
 	handle left=nodec->left;
 	tree_node* leftc=boot_bitmap_pool_content(pool,left);
+
 	nodec->left=leftc->right;
 	if(leftc->right!=HANDLE_UNDEFINED)
 	{
 		tree_node* lrightc=boot_bitmap_pool_content(pool,leftc->right);
 		lrightc->parent=node;
 	}
+
 	leftc->parent=nodec->parent;
+
 	if(nodec->parent!=HANDLE_UNDEFINED)
 	{
 		tree_node* nparentc=boot_bitmap_pool_content(pool,nodec->parent);
@@ -112,6 +122,7 @@ static void boot_tree_rotate_right(bitmap_pool* restrict pool,handle* restrict r
 	{
 		*root=left;
 	}
+
 	leftc->right=node;
 	nodec->parent=left;
 }
@@ -130,11 +141,13 @@ static void boot_tree_insert_rebalance(bitmap_pool* restrict pool,handle* restri
 	tree_node* nodec=boot_bitmap_pool_content(pool,node);
 	handle nparent=nodec->parent;
 	tree_node* nparentc=boot_bitmap_pool_content(pool,nparent);
+
 	if(nparent!=HANDLE_UNDEFINED&&nparentc->color)
 	{
 		handle current=node;
 		tree_node* currentc=nodec;
 		tree_node* cparentc=nparentc;
+
 		while(current!=*root&&current!=HANDLE_UNDEFINED&&currentc->parent!=HANDLE_UNDEFINED&&cparentc->color)
 		{
 			handle parent=currentc->parent;
@@ -182,6 +195,7 @@ static void boot_tree_insert_rebalance(bitmap_pool* restrict pool,handle* restri
 					boot_tree_rotate_right(pool,root,current);
 					currentc=boot_bitmap_pool_content(pool,current);
 				}
+
 				parent=currentc->parent;
 				parentc=boot_bitmap_pool_content(pool,parent);
 				cparentc=parentc;
@@ -199,6 +213,7 @@ static void boot_tree_insert_rebalance(bitmap_pool* restrict pool,handle* restri
 				}
 			}
 		}
+
 		tree_node* rootc=boot_bitmap_pool_content(pool,*root);
 		rootc->color=TREE_BLACK;
 	}
@@ -220,6 +235,7 @@ extern bool boot_tree_insert(bitmap_pool* restrict pool,handle* restrict root,co
 	{
 		return false;
 	}
+
 	if(*root==HANDLE_UNDEFINED)
 	{
 		*root=node;
@@ -227,14 +243,18 @@ extern bool boot_tree_insert(bitmap_pool* restrict pool,handle* restrict root,co
 		rootc->color=TREE_BLACK;
 		return true;
 	}
+
 	handle current=*root;
 	tree_node* currentc=boot_bitmap_pool_content(pool,*root);
 	tree_node* nodec=boot_bitmap_pool_content(pool,node);
+
 	while(current!=HANDLE_UNDEFINED)
 	{
 		int comp=compare((handle)currentc,(handle)nodec);
+
 		if(comp==0)
 		{
+			/*不允许第二个相同存在*/
 			return false;
 		}
 		if(comp>0)
@@ -264,6 +284,7 @@ extern bool boot_tree_insert(bitmap_pool* restrict pool,handle* restrict root,co
 			}
 		}
 	}
+
 	nodec->parent=current;
 	boot_tree_insert_rebalance(pool,root,node);
 	return true;
@@ -281,6 +302,7 @@ static handle boot_tree_find_minimum(bitmap_pool* restrict pool,const handle nod
 {
 	handle current=node;
 	tree_node* currentc=boot_bitmap_pool_content(pool,current);
+
 	while(currentc->left!=HANDLE_UNDEFINED)
 	{
 		current=currentc->left;
@@ -301,6 +323,7 @@ static handle boot_tree_find_maximum(bitmap_pool* restrict pool,const handle nod
 {
 	handle current=node;
 	tree_node* currentc=boot_bitmap_pool_content(pool,current);
+
 	while(currentc->right!=HANDLE_UNDEFINED)
 	{
 		current=currentc->right;
@@ -320,12 +343,15 @@ static handle boot_tree_find_maximum(bitmap_pool* restrict pool,const handle nod
 static handle boot_tree_find_predecessor(bitmap_pool* restrict pool,handle node)
 {
 	tree_node* nodec=boot_bitmap_pool_content(pool,node);
+
 	if(nodec->right!=HANDLE_UNDEFINED)
 	{
 		return boot_tree_find_maximum(pool,nodec->left);
 	}
+
 	handle parent=nodec->parent;
 	tree_node* parentc=boot_bitmap_pool_content(pool,parent);
+
 	while(parent!=HANDLE_UNDEFINED&&node==parentc->left)
 	{
 		node=parent;
@@ -346,12 +372,15 @@ static handle boot_tree_find_predecessor(bitmap_pool* restrict pool,handle node)
 static handle boot_tree_find_successor(bitmap_pool* restrict pool,handle node)
 {
 	tree_node* nodec=boot_bitmap_pool_content(pool,node);
+
 	if(nodec->right!=HANDLE_UNDEFINED)
 	{
 		return boot_tree_find_minimum(pool,nodec->right);
 	}
+
 	handle parent=nodec->parent;
 	tree_node* parentc=boot_bitmap_pool_content(pool,parent);
+
 	while(parent!=HANDLE_UNDEFINED&&node==parentc->right)
 	{
 		node=parent;
@@ -378,7 +407,9 @@ static void boot_tree_swap(bitmap_pool *restrict pool,handle* restrict root,cons
 	handle left=ac->left;
 	handle right=ac->right;
 	handle parent=ac->parent;
+
 	bc->parent=parent;
+
 	if(parent!=HANDLE_UNDEFINED)
 	{
 		tree_node* parentc=boot_bitmap_pool_content(pool,parent);
@@ -398,12 +429,14 @@ static void boot_tree_swap(bitmap_pool *restrict pool,handle* restrict root,cons
 			*root=b;
 		}
 	}
+
 	bc->right=right;
 	if(right!=HANDLE_UNDEFINED)
 	{
 		tree_node* rightc=boot_bitmap_pool_content(pool,right);
 		rightc->parent=b;
 	}
+
 	ac->right=HANDLE_UNDEFINED;
 	bc->left=left;
 	if(left!=HANDLE_UNDEFINED)
@@ -411,6 +444,7 @@ static void boot_tree_swap(bitmap_pool *restrict pool,handle* restrict root,cons
 		tree_node* leftc=boot_bitmap_pool_content(pool,left);
 		leftc->parent=b;
 	}
+
 	ac->left=HANDLE_UNDEFINED;
 	bc->color=ac->color;
 	ac->parent=HANDLE_UNDEFINED;
@@ -430,17 +464,21 @@ static void boot_tree_swap(bitmap_pool *restrict pool,handle* restrict root,cons
 static void boot_tree_remove_rebalance(bitmap_pool *restrict pool,handle* restrict root,handle parent,handle node,bool isleft)
 {
 	tree_node* nodec=boot_bitmap_pool_content(pool,node);
+
 	/*非根黑结点*/
 	while(*root!=node&&(node==HANDLE_UNDEFINED||!nodec->color))
 	{
 		tree_node* parentc=boot_bitmap_pool_content(pool,parent);
+
 		handle sibling=isleft?parentc->right:parentc->left;
 		tree_node* siblingc=boot_bitmap_pool_content(pool,sibling);
+
 		if(sibling!=HANDLE_UNDEFINED&&siblingc->color)
 		{
 			/*情况1：红兄弟*/
 			siblingc->color=TREE_BLACK;
 			parentc->color=TREE_RED;
+
 			if(isleft)
 			{
 				boot_tree_rotate_left(pool,root,parent);
@@ -449,13 +487,16 @@ static void boot_tree_remove_rebalance(bitmap_pool *restrict pool,handle* restri
 			{
 				boot_tree_rotate_right(pool,root,parent);
 			}
+
 			sibling=isleft?parentc->right:parentc->left;
 			siblingc=boot_bitmap_pool_content(pool,sibling);
 		}
+
 		handle sleft=sibling==HANDLE_UNDEFINED?HANDLE_UNDEFINED:siblingc->left;
 		handle sright=sibling==HANDLE_UNDEFINED?HANDLE_UNDEFINED:siblingc->right;
 		tree_node* sleftc=boot_bitmap_pool_content(pool,sleft);
 		tree_node* srightc=boot_bitmap_pool_content(pool,sright);
+
 		if((sleft==HANDLE_UNDEFINED||!sleftc->color)&&(sright==HANDLE_UNDEFINED||!srightc->color))
 		{
 			/*情况2：兄弟双黑结点*/
@@ -463,6 +504,7 @@ static void boot_tree_remove_rebalance(bitmap_pool *restrict pool,handle* restri
 			{
 				siblingc->color=TREE_RED;
 			}
+
 			node=parent;
 			nodec=parentc;
 			parent=parentc->parent;
@@ -479,6 +521,7 @@ static void boot_tree_remove_rebalance(bitmap_pool *restrict pool,handle* restri
 				{
 					sleftc->color=TREE_BLACK;
 				}
+
 				boot_tree_rotate_right(pool,root,sibling);
 				sibling=parentc->right;
 				siblingc=boot_bitmap_pool_content(pool,sibling);
@@ -491,15 +534,18 @@ static void boot_tree_remove_rebalance(bitmap_pool *restrict pool,handle* restri
 				{
 					srightc->color=TREE_BLACK;
 				}
+
 				boot_tree_rotate_left(pool,root,sibling);
 				sibling=parentc->left;
 				siblingc=boot_bitmap_pool_content(pool,sibling);
 			}
+
 			/*情况5*/
 			sleft=siblingc->left;
 			sright=siblingc->right;
 			siblingc->color=parentc->color;
 			parentc->color=TREE_BLACK;
+
 			if(isleft&&sright!=HANDLE_UNDEFINED)
 			{
 				srightc=boot_bitmap_pool_content(pool,sright);
@@ -512,10 +558,12 @@ static void boot_tree_remove_rebalance(bitmap_pool *restrict pool,handle* restri
 				sleftc->color=TREE_BLACK;
 				boot_tree_rotate_right(pool,root,parent);
 			}
+
 			node=*root;
 			nodec=boot_bitmap_pool_content(pool,node);
 		}
 	}
+
 	if(node!=HANDLE_UNDEFINED)
 	{
 		nodec->color=TREE_BLACK;
@@ -536,6 +584,7 @@ extern void boot_tree_remove(bitmap_pool* restrict pool,handle* restrict root,ha
 	handle next;
 	tree_node* nextc;
 	tree_node* nodec=boot_bitmap_pool_content(pool,node);
+
 	if(nodec->left==HANDLE_UNDEFINED||nodec->right==HANDLE_UNDEFINED)
 	{
 		next=node;
@@ -546,8 +595,10 @@ extern void boot_tree_remove(bitmap_pool* restrict pool,handle* restrict root,ha
 		next=boot_tree_find_successor(pool,node);
 		nextc=boot_bitmap_pool_content(pool,next);
 	}
+
 	handle current;
 	handle parent;
+
 	if(nextc->left!=HANDLE_UNDEFINED)
 	{
 		current=nextc->left;
@@ -557,6 +608,7 @@ extern void boot_tree_remove(bitmap_pool* restrict pool,handle* restrict root,ha
 		current=nextc->right;
 	}
 	tree_node* currentc=boot_bitmap_pool_content(pool,current);
+
 	if(current!=HANDLE_UNDEFINED)
 	{
 		currentc->parent=nextc->parent;
@@ -566,6 +618,7 @@ extern void boot_tree_remove(bitmap_pool* restrict pool,handle* restrict root,ha
 	{
 		parent=nextc->parent;
 	}
+
 	bool isleft=false;
 	if(nextc->parent==HANDLE_UNDEFINED)
 	{
@@ -579,15 +632,17 @@ extern void boot_tree_remove(bitmap_pool* restrict pool,handle* restrict root,ha
 		if(next==nparentc->left)
 		{
 			nparentc->left=current;
-			isleft=TREE_RED;
+			isleft=true;
 		}
 		else
 		{
 			nparentc->right=current;
-			isleft=TREE_BLACK;
+			isleft=false;
 		}
 	}
+
 	uint8 ncolor=nextc->color;
+
 	if(next!=node)
 	{
 		boot_tree_swap(pool,root,node,next);
@@ -596,10 +651,12 @@ extern void boot_tree_remove(bitmap_pool* restrict pool,handle* restrict root,ha
 			parent=next;
 		}
 	}
+
 	if(!ncolor)
 	{
 		boot_tree_remove_rebalance(pool,root,parent,current,isleft);
 	}
+
 	nodec->parent=HANDLE_UNDEFINED;
 	nodec->left=HANDLE_UNDEFINED;
 	nodec->right=HANDLE_UNDEFINED;
@@ -618,10 +675,12 @@ extern void boot_tree_remove(bitmap_pool* restrict pool,handle* restrict root,ha
 extern handle boot_tree_find(bitmap_pool* restrict pool,handle* restrict root,const boot_tree_compare compare,const handle key)
 {
 	handle current=*root;
+
 	while(current!=HANDLE_UNDEFINED)
 	{
 		tree_node* currentc=boot_bitmap_pool_content(pool,current);
 		int comp=compare((handle)currentc,key);
+
 		if(comp==0)
 		{
 			return current;
@@ -655,8 +714,10 @@ extern uintn boot_tree_depth(bitmap_pool* restrict pool,const handle root)
 	else
 	{
 		tree_node* rootc=boot_bitmap_pool_content(pool,root);
+
 		uintn leftd=boot_tree_depth(pool,rootc->left);
 		uintn rightd=boot_tree_depth(pool,rootc->right);
+		
 		return leftd>rightd?leftd+1:rightd+1;
 	}
 }

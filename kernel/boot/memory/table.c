@@ -1,6 +1,10 @@
 /*
  * 内存模块初始化函数。
  * @date 2024-10-28
+ *
+ * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
  */
 #include "fw/efi.h"
 #include "include/boot_bitmap.h"
@@ -12,109 +16,6 @@
 #include "include/pmm.h"
 #include "util/bitmap_pool.h"
 #include "include/boot_tree.h"
-
-static char buffer[512];
-static char buffer1[512];
-static boot_base_functions* bf;
-extern void print_bytes(const char* src,uintn n)
-{
-	bf->boot_writeport(src,PORT_WIDTH_8,0x402,n);
-}
-
-extern void prints(const char* src)
-{
-	uintn l=0;
-	while(src[l])
-	{
-		l++;
-	}
-	print_bytes(src,l);
-}
-
-void print_num(uintn number)
-{
-	uintn index=0;
-	uintn num=number;
-	do
-	{
-		buffer[index++]=num%10+'0';
-		num=num/10;
-	} while(num>0);
-	for(num=0;num<index;num++)
-	{
-		buffer1[num]=buffer[index-1-num];
-	}
-	print_bytes(buffer1,index);
-}
-
-void print_hex(uintn number)
-{
-	uintn index=0;
-	uintn num=number;
-	do
-	{
-		uintn n=num&0xF;
-		if(n<10)
-		{
-			buffer[index++]=n+'0';
-		}
-		else
-		{
-			buffer[index++]=n-10+'A';
-		}
-		num=num>>4;
-	} while(num>0);
-	for(num=0;num<index;num++)
-	{
-		buffer1[num]=buffer[index-1-num];
-	}
-	print_bytes(buffer1,index);
-}
-
-static uintn id=0;
-
-void pnode(efi_memory_descriptor* dsc)
-{
-	print_bytes("Node-",sizeof("Node-")-1);
-	print_num(id++);
-	print_bytes(":base=0x",sizeof(":base=0x")-1);
-	print_hex(dsc->physical_start);
-	print_bytes(",page=",sizeof(",page=")-1);
-	print_num(dsc->pages);
-	print_bytes(",type=",sizeof(",type=")-1);
-	print_num(dsc->type);
-	print_bytes(",support=0x",sizeof(",support=0x")-1);
-	print_hex(dsc->attribute);
-	print_bytes("\n",sizeof("\n")-1);
-}
-
-void plist(uintn list,uintn head,uintn tail)
-{
-	print_bytes("List-",sizeof("List-")-1);
-	print_num(list);
-	print_bytes("[",sizeof("[")-1);
-	print_num(head);
-	print_bytes(",",sizeof(",")-1);
-	print_num(tail);
-	print_bytes("]:\n",sizeof("]:\n")-1);
-}
-
-void pline(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type)
-{
-	print_bytes("Index-",sizeof("Index-")-1);
-	print_num(index);
-	print_bytes("(Node-",sizeof("(Node-")-1);
-	print_num(node);
-	print_bytes("):0x",sizeof("):0x")-1);
-	print_hex(start);
-	print_bytes("-0x",sizeof("-0x")-1);
-	print_hex(end);
-	print_bytes(",page=",sizeof(",page=")-1);
-	print_num(amount);
-	print_bytes(",type=",sizeof(",type=")-1);
-	print_num(type);
-	print_bytes("\n",1);
-}
 
 static uintn stack_base=HANDLE_UNDEFINED;
 static uintn stack_length=HANDLE_UNDEFINED;
@@ -130,7 +31,6 @@ extern void boot_init_memory_step2(const boot_params* param,const boot_base_func
  */
 extern void boot_init_memory_step1(boot_params* restrict param,const boot_base_functions* restrict bbft)
 {
-	bf=(boot_base_functions*)bbft;
 	boot_pmm_init(param,bbft);
 	stack_length=(BOOT_INITIAL_STACK*0x200)<<12;
 	stack_base=boot_pmm_alloc(MALLOC_MAX,0,UINT32_MAX,BOOT_INITIAL_STACK*0x200,AOS_KERNEL_CODE);
@@ -165,4 +65,16 @@ extern void boot_init_memory_step3(boot_params* params,const boot_base_functions
 		__asm__("hlt"::);
 	}
 	__builtin_unreachable();
+}
+
+static 
+
+/*
+ * 获取内存模块函数表。
+ * 
+ * @return 函数表指针。
+ */
+extern void* boot_memory_table(void)
+{
+
 }
