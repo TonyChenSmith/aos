@@ -88,9 +88,9 @@ EFI_STATUS EFIAPI uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE* sys
 
 	/*输出启动核参数*/
 	DEBUG((DEBUG_INFO,"=== Boot Kernel Parameters ===\n"));
-	DEBUG((DEBUG_INFO,"block[BOOT_FIXED_BLOCK]:base=0x%lX,pages=%lu\n",params->block[BOOT_FIXED_BLOCK].base,params->block[BOOT_FIXED_BLOCK].pages));
-	DEBUG((DEBUG_INFO,"block[BOOT_MEMORY_MAP_BLOCK]:base=0x%lX,pages=%lu\n",params->block[BOOT_MEMORY_MAP_BLOCK].base,params->block[BOOT_MEMORY_MAP_BLOCK].pages));
-	DEBUG((DEBUG_INFO,"block[BOOT_PMMS_BLOCK]:base=0x%lX,pages=%lu\n",params->block[BOOT_PMMS_BLOCK].base,params->block[BOOT_PMMS_BLOCK].pages));
+	DEBUG((DEBUG_INFO,"blocks[BOOT_FIXED_BLOCK]:base=0x%lX,pages=%lu\n",params->blocks[BOOT_FIXED_BLOCK].base,params->blocks[BOOT_FIXED_BLOCK].pages));
+	DEBUG((DEBUG_INFO,"blocks[BOOT_MEMORY_MAP_BLOCK]:base=0x%lX,pages=%lu\n",params->blocks[BOOT_MEMORY_MAP_BLOCK].base,params->blocks[BOOT_MEMORY_MAP_BLOCK].pages));
+	DEBUG((DEBUG_INFO,"blocks[BOOT_PMMS_BLOCK]:base=0x%lX,pages=%lu\n",params->blocks[BOOT_PMMS_BLOCK].base,params->blocks[BOOT_PMMS_BLOCK].pages));
 	boot_graphics_info* info=&params->graphics_info;
 	DEBUG((DEBUG_INFO,"graphics_info:horizontal_resolution=%u,vertical_resolution=%u,frame_buffer_base=0x%lX,frame_buffer_size=%lu,red_mask=0x%X,green_mask=0x%X,blue_mask=0x%X,reserved_mask=0x%X,scan_line_length=%u\n",info->horizontal_resolution,info->vertical_resolution,info->frame_buffer_base,info->frame_buffer_size,info->red_mask,info->green_mask,info->blue_mask,info->reserved_mask,info->scan_line_length));
 	DEBUG((DEBUG_INFO,"env:processors=%lu,enable_processors=%lu,memmap=0x%lX,entry_size=%lu,memmap_length=%lu\n",params->env.processors,params->env.enable_processors,params->env.memmap,params->env.entry_size,params->env.memmap_length));

@@ -24,7 +24,7 @@ typedef enum _memory_type
 	AOS_USER_DATA,		/*用户数据*/
 	AOS_MMIO,			/*内存端口映射*/
 	AOS_LOWEST_MEMORY,	/*最低1MB区内存*/
-	AOS_LOADER_DATA,	/*aos.uefi.tsl创建数据*/
+	AOS_LOADER_DATA,	/*UEFI核创建数据*/
 	AOS_MAX_MEMORY_TYPE /*最大内存类型*/
 } memory_type;
 

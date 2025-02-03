@@ -2,7 +2,7 @@
  * 内存模块红黑树检查代码。仅一部分。
  * @date 2025-01-05
  *
- * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+ * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
  *
  * SPDX-License-Identifier: MIT
  */

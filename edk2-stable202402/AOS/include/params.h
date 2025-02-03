@@ -78,7 +78,7 @@ typedef struct _boot_code_info
 /*启动核参数*/
 typedef struct _boot_params
 {
-	boot_block block[BOOT_BLOCK_COUNT];		   /*内存块信息*/
+	boot_block blocks[BOOT_BLOCK_COUNT];		   /*内存块信息*/
 
 	boot_graphics_info graphics_info; 		   /*图像信息数据结构*/
 

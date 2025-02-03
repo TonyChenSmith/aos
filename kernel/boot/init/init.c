@@ -21,9 +21,11 @@ boot_function_table global={0};
 extern void boot_init_step1(boot_params* restrict params)
 {
 	global.util=boot_init_table(params->modules[BOOT_UTIL_MODULE]);
-	#define MSG "Hello AOS!\n"
-	global.util->writeport(MSG,PORT_WIDTH_8,QEMU_DEBUGCON,sizeof(MSG)-1);
-	//global.memory=boot_init_table(params->modules[BOOT_MEMORY_MODULE]);
+	global.memory=boot_init_table(params->modules[BOOT_MEMORY_MODULE]);
+
+	#define MSG1 "Hello AOS!\n"
+	global.util->writeport(MSG1,PORT_WIDTH_8,QEMU_DEBUGCON,sizeof(MSG1)-1);
+	
 	while(1)
 	{
 		__asm__("hlt"::);

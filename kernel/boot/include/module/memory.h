@@ -209,7 +209,7 @@ typedef union _ia32_page_entry
  * 
  * @return 无返回值。
  */
-typedef void (*boot_memory_pmm_init)(const boot_function_table* global,const boot_params* params);
+typedef void (*boot_memory_pmm_init)(const boot_function_table* restrict global,const boot_params* restrict params);
 
 /*
  * 物理内存申请，其范围为闭区间。
@@ -219,19 +219,20 @@ typedef void (*boot_memory_pmm_init)(const boot_function_table* global,const boo
  * @param max	申请范围上限。
  * @param pages 申请页数。
  * @param type	申请类型。
+ * @param pid	所属处理器编号。
  *
  * @return 对应内存基址，失败返回未定义。 
  */
-typedef uintn (*boot_memory_pmm_alloc)(const malloc_mode mode,const uintn min,const uintn max,const uintn pages,const memory_type type);
+typedef uintn (*boot_memory_pmm_alloc)(const malloc_mode mode,const uintn min,const uintn max,const uintn pages,const memory_type type,const uint32 pid);
 
 /*
  * 物理内存释放。
  * 
  * @param addr 需要释放区域内的地址。
  *
- * @return 无返回值。 
+ * @return 成功返回真，出错返回假。 
  */
-typedef void (*boot_memory_pmm_free)(const uintn addr);
+typedef bool (*boot_memory_pmm_free)(const uintn addr);
 
 /*
  * 内存模块函数表。

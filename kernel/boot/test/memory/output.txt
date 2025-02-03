@@ -1,4 +1,6 @@
 /*
+ * 一些输出函数。
+ *
  * Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
  *
  * SPDX-License-Identifier: MIT
@@ -105,3 +107,16 @@ void pline(uintn index,uintn node,uintn start,uintn end,uintn amount,uintn type)
 	print_num(type);
 	print_bytes("\n",1);
 }
+
+static boot_util_function* bf;
+static void set(boot_function_table* global)
+{
+	bf=global->util;
+}
+
+typedef void (*boot_test)(void);
+
+typedef void (*boot_test_set)(boot_function_table* global);
+
+boot_test test;/*测试用*/
+boot_test_set set;/*设置输出*/

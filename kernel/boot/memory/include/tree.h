@@ -10,7 +10,7 @@
 #define __AOS_BOOT_MEMORY_BOOT_TREE_H__
 
 #include "util/tree.h"
-#include "boot_bitmap.h"
+#include "bitmap.h"
 
 /*
  * 红黑树比较函数。

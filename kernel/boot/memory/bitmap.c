@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: MIT
  */
-#include "include/boot_bitmap.h"
+#include "include/bitmap.h"
 
 /*
  * 位映射池初始化。需要提前分配好的内存。
@@ -18,7 +18,7 @@
  *
  * @return 初始化后返回真，参数出错返回假。
  */
-extern bool boot_bitmap_pool_init(const boot_function_table* restrict global,void* restrict pool,const uint16 psize,const uint32 nsize)
+extern bool boot_bitmap_pool_init(const boot_function_table* restrict global,const void* restrict pool,const uint16 psize,const uint32 nsize)
 {
 	if(psize==0||nsize==0||(uintn)pool==UINT64_MAX)
 	{

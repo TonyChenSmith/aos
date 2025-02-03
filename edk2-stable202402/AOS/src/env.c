@@ -55,8 +55,8 @@ EFI_STATUS EFIAPI uefi_init_fixed(boot_params** restrict params)
 	CopyMem((*params)->boot_device,boot_device,device_size);
 
 	/*记录内存块*/
-	(*params)->block[BOOT_FIXED_BLOCK].base=base;
-	(*params)->block[BOOT_FIXED_BLOCK].pages=pages;
+	(*params)->blocks[BOOT_FIXED_BLOCK].base=base;
+	(*params)->blocks[BOOT_FIXED_BLOCK].pages=pages;
 	
 	return EFI_SUCCESS;
 }
@@ -238,8 +238,8 @@ EFI_STATUS EFIAPI uefi_set_memory_map(boot_params* restrict params,OUT UINTN* ke
 	 * 第一步，申请初始PMMS内存块，固定为1MB，对应于21760个可分配结点。
 	 * 理应在进入虚拟内存空间前足够分配内存。
 	 */
-	params->block[BOOT_PMMS_BLOCK].pages=SIZE_1MB>>12;
-	status=gBS->AllocatePages(AllocateAnyPages,EfiLoaderData,params->block[BOOT_PMMS_BLOCK].pages,&params->block[BOOT_PMMS_BLOCK].base);
+	params->blocks[BOOT_PMMS_BLOCK].pages=SIZE_1MB>>12;
+	status=gBS->AllocatePages(AllocateAnyPages,EfiLoaderData,params->blocks[BOOT_PMMS_BLOCK].pages,&params->blocks[BOOT_PMMS_BLOCK].base);
 	if(EFI_ERROR(status))
 	{
 		return status;
@@ -251,15 +251,15 @@ EFI_STATUS EFIAPI uefi_set_memory_map(boot_params* restrict params,OUT UINTN* ke
 	{
 		ASSERT(map_size>0);
 		/*预留4个空位，避免越界*/
-		params->block[BOOT_MEMORY_MAP_BLOCK].pages=EFI_SIZE_TO_PAGES(map_size+(sizeof(EFI_MEMORY_DESCRIPTOR)<<2));
-		status=gBS->AllocatePages(AllocateAnyPages,EfiLoaderData,params->block[BOOT_MEMORY_MAP_BLOCK].pages,&params->block[BOOT_MEMORY_MAP_BLOCK].base);
+		params->blocks[BOOT_MEMORY_MAP_BLOCK].pages=EFI_SIZE_TO_PAGES(map_size+(sizeof(EFI_MEMORY_DESCRIPTOR)<<2));
+		status=gBS->AllocatePages(AllocateAnyPages,EfiLoaderData,params->blocks[BOOT_MEMORY_MAP_BLOCK].pages,&params->blocks[BOOT_MEMORY_MAP_BLOCK].base);
 		if(EFI_ERROR(status))
 		{
 			return status;
 		}
 
-		map_size=EFI_PAGES_TO_SIZE(params->block[BOOT_MEMORY_MAP_BLOCK].pages);
-		memmap=(EFI_MEMORY_DESCRIPTOR*)params->block[BOOT_MEMORY_MAP_BLOCK].base;
+		map_size=EFI_PAGES_TO_SIZE(params->blocks[BOOT_MEMORY_MAP_BLOCK].pages);
+		memmap=(EFI_MEMORY_DESCRIPTOR*)params->blocks[BOOT_MEMORY_MAP_BLOCK].base;
 		status=gBS->GetMemoryMap(&map_size,memmap,&map_key,&entry_size,&version);
 		ASSERT(status==EFI_SUCCESS);
 		ASSERT(version==EFI_MEMORY_DESCRIPTOR_VERSION);

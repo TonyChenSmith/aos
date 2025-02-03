@@ -6,8 +6,7 @@
  *
  * SPDX-License-Identifier: MIT
  */
-#include "include/boot_tree.h"
-#include <stdbool.h>
+#include "include/tree.h"
 
 /*
  * 红黑树找祖宗结点。
@@ -344,7 +343,7 @@ static handle boot_tree_find_predecessor(bitmap_pool* restrict pool,handle node)
 {
 	tree_node* nodec=boot_bitmap_pool_content(pool,node);
 
-	if(nodec->right!=HANDLE_UNDEFINED)
+	if(nodec->left!=HANDLE_UNDEFINED)
 	{
 		return boot_tree_find_maximum(pool,nodec->left);
 	}

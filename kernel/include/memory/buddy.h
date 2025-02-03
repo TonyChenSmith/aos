@@ -15,7 +15,7 @@
 typedef struct _buddy_list
 {
 	bitmap_pool* pool; /*分配池*/
-	handle block[52];  /*内存块树*/
+	handle blocks[52];  /*空闲内存块组*/
 } buddy_list;
 
 #endif /*__AOS_MEMORY_BUDDY_H__*/

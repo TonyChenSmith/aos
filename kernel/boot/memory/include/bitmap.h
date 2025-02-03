@@ -22,7 +22,7 @@
  *
  * @return 初始化后返回真，参数出错返回假。
  */
-extern bool boot_bitmap_pool_init(const boot_function_table* restrict global,void* restrict pool,const uint16 psize,const uint32 nsize);
+extern bool boot_bitmap_pool_init(const boot_function_table* restrict global,const void* restrict pool,const uint16 psize,const uint32 nsize);
 
 /*
  * 位映射池结点分配。

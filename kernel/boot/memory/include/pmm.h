@@ -9,8 +9,8 @@
 #ifndef __AOS_BOOT_MEMORY_PMM_H__
 #define __AOS_BOOT_MEMORY_PMM_H__
 
-#include "boot_bitmap.h"
-#include "boot_tree.h"
+#include "bitmap.h"
+#include "tree.h"
 #include "memory/buddy.h"
 #include "memory/page_frame.h"
 #include "memory/memory_defs.h"
@@ -21,8 +21,20 @@
 #error The value of BOOT_PHYSICAL_MEMORY_POOL is not within the supported range. Please reconfigure.
 #endif
 
-/*初始物理位映射池大小*/
-#define BOOT_PMP_SIZE (bitmap_pool_page(BOOT_PHYSICAL_MEMORY_POOL,sizeof(physical_page_frame))<<12)
+/*初始物理位映射池页数*/
+#define BOOT_PMP_PAGE bitmap_pool_page(BOOT_PHYSICAL_MEMORY_POOL,sizeof(physical_page_frame))
+
+/*已使用里已分配树索引*/
+#define PMMS_USED_ALLOCATED 0
+
+/*已使用里已映射树索引*/
+#define PMMS_USED_MAPPED 1
+
+/*已使用里已保留树索引*/
+#define PMMS_USED_RESERVED 2
+
+/*系统分配池必要保留结点数。以最糟糕情况，从51分配到8需要44个结点。为避免上一次判断后发生最糟糕情况，需要预留两倍的结点为88，取整取90*/
+#define PMMS_POOL_RESERVED 90
 
 /*
  * 物理内存管理系统(PMMS)初始化。
@@ -32,7 +44,7 @@
  * 
  * @return 无返回值。
  */
-extern void boot_pmm_init(const boot_function_table* restrict global,boot_params* restrict params);
+extern void boot_pmm_init(const boot_function_table* restrict global,const boot_params* restrict params);
 
 /*
  * 物理内存申请。其范围为闭区间。
@@ -42,18 +54,19 @@ extern void boot_pmm_init(const boot_function_table* restrict global,boot_params
  * @param max	申请范围上限。
  * @param pages 申请页数。
  * @param type	申请类型。
+ * @param pid	所属处理器编号。
  *
  * @return 对应内存基址，失败返回未定义。 
  */
-extern uintn boot_pmm_alloc(const malloc_mode mode,const uintn min,const uintn max,const uintn pages,const memory_type type);
+extern uintn boot_pmm_alloc(const malloc_mode mode,const uintn min,const uintn max,const uintn pages,const memory_type type,const uint32 pid);
 
 /*
  * 物理内存释放。
  * 
  * @param addr 需要释放区域内的地址。
  *
- * @return 无返回值。 
+ * @return 成功返回真，出错返回假。 
  */
-extern void boot_pmm_free(const uintn addr);
+extern bool boot_pmm_free(const uintn addr);
 
 #endif /*__AOS_BOOT_MEMORY_PMM_H__*/

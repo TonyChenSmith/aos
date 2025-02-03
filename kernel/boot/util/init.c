@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: MIT
  */
 #include "include/init.h"
-#include "basic_builtin.h"
 
 /*函数表*/
 static boot_util_function table;
