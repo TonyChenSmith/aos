@@ -33,10 +33,13 @@ set(CMAKE_C_COMPILER_WORKS ON)
 set(CMAKE_C_COMPILE_OPTIONS_PIC "-fPIC")
 set(CMAKE_C_COMPILE_OPTIONS_PIE "-fPIE")
 set(CMAKE_SHARED_LIBRARY_C_FLAGS "-fPIC")
+
 set(CMAKE_LINKER_TYPE LLD)
 set(CMAKE_C_USING_LINKER_LLD ld.lld)
 set(CMAKE_C_USING_LINKER_MODE TOOL)
+
 set(CMAKE_ASM_NASM_COMPILER nasm)
+
 set(CMAKE_C_COMPILER_ID Clang)
 set(CMAKE_C_SIMULATE_ID Clang)
 set(CMAKE_C_COMPILER_LINKER_ID LLD)
@@ -63,6 +66,49 @@ set(CMAKE_ASM_NASM_FLAGS_DEBUG "${CMAKE_ASM_NASM_FLAGS} -g -DDEBUG")
 set(CMAKE_ASM_NASM_FLAGS_MINSIZEREL "${CMAKE_ASM_NASM_FLAGS} -Ox -DNDEBUG")
 set(CMAKE_ASM_NASM_FLAGS_RELEASE "${CMAKE_ASM_NASM_FLAGS} -Ox -DNDEBUG")
 set(CMAKE_ASM_NASM_FLAGS_RELWITHDEBINFO "${CMAKE_ASM_NASM_FLAGS} -Ox -g -DNDEBUG")
-set(CMAKE_C_FLAGS "-m64 -flto -fPIE -nostdlibinc -mno-red-zone -ffreestanding")
+
+set(CMAKE_C_FLAGS "-m64 -flto -nostdlibinc -mno-red-zone -ffreestanding -fjump-tables")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
-add_link_options("--pie" "-nostdlib" "--library-path=${CMAKE_SOURCE_DIR}/lib" "--library=rtbuiltins")
+
+add_link_options("-nostdlib" "--library-path=${CMAKE_SOURCE_DIR}/lib" "--library=rtbuiltins" "--no-dynamic-linker")
+
+set(CMAKE_OBJDUMP llvm-objdump)
+set(CMAKE_READOBJ llvm-readobj)
+
+cmake_policy(SET CMP0083 NEW)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+#添加AOS目标
+function(add_aos_target TARGET_FILE)
+	get_filename_component(TARGET_NAME ${TARGET_FILE} NAME)
+
+	add_custom_target(
+		${TARGET_NAME}.d.txt
+		ALL
+		COMMAND ${CMAKE_OBJDUMP} --all-headers --full-contents -l --x86-asm-syntax=intel -d ${TARGET_FILE} ">" ${TARGET_FILE}.d.txt
+		DEPENDS ${TARGET_FILE}
+		COMMENT "Disassemble ${TARGET_NAME}"
+	)
+
+	add_custom_target(
+		${TARGET_NAME}.h.txt
+		ALL
+		COMMAND ${CMAKE_READOBJ} --all --program-headers -g --gnu-hash-table -d ${TARGET_FILE} ">" ${TARGET_FILE}.h.txt
+		DEPENDS ${TARGET_FILE}
+		COMMENT "Read the ELF heads of ${TARGET_NAME}"
+	)
+endfunction()
+
+#复制AOS目标
+function(copy_aos_target OUTPUT_DIR SRC_FILE)
+	get_filename_component(GROUP_NAME ${OUTPUT_DIR} NAME)
+	get_filename_component(SRC_NAME ${SRC_FILE} NAME)
+
+	add_custom_target(
+		copy_${GROUP_NAME}_${SRC_NAME}
+		ALL
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OUTPUT_DIR}/${SRC_FILE} ${OUTPUT_DIR}/${SRC_NAME}
+		DEPENDS ${OUTPUT_DIR}/${SRC_FILE}
+		COMMENT "Copy ${SRC_NAME} to the ${GROUP_NAME} directory."
+	)
+endfunction()

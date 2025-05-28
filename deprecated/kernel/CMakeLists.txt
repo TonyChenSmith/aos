@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT
 #
 
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.20)
 
 #内核总项目
 project(aos VERSION 0.1.0 LANGUAGES C ASM_NASM)

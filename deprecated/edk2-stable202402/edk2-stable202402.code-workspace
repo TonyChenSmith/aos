@@ -84,5 +84,8 @@
 		"edk2code.generateIgnoreFile": true,
 		"C_Cpp.default.intelliSenseMode": "windows-clang-x64",
 		"C_Cpp.refactoring.includeHeader": "ifNeeded",
+		"clangd.arguments": [
+			"--compile-commands-dir=${workspaceFolder}/.edkCode/"
+		],
 	}
 }

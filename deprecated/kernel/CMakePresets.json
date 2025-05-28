@@ -1,0 +1,41 @@
+{
+	"version": 8,
+	"configurePresets": [
+		{
+			"name": "Debug",
+			"displayName": "Debug",
+			"description": "调试",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "DEBUG",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain.cmake",
+				"CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+			}
+		},
+		{
+			"name": "Release",
+			"displayName": "Release",
+			"description": "发行",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RELEASE",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain.cmake",
+				"CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+			}
+		},
+		{
+			"name": "Relwithdebinfo",
+			"displayName": "Relwithdebinfo",
+			"description": "发行带调试信息",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RELWITHDEBINFO",
+				"CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain.cmake",
+				"CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+			}
+		}
+	]
+}
