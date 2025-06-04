@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"clangd.arguments": [
+			"--compile-commands-dir=${workspaceFolder}/.edkCode/",
+			"--header-insertion=never"
+		],
+		"editor.renderWhitespace": "all"
+	}
+}
