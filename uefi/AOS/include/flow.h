@@ -6,10 +6,10 @@
  *
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_UEFI_MODULE_H__
-#define __AOS_UEFI_MODULE_H__
+#ifndef __AOS_UEFI_FLOW_H__
+#define __AOS_UEFI_FLOW_H__
 
-#include "type.h"
+#include "defines.h"
 
 /*
  * 模块“aos.uefi”的入口函数。
@@ -21,4 +21,4 @@
  */
 EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE* system_table);
 
-#endif
+#endif /*__AOS_UEFI_FLOW_H__*/

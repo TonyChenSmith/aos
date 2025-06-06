@@ -9,6 +9,9 @@
 			"--compile-commands-dir=${workspaceFolder}/.edkCode/",
 			"--header-insertion=never"
 		],
-		"editor.renderWhitespace": "all"
+		"editor.renderWhitespace": "all",
+		"editor.rulers": [
+			120
+		]
 	}
 }

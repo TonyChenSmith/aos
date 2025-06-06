@@ -1,12 +1,11 @@
 /*
- * 模块“aos.uefi”入口。实现了在UEFI阶段的执行流程。
+ * 模块“aos.uefi”流程控制。实现了在UEFI阶段的流程函数，包括模块入口。
  * @date 2025-06-01
  * 
  * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
  * 
  * SPDX-License-Identifier: MIT
  */
-
 #include "flow.h"
 
 /*
