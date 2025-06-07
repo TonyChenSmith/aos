@@ -11,6 +11,7 @@
 #define __AOS_UEFI_INCLUDES_H__
 
 #include <Uefi.h>
+#include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 

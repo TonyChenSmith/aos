@@ -71,6 +71,16 @@ struct _memory_tlsf_meta
 };
 
 /*
+ * TLSF空闲块状态。
+ */
+#define MEMORY_TLSF_BLOCK_FREE 1
+
+/*
+ * TLSF已分配块状态。
+ */
+#define MEMORY_TLSF_BLOCK_ALLOC 0
+
+/*
  * TLSF空闲魔数。
  */
 #define MEMORY_TLSF_MAGIC_FREE SIGNATURE_64('T','L','S','F','F','R','E','E')
@@ -96,9 +106,60 @@ struct _memory_tlsf_meta
 #define memory_bitmap_offset(pages) ((UINT32)memory_bitmap_size(pages))
 
 /*
- * 获取管理结构主要消耗内存。
+ * 获取初始最大空闲块偏移。
  */
-#define memory_used(pages) (memory_bitmap_size(pages)+sizeof(memory_tlsf_meta))
+#define memory_init_free_offset(pages) (memory_bitmap_size(pages)+sizeof(memory_tlsf_meta))
+
+/*
+ * 获取初始最大空闲块大小。
+ */
+#define memory_init_free_size(pool,preallocated) \
+    (EFI_PAGES_TO_SIZE(preallocated)-memory_init_free_offset(pool)-sizeof(memory_tlsf_block))
+
+/*
+ * 设置TLSF块数据状态。
+ */
+#define memory_tlsf_set_state(size,state) ((size&(MAX_UINTN^1))|(state&1))
+
+/*
+ * 获取TLSF块数据状态。
+ */
+#define memory_tlsf_get_state(size) (size&1)
+
+/*
+ * 设置TLSF块数据状态。
+ */
+#define memory_tlsf_get_size(size) (size&(MAX_UINTN^1))
+
+/*
+ * 设置TLSF第一级位图。
+ */
+#define memory_tlsf_set_fl(bitmap,fl) (bitmap|(1U<<(fl)))
+
+/*
+ * 清空TLSF第一级位图。
+ */
+#define memory_tlsf_clear_fl(bitmap,fl) (bitmap&(~(1U<<(fl))))
+
+/*
+ * 获取TLSF第一级位图。
+ */
+#define memory_tlsf_get_fl(bitmap,fl) (bitmap&(1U<<(fl)))
+
+/*
+ * 设置TLSF第二级位图。
+ */
+#define memory_tlsf_set_sl(bitmap,sl) (bitmap|(1U<<(sl)))
+
+/*
+ * 清空TLSF第二级位图。
+ */
+#define memory_tlsf_clear_sl(bitmap,sl) (bitmap&(~(1U<<(sl))))
+
+/*
+ * 获取TLSF第二级位图。
+ */
+#define memory_tlsf_get_sl(bitmap,fl) (bitmap&(1U<<(sl)))
 
 /*
  * 第二轮检查。
