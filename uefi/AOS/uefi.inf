@@ -16,6 +16,7 @@
 
 [Sources]
     src/flow.c
+    src/memory.c
 
 [Packages]
     MdePkg/MdePkg.dec

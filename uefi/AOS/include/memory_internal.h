@@ -52,7 +52,7 @@ struct _memory_tlsf_block
     UINTN              csize; /*当前块大小与分配状态。*/
     memory_tlsf_block* prev;  /*双向链表前指针。*/
     memory_tlsf_block* next;  /*双向链表后指针。*/
-    UINTN              magic; /*TLSF魔数。*/
+    UINT64             magic; /*TLSF魔数。*/
 };
 
 /*
@@ -64,10 +64,11 @@ struct _memory_tlsf_block
  */
 struct _memory_tlsf_meta
 {
-    memory_tlsf_block* free[32][8][2]; /*空闲块链表。*/
-    memory_tlsf_block* alloc[2];       /*已分配块链表。*/
+    UINT32             magic;          /*TLSF魔数。*/
     UINT32             fl_bitmap;      /*第一级位图。*/
     UINT8              sl_bitmap[32];  /*第二级位图。*/
+    memory_tlsf_block* free[32][8][2]; /*空闲块链表。*/
+    memory_tlsf_block* alloc[2];       /*已分配块链表。*/
 };
 
 /*
@@ -79,6 +80,11 @@ struct _memory_tlsf_meta
  * TLSF已分配块状态。
  */
 #define MEMORY_TLSF_BLOCK_ALLOC 0
+
+/*
+ * TLSF元数据魔数。
+ */
+#define MEMORY_TLSF_MAGIC_META SIGNATURE_32('T','L','S','F')
 
 /*
  * TLSF空闲魔数。
@@ -119,47 +125,47 @@ struct _memory_tlsf_meta
 /*
  * 设置TLSF块数据状态。
  */
-#define memory_tlsf_set_state(size,state) ((size&(MAX_UINTN^1))|(state&1))
+#define memory_tlsf_set_state(size,state) (((size)&(MAX_UINTN^1))|(state&1))
 
 /*
  * 获取TLSF块数据状态。
  */
-#define memory_tlsf_get_state(size) (size&1)
+#define memory_tlsf_get_state(size) ((size)&1)
 
 /*
  * 设置TLSF块数据状态。
  */
-#define memory_tlsf_get_size(size) (size&(MAX_UINTN^1))
+#define memory_tlsf_get_size(size) ((size)&(MAX_UINTN^1))
 
 /*
  * 设置TLSF第一级位图。
  */
-#define memory_tlsf_set_fl(bitmap,fl) (bitmap|(1U<<(fl)))
+#define memory_tlsf_set_fl(bitmap,fl) ((bitmap)|(1U<<(fl)))
 
 /*
  * 清空TLSF第一级位图。
  */
-#define memory_tlsf_clear_fl(bitmap,fl) (bitmap&(~(1U<<(fl))))
+#define memory_tlsf_clear_fl(bitmap,fl) ((bitmap)&(~(1U<<(fl))))
 
 /*
  * 获取TLSF第一级位图。
  */
-#define memory_tlsf_get_fl(bitmap,fl) (bitmap&(1U<<(fl)))
+#define memory_tlsf_get_fl(bitmap,fl) ((bitmap)&(1U<<(fl)))
 
 /*
  * 设置TLSF第二级位图。
  */
-#define memory_tlsf_set_sl(bitmap,sl) (bitmap|(1U<<(sl)))
+#define memory_tlsf_set_sl(bitmap,sl) ((bitmap)|(1U<<(sl)))
 
 /*
  * 清空TLSF第二级位图。
  */
-#define memory_tlsf_clear_sl(bitmap,sl) (bitmap&(~(1U<<(sl))))
+#define memory_tlsf_clear_sl(bitmap,sl) ((bitmap)&(~(1U<<(sl))))
 
 /*
  * 获取TLSF第二级位图。
  */
-#define memory_tlsf_get_sl(bitmap,fl) (bitmap&(1U<<(sl)))
+#define memory_tlsf_get_sl(bitmap,sl) ((bitmap)&(1U<<(sl)))
 
 /*
  * 第二轮检查。
@@ -178,7 +184,7 @@ struct _memory_tlsf_meta
  * CONFIG_MEMORY_PREALLOCATED_PAGES检查。
  * 这里主要是保证预取页数足够包含必要结构。
  */
-#if CONFIG_MEMORY_PREALLOCATED_PAGES<EFI_SIZE_TO_PAGES(8+memory_bitmap_length(pages)*8+4152+64)
+#if CONFIG_MEMORY_PREALLOCATED_PAGES<EFI_SIZE_TO_PAGES(8+memory_bitmap_length(CONFIG_MEMORY_POOL_PAGES)*8+4152+64)
 #error The macro CONFIG_MEMORY_PREALLOCATED_PAGES is too small.
 #endif /*CONFIG_MEMORY_PREALLOCATED_PAGES*/
 
