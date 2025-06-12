@@ -1,13 +1,12 @@
 /*
- * 模块“aos.uefi”内存管理。
- * 实现了与模块内存相关的函数，以及便于调试该部分功能的函数。
+ * 模块“aos.uefi”内存池管理实现。
+ * 实现了与内存池管理的相关函数，以及便于调试该部分功能的函数。
  * @date 2025-06-06
  * 
  * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
  *
  * SPDX-License-Identifier: MIT
  */
-#include "memory.h"
 #include "memory_internal.h"
 
 /*
@@ -118,7 +117,7 @@ STATIC VOID EFIAPI memory_list_remove(IN memory_tlsf_block** list,IN memory_tlsf
 }
 
 /*
- * 初始化内存池管理。包括申请内存页，构造位图、元数据和块数据。
+ * 初始化内存池管理。
  * 
  * @param bitmap 位图地址。
  * @param meta   TLSF元数据地址。
@@ -506,6 +505,7 @@ VOID EFIAPI memory_pool_free(IN VOID* ptr)
         return;
     }
 
+    /*尝试合并后续*/
     memory_list_remove(tlsf_pool->alloc,node);
     memory_tlsf_block* phys_next=(memory_tlsf_block*)((UINTN)node+memory_tlsf_get_size(node->csize));
     node->magic=MEMORY_TLSF_MAGIC_FREE;
@@ -541,6 +541,7 @@ VOID EFIAPI memory_pool_free(IN VOID* ptr)
         phys_next->psize=node->csize;
     }
 
+    /*尝试合并前继*/
     if(memory_tlsf_get_state(node->psize))
     {
         memory_tlsf_block* phys_prev=(memory_tlsf_block*)((UINTN)node-memory_tlsf_get_size(node->psize));
@@ -569,6 +570,26 @@ VOID EFIAPI memory_pool_free(IN VOID* ptr)
         phys_next->psize=node->csize;
     }
 
+    /*对后续申请页进行释放*/
+    if(phys_next->csize==sizeof(memory_tlsf_block)&&node->psize==0)
+    {
+        ASSERT(phys_next->magic==MEMORY_TLSF_MAGIC_ALLOC);
+
+        if((UINTN)node>=(EFI_PAGES_TO_SIZE(CONFIG_MEMORY_PREALLOCATED_PAGES)+(UINTN)bitmap_pool))
+        {
+            memory_list_remove(tlsf_pool->alloc,phys_next);
+            VOID* ptr=node;
+            UINTN count=EFI_SIZE_TO_PAGES(memory_tlsf_get_size(node->csize)+sizeof(memory_tlsf_block));
+            for(UINTN index=0;index<count;index++)
+            {
+                memory_page_free(ptr);
+                ptr=(VOID*)((UINTN)ptr+SIZE_4KB);
+            }
+            return;
+        }
+    }
+    
+    /*默认行为*/
     UINT8 node_fl=memory_fl_index(node->csize);
     UINT8 node_sl=memory_sl_index(node->csize,node_fl);
     tlsf_pool->fl_bitmap=memory_tlsf_set_fl(tlsf_pool->fl_bitmap,node_fl);
@@ -583,6 +604,7 @@ VOID EFIAPI memory_pool_free(IN VOID* ptr)
  */
 VOID EFIAPI memory_dump_pool_info(VOID)
 {
+    DEBUG_CODE_BEGIN();
     DEBUG((DEBUG_INFO,"[aos.uefi.memory] ==================================================\n"));
     DEBUG((DEBUG_INFO,"[aos.uefi.memory] Memory Pool Dump\n"));
     DEBUG((DEBUG_INFO,"[aos.uefi.memory] Pool Base: 0x%016X.\n",(UINTN)bitmap_pool));
@@ -656,4 +678,54 @@ VOID EFIAPI memory_dump_pool_info(VOID)
         }
     }
     DEBUG((DEBUG_INFO,"[aos.uefi.memory] ==================================================\n"));
+    DEBUG_CODE_END();
+}
+
+/*
+ * 内存池功能测试。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI memory_function_test(VOID)
+{
+    DEBUG_CODE_BEGIN();
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] Init state.\n"));
+    memory_dump_pool_info();
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] Allocate 3 pools.\n"));
+    VOID* a=memory_pool_alloc(23);
+    VOID* b=memory_pool_alloc(180);
+    VOID* c=memory_pool_alloc(8196);
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] A pool: 0x%016X.\n",(UINTN)a));
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] B pool: 0x%016X.\n",(UINTN)b));
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] C pool: 0x%016X.\n",(UINTN)c));
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] A state.\n"));
+    memory_dump_pool_info();
+    memory_pool_free(a);
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] B state.\n"));
+    memory_dump_pool_info();
+    memory_pool_free(c);
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] C state.\n"));
+    memory_dump_pool_info();
+    memory_pool_free(b);
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] D state.\n"));
+    memory_dump_pool_info();
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] Allocate 3 pools.\n"));
+    a=memory_pool_alloc(SIZE_256KB+1042);
+    b=memory_pool_alloc(180);
+    c=memory_pool_alloc(1011);
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] A pool: 0x%016X.\n",(UINTN)a));
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] B pool: 0x%016X.\n",(UINTN)b));
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] C pool: 0x%016X.\n",(UINTN)c));
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] A state.\n"));
+    memory_dump_pool_info();
+    memory_pool_free(b);
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] B state.\n"));
+    memory_dump_pool_info();
+    memory_pool_free(a);
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] C state.\n"));
+    memory_dump_pool_info();
+    memory_pool_free(c);
+    DEBUG((DEBUG_INFO,"[aos.uefi.memory] D state.\n"));
+    memory_dump_pool_info();
+    DEBUG_CODE_END();
 }

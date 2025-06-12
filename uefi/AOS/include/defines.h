@@ -1,5 +1,6 @@
 /*
- * 模块“aos.uefi”公用定义。定义了在UEFI阶段使用的公共宏与跨文件数据类型。
+ * 模块“aos.uefi”公用声明。
+ * 声明了在UEFI阶段使用的公共宏与数据类型。
  * @date 2025-06-01
  * 
  * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
@@ -40,12 +41,33 @@
 #endif /*CONFIG_MEMORY_PREALLOCATED_PAGES*/
 
 /*
+ * 启动标志。
+ * 记录了在运行环境管理过程中提前探测的环境情况。
+ */
+typedef struct _boot_flags
+{
+    UINT32 sse    :1; /*SSE支持。*/
+    UINT32 sse2   :1; /*SSE2支持。*/
+    UINT32 sse3   :1; /*SSE3支持。*/
+    UINT32 ssse3  :1; /*SSSE3支持。*/
+    UINT32 sse41  :1; /*SSE4.1支持。*/
+    UINT32 sse42  :1; /*SSE4.2支持。*/
+    UINT32 avx    :1; /*AVX支持。*/
+    UINT32 fxsr   :1; /*FXSAVE与FXRSTOR指令支持。*/
+    UINT32 xsave  :1; /*XSAVE指令支持。*/
+    UINT32 osxsave:1; /*OSXSAVE指令支持。*/
+    UINT32 pge    :1; /*PGE支持。*/
+} boot_flags;
+
+/*
  * 启动参数。
+ * 记录了需要传递到内核的参数。
  */
 typedef struct _boot_params
 {
-    UINTN pool_base; /*内存池基址。*/
-    UINTN pool_size; /*内存池长度。*/
+    UINTN      bitmap_base; /*位图基址。*/
+    UINTN      tlsf_base;   /*TLSF元数据基址。*/
+    boot_flags flags;       /*启动标志。*/
 } boot_params;
 
 /*

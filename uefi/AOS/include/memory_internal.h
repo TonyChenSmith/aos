@@ -1,6 +1,6 @@
 /*
- * 模块“aos.uefi”内存管理内部实现。
- * 定义了仅用于内存管理的数据类型与宏，并在该文件内对所需配置做第二步检查。
+ * 模块“aos.uefi”内存池管理内部声明。
+ * 声明了仅用于内存池管理的数据类型与宏，并在该文件内对所需配置做第二步检查。
  * @date 2025-06-05
  * 
  * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
@@ -10,8 +10,7 @@
 #ifndef __AOS_UEFI_MEMORY_INTERNAL_H__
 #define __AOS_UEFI_MEMORY_INTERNAL_H__
 
-#include "defines.h"
-#include "includes.h"
+#include "memory.h"
 
 #include <Library/BaseMemoryLib.h>
 

@@ -19,34 +19,33 @@
     src/memory.c
 
 [Packages]
-    MdePkg/MdePkg.dec
-    MdeModulePkg/MdeModulePkg.dec
     AOS/AOS.dec
+    MdeModulePkg/MdeModulePkg.dec
+    MdePkg/MdePkg.dec
+    UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses]
     BaseLib
+    BaseMemoryLib
     DebugLib
-    FileHandleLib
-    MemoryAllocationLib
-    PrintLib
-    UefiLib
-    UefiBootServicesTableLib
+    DebugPrintErrorLevelLib
     UefiApplicationEntryPoint
+    UefiBootServicesTableLib
 
 [Protocols]
-    gEfiEdidActiveProtocolGuid
-    gEfiEdidDiscoveredProtocolGuid
-    gEfiGraphicsOutputProtocolGuid
-    gEfiLoadedImageProtocolGuid
-    gEfiMpServiceProtocolGuid
-    gEfiSimpleFileSystemProtocolGuid
-    gEfiPciIoProtocolGuid
-    gEfiPciRootBridgeIoProtocolGuid
+    #gEfiEdidActiveProtocolGuid
+    #gEfiEdidDiscoveredProtocolGuid
+    #gEfiGraphicsOutputProtocolGuid
+    #gEfiLoadedImageProtocolGuid
+    #gEfiMpServiceProtocolGuid
+    #gEfiSimpleFileSystemProtocolGuid
+    #gEfiPciIoProtocolGuid
+    #gEfiPciRootBridgeIoProtocolGuid
 
 [Guids]
-    gEfiAcpiTableGuid
-    gEfiAcpi10TableGuid
-    gEfiSmbiosTableGuid
-    gEfiSmbios3TableGuid
-    gEfiConsoleOutDeviceGuid
-    gEfiFileInfoGuid
+    #gEfiAcpiTableGuid
+    #gEfiAcpi10TableGuid
+    #gEfiSmbiosTableGuid
+    #gEfiSmbios3TableGuid
+    #gEfiConsoleOutDeviceGuid
+    #gEfiFileInfoGuid

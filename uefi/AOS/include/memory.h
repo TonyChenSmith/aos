@@ -1,6 +1,6 @@
 /*
- * 模块“aos.uefi”内存管理内部实现。
- * 声明了与内存管理相关的函数。
+ * 模块“aos.uefi”内存池管理声明。
+ * 声明了内存池管理的相关函数。
  * @date 2025-06-06
  * 
  * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
@@ -54,5 +54,12 @@ VOID EFIAPI memory_pool_free(IN VOID* ptr);
  * @return 无返回值。
  */
 VOID EFIAPI memory_dump_pool_info(VOID);
+
+/*
+ * 内存池功能测试。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI memory_function_test(VOID);
 
 #endif /*__AOS_UEFI_MEMORY_H__*/

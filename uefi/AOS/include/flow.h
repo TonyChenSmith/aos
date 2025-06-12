@@ -1,5 +1,6 @@
 /*
- * 模块“aos.uefi”流程控制。声明了在UEFI阶段的流程函数。
+ * 模块“aos.uefi”流程控制声明。
+ * 声明了在UEFI阶段的流程函数。
  * @date 2025-06-01
  * 
  * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
@@ -22,7 +23,7 @@
 EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE* system_table);
 
 /*
- * 初始化内存池管理。包括申请内存页，构造位图、元数据和块数据。
+ * 初始化内存池管理。
  * 
  * @param bitmap 位图地址。
  * @param meta   TLSF元数据地址。
