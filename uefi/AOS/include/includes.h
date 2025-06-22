@@ -3,7 +3,7 @@
  * 引用了在UEFI阶段使用的公用头文件。
  * @date 2025-06-04
  * 
- * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+ * Copyright (c) 2025 Tony Chen Smith
  *
  * SPDX-License-Identifier: MIT
  */

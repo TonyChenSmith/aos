@@ -3,7 +3,7 @@
  * 声明了主要功能的宏配置变量。
  * @date 2025-06-05
  * 
- * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+ * Copyright (c) 2025 Tony Chen Smith
  *
  * SPDX-License-Identifier: MIT
  */

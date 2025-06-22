@@ -3,7 +3,7 @@
  * 实现了在UEFI阶段的流程函数，包括模块入口。
  * @date 2025-06-01
  * 
- * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+ * Copyright (c) 2025 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */

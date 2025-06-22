@@ -3,7 +3,7 @@
  * 声明了在UEFI阶段的流程函数。
  * @date 2025-06-01
  * 
- * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+ * Copyright (c) 2025 Tony Chen Smith
  *
  * SPDX-License-Identifier: MIT
  */

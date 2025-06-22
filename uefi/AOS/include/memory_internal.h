@@ -3,7 +3,7 @@
  * 声明了仅用于内存池管理的数据类型与宏，并在该文件内对所需配置做第二步检查。
  * @date 2025-06-05
  * 
- * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+ * Copyright (c) 2025 Tony Chen Smith
  *
  * SPDX-License-Identifier: MIT
  */

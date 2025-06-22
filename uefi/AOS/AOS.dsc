@@ -1,14 +1,16 @@
 #
 # Description of the module "aos.uefi".
 #
-# Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+# Copyright (c) 2025 Tony Chen Smith
 #
 # SPDX-License-Identifier: MIT
 #
 [Defines]
     PLATFORM_NAME                  = AOS
-    PLATFORM_GUID                  = DE82DA92-FC7F-3E64-A5BC-619E1E42E1A4 # UUID.nameUUIDFromBytes("aos.uefi.description".getBytes("UTF-8"))
-    PLATFORM_VERSION               = 0.0.2                                # Major.Minor.Patch Before the official launch, do not increment the major version number.
+    # UUID.nameUUIDFromBytes("aos.uefi.description".getBytes("UTF-8"))
+    PLATFORM_GUID                  = DE82DA92-FC7F-3E64-A5BC-619E1E42E1A4
+    # Major.Minor.Patch Before the official launch, do not increment the major version number.
+    PLATFORM_VERSION               = 0.0.2
     DSC_SPECIFICATION              = 0x00010005
     OUTPUT_DIRECTORY               = Build/AOS
     SUPPORTED_ARCHITECTURES        = X64

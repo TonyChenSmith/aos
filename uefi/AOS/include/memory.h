@@ -3,7 +3,7 @@
  * 声明了内存池管理的相关函数。
  * @date 2025-06-06
  * 
- * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+ * Copyright (c) 2025 Tony Chen Smith
  *
  * SPDX-License-Identifier: MIT
  */

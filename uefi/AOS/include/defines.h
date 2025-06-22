@@ -3,7 +3,7 @@
  * 声明了在UEFI阶段使用的公共宏与数据类型。
  * @date 2025-06-01
  * 
- * Copyright (c) 2025 Tony Chen Smith. All rights reserved.
+ * Copyright (c) 2025 Tony Chen Smith
  *
  * SPDX-License-Identifier: MIT
  */
@@ -41,10 +41,10 @@
 #endif /*CONFIG_MEMORY_PREALLOCATED_PAGES*/
 
 /*
- * 启动标志。
+ * 启动状态。
  * 记录了在运行环境管理过程中提前探测的环境情况。
  */
-typedef struct _boot_flags
+typedef struct _boot_state
 {
     UINT32 sse    :1; /*SSE支持。*/
     UINT32 sse2   :1; /*SSE2支持。*/
@@ -57,7 +57,26 @@ typedef struct _boot_flags
     UINT32 xsave  :1; /*XSAVE指令支持。*/
     UINT32 osxsave:1; /*OSXSAVE指令支持。*/
     UINT32 pge    :1; /*PGE支持。*/
-} boot_flags;
+} boot_state;
+
+/*
+ * 启动CPU特性。
+ * 记录了在运行环境管理过程中提前探测的环境情况。
+ */
+typedef struct _boot_cpu_features
+{
+    UINT32 sse    :1; /*SSE支持。*/
+    UINT32 sse2   :1; /*SSE2支持。*/
+    UINT32 sse3   :1; /*SSE3支持。*/
+    UINT32 ssse3  :1; /*SSSE3支持。*/
+    UINT32 sse41  :1; /*SSE4.1支持。*/
+    UINT32 sse42  :1; /*SSE4.2支持。*/
+    UINT32 avx    :1; /*AVX支持。*/
+    UINT32 fxsr   :1; /*FXSAVE与FXRSTOR指令支持。*/
+    UINT32 xsave  :1; /*XSAVE指令支持。*/
+    UINT32 osxsave:1; /*OSXSAVE指令支持。*/
+    UINT32 pge    :1; /*PGE支持。*/
+} boot_cpu_features;
 
 /*
  * 启动参数。
@@ -67,7 +86,6 @@ typedef struct _boot_params
 {
     UINTN      bitmap_base; /*位图基址。*/
     UINTN      tlsf_base;   /*TLSF元数据基址。*/
-    boot_flags flags;       /*启动标志。*/
 } boot_params;
 
 /*

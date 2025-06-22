@@ -1,5 +1,5 @@
 @rem
-@rem Copyright (c) 2024-2025 Tony Chen Smith. All rights reserved.
+@rem Copyright (c) 2024-2025 Tony Chen Smith
 @rem
 @rem SPDX-License-Identifier: MIT
 @rem
