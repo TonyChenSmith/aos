@@ -1,10 +1,10 @@
-#
+# 
 # Description of the module "aos.uefi".
-#
+# 
 # Copyright (c) 2025 Tony Chen Smith
-#
+# 
 # SPDX-License-Identifier: MIT
-#
+# 
 [Defines]
     PLATFORM_NAME                  = AOS
     # UUID.nameUUIDFromBytes("aos.uefi.description".getBytes("UTF-8"))
@@ -23,10 +23,10 @@
 [LibraryClasses]
     BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
     BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
+    CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
     DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
     DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf
     IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
-    MtrrLib|UefiCpuPkg/Library/MtrrLib/MtrrLib.inf
     PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
     PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
     RegisterFilterLib|MdePkg/Library/RegisterFilterLibNull/RegisterFilterLibNull.inf
@@ -34,7 +34,7 @@
     StackCheckFailureHookLib|MdePkg/Library/StackCheckFailureHookLibNull/StackCheckFailureHookLibNull.inf
     UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
     UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
-    #CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
+    #MtrrLib|UefiCpuPkg/Library/MtrrLib/MtrrLib.inf
     #DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
     #UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
     #UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf

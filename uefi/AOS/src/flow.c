@@ -1,4 +1,4 @@
-/*
+/* 
  * 模块“aos.uefi”流程控制实现。
  * 实现了在UEFI阶段的流程函数，包括模块入口。
  * @date 2025-06-01
@@ -9,7 +9,7 @@
  */
 #include "flow.h"
 
-/*
+/* 
  * 模块“aos.uefi”的入口函数。
  * 
  * @param image_handle 模块句柄。

@@ -1,15 +1,15 @@
-/*
+/* 
  * 模块“aos.uefi”内存池管理实现。
  * 实现了与内存池管理的相关函数，以及便于调试该部分功能的函数。
  * @date 2025-06-06
  * 
  * Copyright (c) 2025 Tony Chen Smith
- *
+ * 
  * SPDX-License-Identifier: MIT
  */
 #include "memory_internal.h"
 
-/*
+/* 
  * 位图内存池。
  */
 STATIC memory_bitmap* bitmap_pool=NULL;
@@ -19,7 +19,7 @@ STATIC memory_bitmap* bitmap_pool=NULL;
  */
 STATIC memory_tlsf_meta* tlsf_pool=NULL;
 
-/*
+/* 
  * 获取大小对应第一级索引。
  * 
  * @param size 块大小。
@@ -44,7 +44,7 @@ STATIC UINT8 EFIAPI inline memory_fl_index(IN UINTN size)
     }
 }
 
-/*
+/* 
  * 获取大小对应第二级索引。
  * 
  * @param size 块大小。
@@ -63,7 +63,7 @@ STATIC UINT8 EFIAPI inline memory_sl_index(IN UINTN size,IN UINT8 fl)
 }
 
 
-/*
+/* 
  * 将结点添加到双向链表内。
  * 
  * @param list 双向链表。
@@ -86,7 +86,7 @@ STATIC VOID EFIAPI memory_list_add(IN memory_tlsf_block** list,IN memory_tlsf_bl
     list[0]=node;
 }
 
-/*
+/* 
  * 将结点从双向链表内删除。
  * 
  * @param list 双向链表。
@@ -116,7 +116,7 @@ STATIC VOID EFIAPI memory_list_remove(IN memory_tlsf_block** list,IN memory_tlsf
     node->next=NULL;
 }
 
-/*
+/* 
  * 初始化内存池管理。
  * 
  * @param bitmap 位图地址。
@@ -210,7 +210,7 @@ EFI_STATUS EFIAPI uefi_memory_init(OUT UINTN* bitmap,OUT UINTN* meta)
     return EFI_SUCCESS;
 }
 
-/*
+/* 
  * 在位图内分配连续多页。
  * 
  * @param pages 需要分配的连续页数。
@@ -261,7 +261,7 @@ VOID* EFIAPI memory_page_alloc(IN UINTN pages)
     return (VOID*)((UINTN)bitmap_pool+EFI_PAGES_TO_SIZE(start));
 }
 
-/*
+/* 
  * 在位图内释放页面。
  * 
  * @param ptr 页面基址。
@@ -286,7 +286,7 @@ VOID EFIAPI memory_page_free(IN VOID* ptr)
     bitmap_pool->free++;
 }
 
-/*
+/* 
  * 将申请大小按8字节对齐，并对大小不足24的补足成24。
  * 
  * @param size 申请大小。
@@ -302,7 +302,7 @@ STATIC UINTN EFIAPI memory_align_size(IN UINTN size)
     return ALIGN_VALUE(size,8);
 }
 
-/*
+/* 
  * 将TLSF块从链表中删除，并按情况进行分配。
  * 
  * @param size 申请所需大小。
@@ -353,7 +353,7 @@ STATIC VOID* EFIAPI memory_block_alloc(IN UINTN size,IN memory_tlsf_block* node,
     return (VOID*)((UINTN)node+sizeof(memory_tlsf_block));
 }
 
-/*
+/* 
  * 申请新页面尝试进行TLSF分配。
  * 
  * @param size 申请所需大小。
@@ -388,7 +388,7 @@ STATIC VOID* EFIAPI memory_new_block_alloc(IN UINTN size)
     return memory_block_alloc(size,free,fl,sl);
 }
 
-/*
+/* 
  * 在TLSF内存池内申请内存。
  * 
  * @param size 申请大小。
@@ -486,7 +486,7 @@ VOID* EFIAPI memory_pool_alloc(IN UINTN size)
     }
 }
 
-/*
+/* 
  * 向TLSF内存池内释放内存。
  * 
  * @param ptr 块数据基址。
@@ -597,7 +597,7 @@ VOID EFIAPI memory_pool_free(IN VOID* ptr)
     memory_list_add(tlsf_pool->free[node_fl][node_sl],node);
 }
 
-/*
+/* 
  * 在调试模式转储内存池信息。
  * 
  * @return 无返回值。
@@ -681,7 +681,7 @@ VOID EFIAPI memory_dump_pool_info(VOID)
     DEBUG_CODE_END();
 }
 
-/*
+/* 
  * 内存池功能测试。
  * 
  * @return 无返回值。
@@ -728,4 +728,16 @@ VOID EFIAPI memory_function_test(VOID)
     DEBUG((DEBUG_INFO,"[aos.uefi.memory] D state.\n"));
     memory_dump_pool_info();
     DEBUG_CODE_END();
+}
+
+/* 
+ * 内存池功能测试。
+ * 
+ * @param addr 内存地址。
+ * 
+ * @return 返回对应内存类型，不可达区域默认为保留。
+ */
+EFI_MEMORY_TYPE EFIAPI memory_get_memory_type(IN UINTN addr)
+{
+    return EfiReservedMemoryType;
 }

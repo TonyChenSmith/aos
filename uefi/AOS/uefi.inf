@@ -1,17 +1,19 @@
-#
+# 
 # Module "aos.uefi".
-#
+# 
 # Copyright (c) 2025 Tony Chen Smith
-#
+# 
 # SPDX-License-Identifier: MIT
-#
+# 
 [Defines]
     INF_VERSION                    = 0x00010005
     BASE_NAME                      = BOOTx64
     MODULE_UNI_FILE                = uefi.uni
-    FILE_GUID                      = D95D822A-F6F2-37C7-AF67-C2DEDD7B7901 # UUID.nameUUIDFromBytes("aos.uefi".getBytes("UTF-8"))
+    # UUID.nameUUIDFromBytes("aos.uefi".getBytes("UTF-8"))
+    FILE_GUID                      = D95D822A-F6F2-37C7-AF67-C2DEDD7B7901
     MODULE_TYPE                    = UEFI_APPLICATION
-    VERSION_STRING                 = 0.0.2                                # Major.Minor.Patch Before the official launch, do not increment the major version number.
+    # Major.Minor.Patch Before the official launch, do not increment the major version number.
+    VERSION_STRING                 = 0.0.2
     ENTRY_POINT                    = aos_uefi_entry
 
 [Sources]
@@ -27,6 +29,7 @@
 [LibraryClasses]
     BaseLib
     BaseMemoryLib
+    CpuLib
     DebugLib
     DebugPrintErrorLevelLib
     UefiApplicationEntryPoint
