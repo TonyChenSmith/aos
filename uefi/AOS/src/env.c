@@ -14,7 +14,7 @@
  * 
  * @param parmas 启动参数。
  * 
- * @return 一般成功，出现必要功能不支持返回EFI_UNSUPPORTED。
+ * @return 一般成功，出现必要功能不支持返回错误。
  */
 STATIC EFI_STATUS EFIAPI env_set_cpu(IN boot_params* params)
 {
@@ -88,6 +88,29 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN boot_params* params)
     else if(!(ml1edx.Bits.APIC||ml1ecx.Bits.x2APIC))
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] APIC is not supported.\n"));
+        return EFI_UNSUPPORTED;
+    }
+    params->features.xapic=ml1edx.Bits.APIC;
+    params->features.x2apic=ml1ecx.Bits.x2APIC;
+
+    /*检查APIC启动情况*/
+    MSR_IA32_APIC_BASE_REGISTER apic_base={.Uint64=AsmReadMsr64(MSR_IA32_APIC_BASE)};
+    if(apic_base.Bits.EN)
+    {
+        if(apic_base.Bits.EXTD)
+        {
+            params->state.apic=AOS_STATE_X2APIC;
+        }
+        else
+        {
+            params->state.apic=AOS_STATE_XAPIC;
+        }
+    }
+    else
+    {
+        /*当前没能力打开xAPIC*/
+        params->state.apic=AOS_STATE_NO_APIC;
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] xAPIC is not enabled.\n"));
         return EFI_UNSUPPORTED;
     }
 
@@ -208,15 +231,323 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN boot_params* params)
  * 
  * @param parmas 启动参数。
  * 
- * @return 一般成功，出现必要功能不支持返回EFI_UNSUPPORTED。
+ * @return 一般成功，出现问题返回错误。
  */
-STATIC EFI_STATUS EFIAPI env_get_set_table(IN boot_params* params)
+STATIC EFI_STATUS EFIAPI env_set_table(IN boot_params* params)
 {
+    EFI_STATUS status;
+    VOID* table=NULL;
+    status=EfiGetSystemConfigurationTable(&gEfiAcpiTableGuid,&table);
+    if(EFI_ERROR(status))
+    {
+        /*不打算兼容老ACPI与无ACPI机子*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] ACPI RSDP is not found.\n"));
+        return EFI_UNSUPPORTED;
+    }
+    else
+    {
+        ASSERT(table!=NULL);
+        params->acpi=(UINTN)table;
+    }
+
+    status=EfiGetSystemConfigurationTable(&gEfiSmbios3TableGuid,&table);
+    if(EFI_ERROR(status))
+    {
+        status=EfiGetSystemConfigurationTable(&gEfiSmbiosTableGuid,&table);
+        if(EFI_ERROR(status))
+        {
+            /*不打算兼容无SMBIOS*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.env] SMBIOS is not found.\n"));
+            return EFI_UNSUPPORTED;
+        }
+        ASSERT(table!=NULL);
+        params->smbios=(UINTN)table;
+    }
+    else
+    {
+        ASSERT(table!=NULL);
+        params->smbios=(UINTN)table;
+    }
+
+    UINTN addrs[]={params->acpi,params->smbios};
+    EFI_MEMORY_TYPE types[ARRAY_SIZE(addrs)];
+    status=memory_get_memory_type(addrs,ARRAY_SIZE(addrs),types);
+    if(EFI_ERROR(status))
+    {
+        return status;
+    }
+    else
+    {
+        /*合理假设内存区域应该链式合理*/
+        ASSERT(types[0]<EfiMaxMemoryType);
+        ASSERT(types[1]<EfiMaxMemoryType);
+        if(types[0]==EfiConventionalMemory||types[0]==EfiBootServicesCode||types[0]==EfiBootServicesData||
+            types[0]==EfiLoaderCode||types[0]==EfiLoaderData)
+        {
+            DEBUG((DEBUG_ERROR,"[aos.uefi.env] ACPI tables reside in "
+                "an unexpected memory type.\n"));
+            return EFI_UNSUPPORTED;
+        }
+        if(types[1]==EfiConventionalMemory||types[1]==EfiBootServicesCode||types[1]==EfiLoaderCode||
+            types[1]==EfiLoaderData||types[1]==EfiBootServicesData)
+        {
+            DEBUG((DEBUG_ERROR,"[aos.uefi.env] SMBIOS table resides in "
+                "an unexpected memory type.\n"));
+            return EFI_UNSUPPORTED;
+        }
+    }
     return EFI_SUCCESS;
 }
 
-STATIC EFI_STATUS EFIAPI env_get_cpu_core_count(IN boot_params* params)
+/* 
+ * 在UEFI阶段计算可用核心数目。
+ * 
+ * @param parmas 启动参数。
+ * 
+ * @return 一般成功，出现问题返回错误。
+ */
+STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN boot_params* params)
 {
+    EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER* rsdp=(EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER*)params->acpi;
+    EFI_ACPI_1_0_MULTIPLE_APIC_DESCRIPTION_TABLE_HEADER* madt=NULL;
+
+    if(rsdp->Revision<EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER_REVISION)
+    {
+        /*ACPI结构不正常*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] Unexpected ACPI version.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    ASSERT(EFI_ACPI_1_0_APIC_SIGNATURE==EFI_ACPI_2_0_MULTIPLE_SAPIC_DESCRIPTION_TABLE_SIGNATURE);
+    if(rsdp->XsdtAddress)
+    {
+        EFI_ACPI_DESCRIPTION_HEADER* xsdt=(EFI_ACPI_DESCRIPTION_HEADER*)rsdp->XsdtAddress;
+        UINTN count=(xsdt->Length-sizeof(EFI_ACPI_DESCRIPTION_HEADER))>>3;
+        UINT64* tables=(UINT64*)((UINTN)xsdt+sizeof(EFI_ACPI_DESCRIPTION_HEADER));
+        for(UINTN index=0;index<count;index++)
+        {
+            if(((EFI_ACPI_DESCRIPTION_HEADER*)tables[index])->Signature==EFI_ACPI_1_0_APIC_SIGNATURE)
+            {
+                madt=(EFI_ACPI_1_0_MULTIPLE_APIC_DESCRIPTION_TABLE_HEADER*)tables[index];
+                break;
+            }
+        }
+    }
+    else
+    {
+        EFI_ACPI_DESCRIPTION_HEADER* rsdt=(EFI_ACPI_DESCRIPTION_HEADER*)(UINTN)rsdp->RsdtAddress;
+        UINTN count=(rsdt->Length-sizeof(EFI_ACPI_DESCRIPTION_HEADER))>>2;
+        UINT32* tables=(UINT32*)((UINTN)rsdt+sizeof(EFI_ACPI_DESCRIPTION_HEADER));
+        for(UINTN index=0;index<count;index++)
+        {
+            if(((EFI_ACPI_DESCRIPTION_HEADER*)(UINTN)tables[index])->Signature==EFI_ACPI_1_0_APIC_SIGNATURE)
+            {
+                madt=(EFI_ACPI_1_0_MULTIPLE_APIC_DESCRIPTION_TABLE_HEADER*)(UINTN)tables[index];
+                break;
+            }
+        }
+    }
+
+    if(madt==NULL)
+    {
+        /*找不到MADT属于意外*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] MADT is not found.\n"));
+        return EFI_DEVICE_ERROR;
+    }
+    else
+    {
+        env_apic* list=NULL;
+        UINT8* bytes=(UINT8*)((UINTN)madt+sizeof(EFI_ACPI_1_0_MULTIPLE_APIC_DESCRIPTION_TABLE_HEADER));
+        ASSERT(madt->Header.Length>sizeof(EFI_ACPI_1_0_MULTIPLE_APIC_DESCRIPTION_TABLE_HEADER));
+        UINTN length=madt->Header.Length-sizeof(EFI_ACPI_1_0_MULTIPLE_APIC_DESCRIPTION_TABLE_HEADER);
+        UINTN index=0;
+
+        /*两次循环，第一次检查x2APIC，第二次检查xAPIC，尽量避免重复*/
+        while(index<length)
+        {
+            if(bytes[index]==EFI_ACPI_4_0_PROCESSOR_LOCAL_X2APIC)
+            {
+                EFI_ACPI_4_0_PROCESSOR_LOCAL_X2APIC_STRUCTURE* x2apic=
+                    (EFI_ACPI_4_0_PROCESSOR_LOCAL_X2APIC_STRUCTURE*)&bytes[index];
+                if(x2apic->Flags)
+                {
+                    env_apic* node;
+                    BOOLEAN new_apic=TRUE;
+                    if(list!=NULL)
+                    {
+                        node=list;
+                        while(node!=NULL)
+                        {
+                            if(node->id==x2apic->X2ApicId)
+                            {
+                                new_apic=FALSE;
+                                break;
+                            }
+                            node=node->next;
+                        }
+                    }
+                    if(new_apic)
+                    {
+                        node=memory_pool_alloc(sizeof(env_apic));
+                        ASSERT(node!=NULL);
+                        node->id=x2apic->X2ApicId;
+                        node->next=list;
+                        list=node;
+                    }
+                }
+            }
+
+            ASSERT(index+1<length);
+            index=index+bytes[index+1];
+        }
+
+        index=0;
+        while(index<length)
+        {
+            if(bytes[index]==EFI_ACPI_1_0_PROCESSOR_LOCAL_APIC)
+            {
+                EFI_ACPI_1_0_PROCESSOR_LOCAL_APIC_STRUCTURE* xapic=
+                    (EFI_ACPI_1_0_PROCESSOR_LOCAL_APIC_STRUCTURE*)&bytes[index];
+                if(xapic->Flags)
+                {
+                    env_apic* node;
+                    BOOLEAN new_apic=TRUE;
+                    if(list!=NULL)
+                    {
+                        node=list;
+                        while(node!=NULL)
+                        {
+                            if(node->id==xapic->ApicId)
+                            {
+                                new_apic=FALSE;
+                                break;
+                            }
+                            node=node->next;
+                        }
+                    }
+                    if(new_apic)
+                    {
+                        node=memory_pool_alloc(sizeof(env_apic));
+                        ASSERT(node!=NULL);
+                        node->id=xapic->ApicId;
+                        node->next=list;
+                        list=node;
+                    }
+                }
+            }
+
+            ASSERT(index+1<length);
+            index=index+bytes[index+1];
+        }
+
+        if(list==NULL)
+        {
+            DEBUG((DEBUG_ERROR,"[aos.uefi.env] Local APIC is not found.\n"));
+            return EFI_DEVICE_ERROR;
+        }
+
+        /*重组成数组*/
+        UINTN count=0;
+        env_apic* node=list;
+        while(node!=NULL)
+        {
+            count++;
+            node=node->next;
+        }
+        UINT32* apics=memory_pool_alloc(count*sizeof(UINT32));
+        UINTN itr=0;
+        node=list;
+        while(node!=NULL)
+        {
+            apics[itr]=node->id;
+            node=node->next;
+            memory_pool_free(list);
+            list=node;
+            itr++;
+        }
+
+        for(itr=0;itr<count;itr++)
+        {
+            for(UINTN j=itr+1;j<count;j++)
+            {
+                if(apics[itr]>apics[j])
+                {
+                    UINT32 t=apics[j];
+                    apics[j]=apics[itr];
+                    apics[itr]=t;
+                }
+            }
+        }
+
+        /*查询一下哪个是BSP，按道理是0*/
+        MSR_IA32_APIC_BASE_REGISTER apic_base={.Uint64=AsmReadMsr64(MSR_IA32_APIC_BASE)};
+        ASSERT(apic_base.Bits.BSP);
+
+        if(params->state.apic==AOS_STATE_XAPIC)
+        {
+            UINT32* apic_id=(UINT32*)((apic_base.Uint64&0xFFFFFFFFFFFFF000ULL)+XAPIC_ID_OFFSET);
+            UINT32 id=(*apic_id)>>24;
+            for(itr=0;itr<count;itr++)
+            {
+                if(apics[itr]==id)
+                {
+                    UINT32 t=apics[0];
+                    apics[0]=id;
+                    apics[itr]=t;
+                    break;
+                }
+            }
+        }
+        else if(params->state.apic==AOS_STATE_X2APIC)
+        {
+            UINT32 id=AsmReadMsr32(MSR_IA32_X2APIC_APICID);
+            for(itr=0;itr<count;itr++)
+            {
+                if(apics[itr]==id)
+                {
+                    UINT32 t=apics[0];
+                    apics[0]=id;
+                    apics[itr]=t;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            DEBUG((DEBUG_ERROR,"[aos.uefi.env] APIC is not enabled.\n"));
+            return EFI_DEVICE_ERROR;
+        }
+
+        params->cpus_length=count;
+        params->cpus=apics;
+        return EFI_SUCCESS;
+    }
+}
+
+/* 
+ * 在UEFI阶段，在最低1MB内按页对齐放置GDT。
+ * 
+ * @param parmas 启动参数。
+ * 
+ * @return 一般成功，出现问题返回错误。
+ */
+STATIC EFI_STATUS EFIAPI env_set_gdt(IN boot_params* params)
+{
+    params->gdt_size=sizeof(ENV_GDT)+(params->cpus_length<<4);
+    EFI_PHYSICAL_ADDRESS base=SIZE_1MB-SIZE_8KB;
+    EFI_STATUS status=gBS->AllocatePages(AllocateMaxAddress,EfiRuntimeServicesData,EFI_SIZE_TO_PAGES(params->gdt_size),
+        &base);
+    if(EFI_ERROR(status))
+    {
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] System unexpectedly lacks memory for the GDT.\n"));
+        return EFI_DEVICE_ERROR;
+    }
+    UINT64* gdt=(UINT64*)base;
+    for(UINTN index=0;index<ARRAY_SIZE(ENV_GDT);index++)
+    {
+        gdt[index]=ENV_GDT[index];
+    }
+    params->gdt_base=(UINT32)base;
     return EFI_SUCCESS;
 }
 
@@ -225,7 +556,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_count(IN boot_params* params)
  * 
  * @param parmas 启动参数。
  * 
- * @return 固定返回EFI_SUCCESS。
+ * @return 一般成功，出现问题返回错误。
  */
 EFI_STATUS EFIAPI uefi_env_init(IN boot_params* params)
 {
@@ -237,5 +568,22 @@ EFI_STATUS EFIAPI uefi_env_init(IN boot_params* params)
         return status;
     }
 
+    status=env_set_table(params);
+    if(EFI_ERROR(status))
+    {
+        return status;
+    }
+
+    status=env_get_cpu_core_info(params);
+    if(EFI_ERROR(status))
+    {
+        return status;
+    }
+
+    status=env_set_gdt(params);
+    if(EFI_ERROR(status))
+    {
+        return status;
+    }
     return EFI_SUCCESS;
 }

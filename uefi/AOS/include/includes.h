@@ -13,6 +13,7 @@
 #include <Uefi.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
+#include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 
 #endif /*__AOS_UEFI_INCLUDES_H__*/

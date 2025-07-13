@@ -17,6 +17,7 @@
     ENTRY_POINT                    = aos_uefi_entry
 
 [Sources]
+    src/env.c
     src/flow.c
     src/memory.c
 
@@ -34,6 +35,7 @@
     DebugPrintErrorLevelLib
     UefiApplicationEntryPoint
     UefiBootServicesTableLib
+    UefiLib
 
 [Protocols]
     #gEfiEdidActiveProtocolGuid
@@ -46,9 +48,8 @@
     #gEfiPciRootBridgeIoProtocolGuid
 
 [Guids]
-    #gEfiAcpiTableGuid
-    #gEfiAcpi10TableGuid
-    #gEfiSmbiosTableGuid
-    #gEfiSmbios3TableGuid
+    gEfiAcpiTableGuid
+    gEfiSmbios3TableGuid
+    gEfiSmbiosTableGuid
     #gEfiConsoleOutDeviceGuid
     #gEfiFileInfoGuid

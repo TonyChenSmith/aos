@@ -15,7 +15,7 @@
  * @param image_handle 模块句柄。
  * @param system_table 系统表。
  * 
- * @return 理论上无返回值，返回值为EFI_SUCCESS。
+ * @return 理论上不返回。
  */
 EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE* system_table)
 {
@@ -40,6 +40,19 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     {
         return status;
     }
+
+    /*初始化启动参数与运行时环境*/
+    boot_params* params=memory_pool_alloc(sizeof(boot_params));
+    ASSERT(params!=NULL);
+    params->bitmap_base=bitmap;
+    params->tlsf_base=meta;
+    status=uefi_env_init(params);
+    if(EFI_ERROR(status))
+    {
+        return status;
+    }
+
+    memory_dump_pool_info();
 
     CpuDeadLoop();
 

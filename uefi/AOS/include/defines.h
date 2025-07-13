@@ -54,6 +54,7 @@ typedef struct _boot_cpu_state
     UINT32 wt   :3; /*WT索引。*/
     UINT32 wp   :3; /*WP索引。*/
     UINT32 wb   :3; /*WB索引。*/
+    UINT32 apic :3; /*APIC状态。*/
 } boot_cpu_state;
 
 /* 
@@ -67,6 +68,8 @@ typedef struct _boot_cpu_features
     UINT32 nx      :1; /*NX。*/
     UINT32 page1gb :1; /*1GB大页。*/
     UINT32 la57    :1; /*五级页。*/
+    UINT32 xapic   :1; /*xAPIC支持。*/
+    UINT32 x2apic  :1; /*x2APIC支持。*/
 } boot_cpu_features;
 
 /* 
@@ -79,8 +82,12 @@ typedef struct _boot_params
     UINTN             tlsf_base;   /*TLSF元数据基址。*/
     boot_cpu_features features;    /*CPU特性。*/
     boot_cpu_state    state;       /*CPU状态。*/
+    UINTN             acpi;        /*ACPI表。*/
+    UINTN             smbios;      /*SMBIOS表。*/
+    UINTN             cpus_length; /*处理器数组长度。*/
+    UINT32*           cpus;        /*处理器数组。*/
     UINT32            gdt_base;    /*GDT基址。*/
-    UINT32            gdt_page;    /*GDT页数。*/
+    UINT32            gdt_size;    /*GDT大小。*/
 } boot_params;
 
 /* 
@@ -111,5 +118,20 @@ typedef VOID (*aos_boot_trampoline)(boot_params* restrict params);
  * AMD处理器。
  */
 #define AOS_FEATURE_VENDOR_AMD 1
+
+/* 
+ * 未启用APIC。
+ */
+#define AOS_STATE_NO_APIC 0
+
+/* 
+ * 已经启用xAPIC。
+ */
+#define AOS_STATE_XAPIC 1
+
+/* 
+ * 已经启用x2APIC。
+ */
+#define AOS_STATE_X2APIC 2
 
 #endif /*__AOS_UEFI_DEFINES_H__*/

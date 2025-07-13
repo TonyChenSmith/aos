@@ -26,22 +26,22 @@
     CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
     DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
     DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf
+    DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
     IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
+    MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
     PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
     PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
     RegisterFilterLib|MdePkg/Library/RegisterFilterLibNull/RegisterFilterLibNull.inf
-    StackCheckLib|MdePkg/Library/StackCheckLib/StackCheckLib.inf
     StackCheckFailureHookLib|MdePkg/Library/StackCheckFailureHookLibNull/StackCheckFailureHookLibNull.inf
+    StackCheckLib|MdePkg/Library/StackCheckLib/StackCheckLib.inf
     UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
     UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
+    UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
+    UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
     #MtrrLib|UefiCpuPkg/Library/MtrrLib/MtrrLib.inf
-    #DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
-    #UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
-    #UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
     #FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
 
 [LibraryClasses.common.UEFI_APPLICATION]
-    #MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
 
 [Components.X64]
     AOS/uefi.inf

@@ -122,7 +122,7 @@ STATIC VOID EFIAPI memory_list_remove(IN memory_tlsf_block** list,IN memory_tlsf
  * @param bitmap 位图地址。
  * @param meta   TLSF元数据地址。
  * 
- * @return 正常返回EFI_SUCCESS。异常返回对应错误码。
+ * @return 正常返回成功，异常返回对应错误。
  */
 EFI_STATUS EFIAPI uefi_memory_init(OUT UINTN* bitmap,OUT UINTN* meta)
 {
@@ -130,7 +130,7 @@ EFI_STATUS EFIAPI uefi_memory_init(OUT UINTN* bitmap,OUT UINTN* meta)
 
     /*分配内存池*/
     EFI_PHYSICAL_ADDRESS base;
-    status=gBS->AllocatePages(AllocateAnyPages,EfiLoaderData,CONFIG_MEMORY_POOL_PAGES,&base);
+    status=gBS->AllocatePages(AllocateAnyPages,EfiRuntimeServicesData,CONFIG_MEMORY_POOL_PAGES,&base);
     if(EFI_ERROR(status))
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.memory] Failed to allocate memory pool of %llu pages.\n",
@@ -731,13 +731,84 @@ VOID EFIAPI memory_function_test(VOID)
 }
 
 /* 
- * 内存池功能测试。
+ * 检查数组中每个地址对应的内存类型。不可达区域标记为保留。调用者有义务保证两个数组的空间存在。
  * 
- * @param addr 内存地址。
+ * @param addrs  内存地址数组。
+ * @param length 数组长度。
+ * @param types  内存类型数组。
  * 
- * @return 返回对应内存类型，不可达区域默认为保留。
+ * @return 返回调用状态。
  */
-EFI_MEMORY_TYPE EFIAPI memory_get_memory_type(IN UINTN addr)
+EFI_STATUS EFIAPI memory_get_memory_type(IN UINTN* addrs,IN UINTN length,OUT EFI_MEMORY_TYPE* types)
 {
-    return EfiReservedMemoryType;
+    EFI_MEMORY_DESCRIPTOR* memmap=NULL;
+    UINTN map_size=0,desc_size,map_key;
+    UINT32 desc_ver;
+    EFI_STATUS status;
+
+    if(length==0)
+    {
+        return EFI_SUCCESS;
+    }
+    else
+    {
+        for(UINTN index=0;index<length;index++)
+        {
+            types[index]=MEMORY_TYPE_OS_RESERVED_MAX;
+        }
+    }
+
+    status=gBS->GetMemoryMap(&map_size,memmap,&map_key,&desc_size,&desc_ver);
+    if(status!=EFI_BUFFER_TOO_SMALL)
+    {
+        DEBUG((DEBUG_ERROR,"[aos.uefi.memory] Incorrect parameters were set "
+            "when checking the memory map size.\n"));
+        return status;
+    }
+    else
+    {
+        ASSERT(map_size>0);
+        memmap=memory_pool_alloc(map_size);
+        if(memmap==NULL)
+        {
+            DEBUG((DEBUG_ERROR,"[aos.uefi.memory] The configured memory pool space "
+                "is insufficient.\n"));
+            return EFI_OUT_OF_RESOURCES;
+        }
+        status=gBS->GetMemoryMap(&map_size,memmap,&map_key,&desc_size,&desc_ver);
+        if(status!=EFI_SUCCESS||desc_ver!=EFI_MEMORY_DESCRIPTOR_VERSION)
+        {
+            DEBUG((DEBUG_ERROR,"[aos.uefi.memory] An unexpected condition occurred "
+                "while obtaining the memory map.\n"));
+            return EFI_UNSUPPORTED;
+        }
+
+        EFI_MEMORY_DESCRIPTOR* desc=memmap;
+        UINTN end=map_size+(UINTN)memmap;
+        while((UINTN)desc<end)
+        {
+            UINTN desc_end=EFI_PAGES_TO_SIZE(desc->NumberOfPages)+desc->PhysicalStart;
+            for(UINTN index=0;index<length;index++)
+            {
+                if(types[index]==MEMORY_TYPE_OS_RESERVED_MAX)
+                {
+                    if(desc->PhysicalStart<=addrs[index]&&addrs[index]<desc_end)
+                    {
+                        types[index]=desc->Type;
+                    }
+                }
+            }
+            desc=(EFI_MEMORY_DESCRIPTOR*)((UINTN)desc+desc_size);
+        }
+
+        for(UINTN index=0;index<length;index++)
+        {
+            if(types[index]==MEMORY_TYPE_OS_RESERVED_MAX)
+            {
+                types[index]=EfiReservedMemoryType;
+            }
+        }
+        memory_pool_free(memmap);
+        return EFI_SUCCESS;
+    }
 }

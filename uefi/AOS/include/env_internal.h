@@ -11,12 +11,17 @@
 #define __AOS_UEFI_ENV_INTERNAL_H__
 
 #include "env.h"
+#include "memory.h"
 
+#include <Guid/Acpi.h>
+#include <Guid/SmBios.h>
+#include <IndustryStandard/Acpi.h>
+#include <Library/CpuLib.h>
 #include <Register/Amd/ArchitecturalMsr.h>
 #include <Register/Amd/Cpuid.h>
 #include <Register/Intel/ArchitecturalMsr.h>
 #include <Register/Intel/Cpuid.h>
-#include <Library/CpuLib.h>
+#include <Register/Intel/LocalApic.h>
 
 /* 
  * 环境使用的GDT设置。
@@ -31,6 +36,15 @@ CONST UINT64 ENV_GDT[]={
     0x00CFF2000000FFFFULL, /*USER_DATA64*/
     0x0000000000000000ULL, /*BOUNDARY*/
 };
+
+/* 
+ * APIC ID链表结构。
+ */
+typedef struct _env_apic
+{
+    UINT32 id;
+    struct _env_apic* next;
+} env_apic;
 
 /* 
  * 环境使用的固定MTRR内存类型。
