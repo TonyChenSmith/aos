@@ -1,6 +1,6 @@
 /* 
- * 模块“aos.uefi”公用声明。
- * 声明了在UEFI阶段使用的公共宏与数据类型。
+ * 模块“aos.uefi”公用定义。
+ * 声明了跨模块使用的公共宏与数据类型。
  * @date 2025-06-01
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -44,7 +44,7 @@
  * 启动状态。
  * 记录了在运行环境管理过程中提前探测的环境情况。
  */
-typedef struct _boot_cpu_state
+typedef struct _aos_cpu_state
 {
     UINT32 la57 :1; /*五级页。*/
     UINT32 fmtrr:1; /*固定MTRR状态。*/
@@ -55,13 +55,13 @@ typedef struct _boot_cpu_state
     UINT32 wp   :3; /*WP索引。*/
     UINT32 wb   :3; /*WB索引。*/
     UINT32 apic :3; /*APIC状态。*/
-} boot_cpu_state;
+} aos_cpu_state;
 
 /* 
  * 启动CPU特性。
  * 记录了在运行环境管理过程中提前探测的环境情况。
  */
-typedef struct _boot_cpu_features
+typedef struct _aos_cpu_features
 {
     UINT32 baseline:8; /*架构基线。*/
     UINT32 vendor  :8; /*厂商。*/
@@ -70,34 +70,34 @@ typedef struct _boot_cpu_features
     UINT32 la57    :1; /*五级页。*/
     UINT32 xapic   :1; /*xAPIC支持。*/
     UINT32 x2apic  :1; /*x2APIC支持。*/
-} boot_cpu_features;
+} aos_cpu_features;
 
 /* 
  * 启动参数。
  * 记录了需要传递到内核的参数。
  */
-typedef struct _boot_params
+typedef struct _aos_boot_params
 {
-    UINTN             bitmap_base; /*位图基址。*/
-    UINTN             tlsf_base;   /*TLSF元数据基址。*/
-    boot_cpu_features features;    /*CPU特性。*/
-    boot_cpu_state    state;       /*CPU状态。*/
-    UINTN             acpi;        /*ACPI表。*/
-    UINTN             smbios;      /*SMBIOS表。*/
-    UINTN             cpus_length; /*处理器数组长度。*/
-    UINT32*           cpus;        /*处理器数组。*/
-    UINT32            gdt_base;    /*GDT基址。*/
-    UINT32            gdt_size;    /*GDT大小。*/
-} boot_params;
+    UINTN            bitmap_base; /*位图基址。*/
+    UINTN            tlsf_base;   /*TLSF元数据基址。*/
+    aos_cpu_features features;    /*CPU特性。*/
+    aos_cpu_state    state;       /*CPU状态。*/
+    UINTN            acpi;        /*ACPI表。*/
+    UINTN            smbios;      /*SMBIOS表。*/
+    UINTN            cpus_length; /*处理器数组长度。*/
+    UINT32*          cpus;        /*处理器数组。*/
+    UINT32           gdt_base;    /*GDT基址。*/
+    UINT32           gdt_size;    /*GDT大小。*/
+} aos_boot_params;
 
 /* 
- * 启动核蹦床函数，进入后进入启动核流程，并且不返回。
+ * 内核蹦床函数，进入后进入内核，并且不返回。
  * 
  * @param params 启动参数。
  * 
  * @return 无返回值。
  */
-typedef VOID (*aos_boot_trampoline)(boot_params* restrict params);
+typedef VOID (*aos_kernel_trampoline)(aos_boot_params* restrict params);
 
 /* 
  * x86-64-v1基线。详细定义见SysV ABI。

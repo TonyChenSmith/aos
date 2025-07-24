@@ -1,13 +1,13 @@
 /* 
- * 模块“aos.uefi”运行环境管理实现。
- * 实现了运行环境管理的相关函数，以及便于调试该部分功能的函数。
+ * 模块“aos.uefi”运行环境管理。
+ * 实现了相关函数。
  * @date 2025-06-11
  * 
  * Copyright (c) 2025 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
-#include "env_internal.h"
+#include "envi.h"
 
 /* 
  * 在UEFI阶段设置CPU必要功能。
@@ -16,7 +16,7 @@
  * 
  * @return 一般成功，出现必要功能不支持返回错误。
  */
-STATIC EFI_STATUS EFIAPI env_set_cpu(IN boot_params* params)
+STATIC EFI_STATUS EFIAPI env_set_cpu(IN aos_boot_params* params)
 {
     UINT32 eax,ebx,ecx,edx;
 
@@ -233,7 +233,7 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN boot_params* params)
  * 
  * @return 一般成功，出现问题返回错误。
  */
-STATIC EFI_STATUS EFIAPI env_set_table(IN boot_params* params)
+STATIC EFI_STATUS EFIAPI env_set_table(IN aos_boot_params* params)
 {
     EFI_STATUS status;
     VOID* table=NULL;
@@ -271,7 +271,7 @@ STATIC EFI_STATUS EFIAPI env_set_table(IN boot_params* params)
 
     UINTN addrs[]={params->acpi,params->smbios};
     EFI_MEMORY_TYPE types[ARRAY_SIZE(addrs)];
-    status=memory_get_memory_type(addrs,ARRAY_SIZE(addrs),types);
+    status=uefi_get_memory_type(addrs,ARRAY_SIZE(addrs),types);
     if(EFI_ERROR(status))
     {
         return status;
@@ -306,7 +306,7 @@ STATIC EFI_STATUS EFIAPI env_set_table(IN boot_params* params)
  * 
  * @return 一般成功，出现问题返回错误。
  */
-STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN boot_params* params)
+STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN aos_boot_params* params)
 {
     EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER* rsdp=(EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER*)params->acpi;
     EFI_ACPI_1_0_MULTIPLE_APIC_DESCRIPTION_TABLE_HEADER* madt=NULL;
@@ -388,7 +388,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN boot_params* params)
                     }
                     if(new_apic)
                     {
-                        node=memory_pool_alloc(sizeof(env_apic));
+                        node=uefi_pool_alloc(sizeof(env_apic));
                         ASSERT(node!=NULL);
                         node->id=x2apic->X2ApicId;
                         node->next=list;
@@ -427,7 +427,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN boot_params* params)
                     }
                     if(new_apic)
                     {
-                        node=memory_pool_alloc(sizeof(env_apic));
+                        node=uefi_pool_alloc(sizeof(env_apic));
                         ASSERT(node!=NULL);
                         node->id=xapic->ApicId;
                         node->next=list;
@@ -454,14 +454,14 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN boot_params* params)
             count++;
             node=node->next;
         }
-        UINT32* apics=memory_pool_alloc(count*sizeof(UINT32));
+        UINT32* apics=uefi_pool_alloc(count*sizeof(UINT32));
         UINTN itr=0;
         node=list;
         while(node!=NULL)
         {
             apics[itr]=node->id;
             node=node->next;
-            memory_pool_free(list);
+            uefi_pool_free(list);
             list=node;
             itr++;
         }
@@ -531,7 +531,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN boot_params* params)
  * 
  * @return 一般成功，出现问题返回错误。
  */
-STATIC EFI_STATUS EFIAPI env_set_gdt(IN boot_params* params)
+STATIC EFI_STATUS EFIAPI env_set_gdt(IN aos_boot_params* params)
 {
     params->gdt_size=sizeof(ENV_GDT)+(params->cpus_length<<4);
     EFI_PHYSICAL_ADDRESS base=SIZE_1MB-SIZE_8KB;
@@ -552,13 +552,13 @@ STATIC EFI_STATUS EFIAPI env_set_gdt(IN boot_params* params)
 }
 
 /* 
- * 在UEFI阶段初始化运行环境，为引导内核准备。
+ * 初始化运行环境。
  * 
  * @param parmas 启动参数。
  * 
  * @return 一般成功，出现问题返回错误。
  */
-EFI_STATUS EFIAPI uefi_env_init(IN boot_params* params)
+EFI_STATUS EFIAPI uefi_env_init(IN aos_boot_params* params)
 {
     EFI_STATUS status;
     

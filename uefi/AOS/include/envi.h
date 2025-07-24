@@ -1,6 +1,6 @@
 /* 
- * 模块“aos.uefi”运行环境管理内部声明。
- * 声明了仅用于运行环境管理的相关宏。
+ * 模块“aos.uefi”运行环境管理。
+ * 声明了仅在内部使用的的数据类型与宏。
  * @date 2025-06-11
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -11,7 +11,7 @@
 #define __AOS_UEFI_ENV_INTERNAL_H__
 
 #include "env.h"
-#include "memory.h"
+#include "pmm.h"
 
 #include <Guid/Acpi.h>
 #include <Guid/SmBios.h>

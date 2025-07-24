@@ -1,6 +1,6 @@
 /* 
- * 模块“aos.uefi”流程控制实现。
- * 实现了在UEFI阶段的流程函数，包括模块入口。
+ * 模块“aos.uefi”流程控制。
+ * 实现了相关的跨文件与跨模块使用函数。
  * @date 2025-06-01
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -35,14 +35,14 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
 
     /*初始化内存池*/
     UINTN bitmap,meta;
-    status=uefi_memory_init(&bitmap,&meta);
+    status=uefi_pmm_init(&bitmap,&meta);
     if(EFI_ERROR(status))
     {
         return status;
     }
 
     /*初始化启动参数与运行时环境*/
-    boot_params* params=memory_pool_alloc(sizeof(boot_params));
+    aos_boot_params* params=uefi_pool_alloc(sizeof(aos_boot_params));
     ASSERT(params!=NULL);
     params->bitmap_base=bitmap;
     params->tlsf_base=meta;
@@ -52,7 +52,7 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
         return status;
     }
 
-    memory_dump_pool_info();
+    uefi_dump_pool_info();
 
     CpuDeadLoop();
 

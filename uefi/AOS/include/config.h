@@ -1,6 +1,6 @@
 /* 
- * 模块“aos.uefi”配置声明。
- * 声明了主要功能的宏配置变量。
+ * 模块“aos.uefi”配置。
+ * 定义了主要功能的宏配置变量。
  * @date 2025-06-05
  * 
  * Copyright (c) 2025 Tony Chen Smith

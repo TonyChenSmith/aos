@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"clangd.arguments": [
+			"--compile-commands-dir=${workspaceFolder}/out/build/",
+			"--header-insertion=never"
+		],
+		"editor.renderWhitespace": "all",
+		"editor.rulers": [
+			120
+		],
+		"cmake.copyCompileCommands": "${workspaceFolder}/out/build/compile_commands.json"
+	}
+}
