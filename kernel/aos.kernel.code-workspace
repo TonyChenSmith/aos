@@ -13,6 +13,6 @@
 		"editor.rulers": [
 			120
 		],
-		"cmake.copyCompileCommands": "${workspaceFolder}/out/build/compile_commands.json"
+		"cmake.copyCompileCommands": "${workspaceFolder}/out/compile_commands.json"
 	}
 }

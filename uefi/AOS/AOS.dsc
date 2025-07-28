@@ -19,6 +19,12 @@
     SKUID_IDENTIFIER               = DEFAULT
 
 [BuildOptions]
+    GCC:RELEASE_*_*_CC_FLAGS       = -DMDEPKG_NDEBUG
+    INTEL:RELEASE_*_*_CC_FLAGS     = /D MDEPKG_NDEBUG
+    MSFT:RELEASE_*_*_CC_FLAGS      = /D MDEPKG_NDEBUG
+!if $(TOOL_CHAIN_TAG) != "XCODE5" && $(TOOL_CHAIN_TAG) != "CLANGPDB"
+    GCC:*_*_*_CC_FLAGS             = -mno-mmx -mno-sse
+!endif
 
 [LibraryClasses]
     BaseLib|MdePkg/Library/BaseLib/BaseLib.inf

@@ -41,36 +41,57 @@
 #endif /*CONFIG_MEMORY_PREALLOCATED_PAGES*/
 
 /* 
- * 启动状态。
- * 记录了在运行环境管理过程中提前探测的环境情况。
+ * CONFIG_GRAPHICS_BACKGROUND_COLOR检查。
  */
-typedef struct _aos_cpu_state
-{
-    UINT32 la57 :1; /*五级页。*/
-    UINT32 fmtrr:1; /*固定MTRR状态。*/
-    UINT32 vmtrr:8; /*可变MTRR数目。*/
-    UINT32 uc   :3; /*UC索引。*/
-    UINT32 wc   :3; /*WC索引。*/
-    UINT32 wt   :3; /*WT索引。*/
-    UINT32 wp   :3; /*WP索引。*/
-    UINT32 wb   :3; /*WB索引。*/
-    UINT32 apic :3; /*APIC状态。*/
-} aos_cpu_state;
+#ifndef CONFIG_GRAPHICS_BACKGROUND_COLOR
+#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR is undefined.
+#elif CONFIG_GRAPHICS_BACKGROUND_COLOR<0
+#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR must be greater than or equal to 0.
+#elif CONFIG_GRAPHICS_BACKGROUND_COLOR>0xFFFFFF
+#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR must be less than or equal to 0xFFFFFF.
+#endif /*CONFIG_GRAPHICS_BACKGROUND_COLOR*/
 
 /* 
- * 启动CPU特性。
+ * CPU特性。
  * 记录了在运行环境管理过程中提前探测的环境情况。
  */
 typedef struct _aos_cpu_features
 {
-    UINT32 baseline:8; /*架构基线。*/
-    UINT32 vendor  :8; /*厂商。*/
-    UINT32 nx      :1; /*NX。*/
-    UINT32 page1gb :1; /*1GB大页。*/
-    UINT32 la57    :1; /*五级页。*/
-    UINT32 xapic   :1; /*xAPIC支持。*/
-    UINT32 x2apic  :1; /*x2APIC支持。*/
+    UINT8 magic;    /*魔数。*/
+    UINT8 baseline; /*架构基线。*/
+    UINT8 vendor;   /*厂商。*/
+    UINT8 features; /*CPU特性。*/
 } aos_cpu_features;
+
+/* 
+ * CPU状态。
+ * 记录了在运行环境管理过程中提前探测的环境情况。
+ * PAT设置为硬写值，按顺序分别是WB、WT、UC-、UC、WC、WP、UC-、UC。在引导阶段它们不会被使用，因此不定义宏常量。
+ */
+typedef struct _aos_cpu_state
+{
+    UINT8 magic; /*魔数。*/
+    UINT8 state; /*设备状态。*/
+    UINT8 vmtrr; /*可变MTRR数目。*/
+    UINT8 apic;  /*APIC状态。*/
+} aos_cpu_state;
+
+/* 
+ * 图形信息。
+ * 记录了在运行环境管理过程中提前探测的环境情况。
+ */
+typedef struct _aos_graphics_info
+{
+    UINT32 hres;      /*水平分辨率。*/
+    UINT32 vres;      /*竖直分辨率。*/
+    UINTN  fb_base;   /*帧缓冲基址。*/
+    UINTN  fb_size;   /*帧缓冲大小。*/
+    UINT32 red;       /*红色区掩码。*/
+    UINT32 green;     /*绿色区掩码。*/
+    UINT32 blue;      /*蓝色区掩码。*/
+    UINT32 reserved;  /*保留区掩码。*/
+    UINT32 scan_line; /*扫描线长度。*/
+} aos_graphics_info;
 
 /* 
  * 启动参数。
@@ -78,16 +99,17 @@ typedef struct _aos_cpu_features
  */
 typedef struct _aos_boot_params
 {
-    UINTN            bitmap_base; /*位图基址。*/
-    UINTN            tlsf_base;   /*TLSF元数据基址。*/
-    aos_cpu_features features;    /*CPU特性。*/
-    aos_cpu_state    state;       /*CPU状态。*/
-    UINTN            acpi;        /*ACPI表。*/
-    UINTN            smbios;      /*SMBIOS表。*/
-    UINTN            cpus_length; /*处理器数组长度。*/
-    UINT32*          cpus;        /*处理器数组。*/
-    UINT32           gdt_base;    /*GDT基址。*/
-    UINT32           gdt_size;    /*GDT大小。*/
+    UINTN             bitmap_base; /*位图基址。*/
+    UINTN             tlsf_base;   /*TLSF元数据基址。*/
+    aos_cpu_features  features;    /*CPU特性。*/
+    aos_cpu_state     state;       /*CPU状态。*/
+    UINTN             acpi;        /*ACPI表。*/
+    UINTN             smbios;      /*SMBIOS表。*/
+    UINTN             cpus_length; /*处理器数组长度。*/
+    UINT32*           cpus;        /*处理器数组。*/
+    UINT32            gdt_base;    /*GDT基址。*/
+    UINT32            gdt_size;    /*GDT大小。*/
+    aos_graphics_info graphics;    /*图形信息。*/
 } aos_boot_params;
 
 /* 
@@ -100,38 +122,83 @@ typedef struct _aos_boot_params
 typedef VOID (*aos_kernel_trampoline)(aos_boot_params* restrict params);
 
 /* 
+ * 特性魔数。
+ */
+#define AOS_FEATURES_MAGIC 0xAF
+
+/* 
  * x86-64-v1基线。详细定义见SysV ABI。
  */
-#define AOS_FEATURE_BASELINE_X86_64_V1 0
+#define AOS_BASELINE_X86_64_V1 0
 
 /* 
  * x86-64-v2基线。详细定义见SysV ABI。
  */
-#define AOS_FEATURE_BASELINE_X86_64_V2 1
+#define AOS_BASELINE_X86_64_V2 1
 
 /* 
  * Intel处理器。
  */
-#define AOS_FEATURE_VENDOR_INTEL 0
+#define AOS_VENDOR_INTEL 0
 
 /* 
  * AMD处理器。
  */
-#define AOS_FEATURE_VENDOR_AMD 1
+#define AOS_VENDOR_AMD 1
+
+/* 
+ * 特性NX标志位。
+ */
+#define AOS_FEATURES_NX_BIT BIT0
+
+/* 
+ * 特性Page1GB标志位。
+ */
+#define AOS_FEATURES_PAGE1GB_BIT BIT1
+
+/* 
+ * 特性LA57标志位。
+ */
+#define AOS_FEATURES_LA57_BIT BIT2
+
+/* 
+ * 特性xAPIC标志位。
+ */
+#define AOS_FEATURES_XAPIC_BIT BIT3
+
+/* 
+ * 特性x2APIC标志位。
+ */
+#define AOS_FEATURES_X2APIC_BIT BIT4
+
+/* 
+ * 状态魔数。
+ */
+#define AOS_STATE_MAGIC 0xAE
+
+/* 
+ * 状态LA57标志位。
+ */
+#define AOS_STATE_LA57_BIT BIT0
+
+/* 
+ * 状态Fixed MTRR标志位。
+ */
+#define AOS_STATE_FIXED_MTRR_BIT BIT1
 
 /* 
  * 未启用APIC。
  */
-#define AOS_STATE_NO_APIC 0
+#define AOS_APIC_NO_APIC 0
 
 /* 
  * 已经启用xAPIC。
  */
-#define AOS_STATE_XAPIC 1
+#define AOS_APIC_XAPIC 1
 
 /* 
  * 已经启用x2APIC。
  */
-#define AOS_STATE_X2APIC 2
+#define AOS_APIC_X2APIC 2
 
 #endif /*__AOS_UEFI_DEFINES_H__*/

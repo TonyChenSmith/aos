@@ -38,9 +38,9 @@
     UefiLib
 
 [Protocols]
-    #gEfiEdidActiveProtocolGuid
-    #gEfiEdidDiscoveredProtocolGuid
-    #gEfiGraphicsOutputProtocolGuid
+    gEfiEdidActiveProtocolGuid
+    gEfiEdidDiscoveredProtocolGuid
+    gEfiGraphicsOutputProtocolGuid
     #gEfiLoadedImageProtocolGuid
     #gEfiMpServiceProtocolGuid
     #gEfiSimpleFileSystemProtocolGuid
@@ -49,7 +49,7 @@
 
 [Guids]
     gEfiAcpiTableGuid
+    gEfiConsoleOutDeviceGuid
     gEfiSmbios3TableGuid
     gEfiSmbiosTableGuid
-    #gEfiConsoleOutDeviceGuid
     #gEfiFileInfoGuid

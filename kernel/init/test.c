@@ -2,5 +2,7 @@
 
 int main(void)
 {
-    return double_value(TEST);
+    int a=__builtin_ctzg((unsigned long)&main,3*TEST);
+    int b=__builtin_clzg((unsigned long)&double_value,5*TEST);
+    return double_value(TEST)+a+b;
 }

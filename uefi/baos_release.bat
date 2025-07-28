@@ -6,5 +6,5 @@
 @echo off
 call edksetup.bat
 
-build -p OvmfPkg/OvmfPkgX64.dsc -a X64 -b RELEASE -t CLANGPDB -Y COMPILE_INFO -y BuildReport.log
+build -p AOS/AOS.dsc -a X64 -b RELEASE -t CLANGPDB -Y COMPILE_INFO -y BuildReport.log
 @echo on

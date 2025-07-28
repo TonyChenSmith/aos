@@ -152,7 +152,7 @@ EFI_STATUS EFIAPI uefi_pmm_init(OUT UINTN* bitmap,OUT UINTN* meta)
     {
         cbitmap->bitmap[index]=MAX_UINT64;
         index++;
-        bits=bits-64;
+        bits-=64;
     }
     if(bits>0)
     {
@@ -166,7 +166,7 @@ EFI_STATUS EFIAPI uefi_pmm_init(OUT UINTN* bitmap,OUT UINTN* meta)
     {
         cbitmap->bitmap[index]=MAX_UINT64;
         index--;
-        bits=bits-64;
+        bits-=64;
     }
     if(bits>0)
     {

@@ -23,9 +23,11 @@ set(CMAKE_ASM_LINK_EXECUTABLE "<CMAKE_LINKER> <LINK_FLAGS> <OBJECTS> -o <TARGET>
 set(CMAKE_C_LINK_EXECUTABLE "<CMAKE_LINKER> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 
 add_compile_options(
+    -march=x86-64
     -mno-mmx
     -mno-x87
     -mno-sse
+    -mno-sse2
     -mno-fxsr
 
     -flto

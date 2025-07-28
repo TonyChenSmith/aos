@@ -21,15 +21,15 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
 {
     EFI_STATUS status;
 
-    DEBUG((DEBUG_INFO,"[aos.uefi] ==================================================\n"));
-    DEBUG((DEBUG_INFO,"[aos.uefi] Module aos.uefi Debug Information\n"));
-    DEBUG((DEBUG_INFO,"[aos.uefi] ==================================================\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] ==================================================\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] Module aos.uefi Debug Information\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] ==================================================\n"));
 
     /*关闭关门狗*/
     status=gBS->SetWatchdogTimer(0,0,0,NULL);
     if(EFI_ERROR(status))
     {
-        DEBUG((DEBUG_ERROR,"[aos.uefi] Error: Failed to shut down the watchdog.\n"));
+        DEBUG((DEBUG_ERROR,"[aos.uefi.flow] Failed to shut down the watchdog.\n"));
         return status;
     }
 
