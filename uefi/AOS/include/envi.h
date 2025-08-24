@@ -19,6 +19,7 @@
 #include <IndustryStandard/Acpi.h>
 #include <Library/CpuLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/DevicePathLib.h>
 #include <Protocol/EdidActive.h>
 #include <Protocol/EdidDiscovered.h>
 #include <Protocol/GraphicsOutput.h>
@@ -166,16 +167,16 @@ typedef union _env_graphics_pixel
 /* 
  * 背景色红值。
  */
-#define ENV_BACKGROUND_RED ((CONFIG_GRAPHICS_BACKGROUND_COLOR>>16)&MAX_UINT8)
+#define ENV_BACKGROUND_RED ((UEFI_GRAPHICS_BACKGROUND_COLOR>>16)&MAX_UINT8)
 
 /* 
  * 背景色绿值。
  */
-#define ENV_BACKGROUND_GREEN ((CONFIG_GRAPHICS_BACKGROUND_COLOR>>8)&MAX_UINT8)
+#define ENV_BACKGROUND_GREEN ((UEFI_GRAPHICS_BACKGROUND_COLOR>>8)&MAX_UINT8)
 
 /* 
  * 背景色蓝值。
  */
-#define ENV_BACKGROUND_BLUE (CONFIG_GRAPHICS_BACKGROUND_COLOR&MAX_UINT8)
+#define ENV_BACKGROUND_BLUE (UEFI_GRAPHICS_BACKGROUND_COLOR&MAX_UINT8)
 
 #endif /*__AOS_UEFI_ENV_INTERNAL_H__*/

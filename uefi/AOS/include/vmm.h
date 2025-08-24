@@ -1,13 +1,16 @@
 /* 
  * 模块“aos.uefi”页表与线性区管理功能。
- * 实现了相关函数，以及便于调试的函数。
- * @date 2025-07-13
+ * 声明了相关的跨文件使用函数。
+ * @date 2025-08-24
  * 
  * Copyright (c) 2025 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
-#include "vmmi.h"
+#ifndef __AOS_UEFI_VMM_H__
+#define __AOS_UEFI_VMM_H__
+
+#include "defines.h"
 
 /* 
  * 初始化虚拟内存管理功能。
@@ -16,7 +19,6 @@
  * 
  * @return 应该返回成功。
  */
-EFI_STATUS EFIAPI uefi_vmm_init(IN OUT aos_boot_params* params)
-{
-    return EFI_SUCCESS;
-}
+EFI_STATUS EFIAPI uefi_vmm_init(IN OUT aos_boot_params* params);
+
+#endif /*__AOS_UEFI_VMM_H__*/

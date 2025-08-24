@@ -44,7 +44,6 @@
     UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
     UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
     UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
-    #MtrrLib|UefiCpuPkg/Library/MtrrLib/MtrrLib.inf
     #FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
 
 [LibraryClasses.common.UEFI_APPLICATION]

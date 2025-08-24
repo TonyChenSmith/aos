@@ -19,37 +19,37 @@
  */
 
 /* 
- * CONFIG_MEMORY_POOL_PAGES检查。
+ * UEFI_MEMORY_POOL_PAGES检查。
  */
-#ifndef CONFIG_MEMORY_POOL_PAGES
-#error The macro CONFIG_MEMORY_POOL_PAGES is undefined.
-#elif CONFIG_MEMORY_POOL_PAGES<=0
-#error The macro CONFIG_MEMORY_POOL_PAGES must be greater than 0.
-#elif (CONFIG_MEMORY_POOL_PAGES%64)!=0
-#error The macro CONFIG_MEMORY_POOL_PAGES must be a multiple of 64.
-#endif /*CONFIG_MEMORY_POOL_PAGES*/
+#ifndef UEFI_MEMORY_POOL_PAGES
+#error The macro UEFI_MEMORY_POOL_PAGES is undefined.
+#elif UEFI_MEMORY_POOL_PAGES<=0
+#error The macro UEFI_MEMORY_POOL_PAGES must be greater than 0.
+#elif (UEFI_MEMORY_POOL_PAGES%64)!=0
+#error The macro UEFI_MEMORY_POOL_PAGES must be a multiple of 64.
+#endif /*UEFI_MEMORY_POOL_PAGES*/
 
 /* 
- * CONFIG_MEMORY_PREALLOCATED_PAGES检查。
+ * UEFI_MEMORY_PREALLOCATED_PAGES检查。
  */
-#ifndef CONFIG_MEMORY_PREALLOCATED_PAGES
-#error The macro CONFIG_MEMORY_PREALLOCATED_PAGES is undefined.
-#elif CONFIG_MEMORY_PREALLOCATED_PAGES<=0
-#error The macro CONFIG_MEMORY_PREALLOCATED_PAGES must be greater than 0.
-#elif CONFIG_MEMORY_PREALLOCATED_PAGES>CONFIG_MEMORY_POOL_PAGES
-#error The macro CONFIG_MEMORY_PREALLOCATED_PAGES must be less than or equal to CONFIG_MEMORY_POOL_PAGES.
-#endif /*CONFIG_MEMORY_PREALLOCATED_PAGES*/
+#ifndef UEFI_MEMORY_PREALLOCATED_PAGES
+#error The macro UEFI_MEMORY_PREALLOCATED_PAGES is undefined.
+#elif UEFI_MEMORY_PREALLOCATED_PAGES<=0
+#error The macro UEFI_MEMORY_PREALLOCATED_PAGES must be greater than 0.
+#elif UEFI_MEMORY_PREALLOCATED_PAGES>UEFI_MEMORY_POOL_PAGES
+#error The macro UEFI_MEMORY_PREALLOCATED_PAGES must be less than or equal to UEFI_MEMORY_POOL_PAGES.
+#endif /*UEFI_MEMORY_PREALLOCATED_PAGES*/
 
 /* 
- * CONFIG_GRAPHICS_BACKGROUND_COLOR检查。
+ * UEFI_GRAPHICS_BACKGROUND_COLOR检查。
  */
-#ifndef CONFIG_GRAPHICS_BACKGROUND_COLOR
-#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR is undefined.
-#elif CONFIG_GRAPHICS_BACKGROUND_COLOR<0
-#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR must be greater than or equal to 0.
-#elif CONFIG_GRAPHICS_BACKGROUND_COLOR>0xFFFFFF
-#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR must be less than or equal to 0xFFFFFF.
-#endif /*CONFIG_GRAPHICS_BACKGROUND_COLOR*/
+#ifndef UEFI_GRAPHICS_BACKGROUND_COLOR
+#error The macro UEFI_GRAPHICS_BACKGROUND_COLOR is undefined.
+#elif UEFI_GRAPHICS_BACKGROUND_COLOR<0
+#error The macro UEFI_GRAPHICS_BACKGROUND_COLOR must be greater than or equal to 0.
+#elif UEFI_GRAPHICS_BACKGROUND_COLOR>0xFFFFFF
+#error The macro UEFI_GRAPHICS_BACKGROUND_COLOR must be less than or equal to 0xFFFFFF.
+#endif /*UEFI_GRAPHICS_BACKGROUND_COLOR*/
 
 /* 
  * CPU特性。
@@ -99,17 +99,22 @@ typedef struct _aos_graphics_info
  */
 typedef struct _aos_boot_params
 {
-    UINTN             bitmap_base; /*位图基址。*/
-    UINTN             tlsf_base;   /*TLSF元数据基址。*/
-    aos_cpu_features  features;    /*CPU特性。*/
-    aos_cpu_state     state;       /*CPU状态。*/
-    UINTN             acpi;        /*ACPI表。*/
-    UINTN             smbios;      /*SMBIOS表。*/
-    UINTN             cpus_length; /*处理器数组长度。*/
-    UINT32*           cpus;        /*处理器数组。*/
-    UINT32            gdt_base;    /*GDT基址。*/
-    UINT32            gdt_size;    /*GDT大小。*/
-    aos_graphics_info graphics;    /*图形信息。*/
+    UINTN             bitmap_base;     /*位图基址。*/
+    UINTN             tlsf_base;       /*TLSF元数据基址。*/
+    aos_cpu_features  features;        /*CPU特性。*/
+    aos_cpu_state     state;           /*CPU状态。*/
+    UINTN             acpi;            /*ACPI表。*/
+    UINTN             smbios;          /*SMBIOS表。*/
+    UINTN             cpus_length;     /*处理器数组长度。*/
+    UINT32*           cpus;            /*处理器数组。*/
+    UINT32            gdt_base;        /*GDT基址。*/
+    UINT32            gdt_size;        /*GDT大小。*/
+    aos_graphics_info graphics;        /*图形信息。*/
+    UINTN             graphics_device; /*图形设备路径。*/
+    UINTN             page_table;      /*内核页表地址。*/
+    UINTN             vma_root;        /*线性区根地址。*/
+    UINTN             vma_head;        /*线性区头地址。*/
+    UINTN             vma_tail;        /*线性区尾地址。*/
 } aos_boot_params;
 
 /* 

@@ -782,7 +782,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     }
     else
     {
-        DEBUG((DEBUG_ERROR,"[aos.uefi.env] The GraphicsOutputProtocol is not found.\n"));
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] The Graphics Output Protocol is not found.\n"));
         return EFI_NOT_FOUND;
     }
 
@@ -817,8 +817,26 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     uefi_pool_free(gops);
     if(gop==NULL)
     {
-        DEBUG((DEBUG_ERROR,"[aos.uefi.env] The supported GraphicsOutputProtocol is not found.\n"));
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] The supported Graphics Output Protocol is not found.\n"));
         return EFI_UNSUPPORTED;
+    }
+    EFI_DEVICE_PATH_PROTOCOL* device;
+    status=gBS->OpenProtocol(target,&gEfiDevicePathProtocolGuid,(VOID**)&device,gImageHandle,NULL,
+        EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+    if(EFI_ERROR(status))
+    {
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] "
+            "The Device Path Protocol is not found within the handle corresponding to the Graphics Output Protocol\n"));
+        return EFI_UNSUPPORTED;
+    }
+    else
+    {
+        UINTN size=GetDevicePathSize(device);
+        ASSERT(size>0);
+        VOID* buffer=uefi_pool_alloc(size);
+        ASSERT(buffer!=NULL);
+        CopyMem(buffer,device,size);
+        params->graphics_device=(UINTN)buffer;
     }
 
     /* 
@@ -967,7 +985,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     /* 
      * 绘制初始背景色。
      */
-    if(CONFIG_FORCE_FILL_GRAPHICS_BACKGROUND)
+    if(UEFI_FORCE_FILL_GRAPHICS_BACKGROUND)
     {
         UINT8 red_shift,red_width,green_shift,green_width,blue_shift,blue_width,color_size;
         env_mask_to_shift_width(params->graphics.red|params->graphics.green|params->graphics.blue|

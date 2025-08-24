@@ -130,23 +130,23 @@ EFI_STATUS EFIAPI uefi_pmm_init(OUT UINTN* bitmap,OUT UINTN* meta)
 
     /*分配内存池*/
     EFI_PHYSICAL_ADDRESS base;
-    status=gBS->AllocatePages(AllocateAnyPages,EfiRuntimeServicesData,CONFIG_MEMORY_POOL_PAGES,&base);
+    status=gBS->AllocatePages(AllocateAnyPages,EfiRuntimeServicesData,UEFI_MEMORY_POOL_PAGES,&base);
     if(EFI_ERROR(status))
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.pmm] Failed to allocate memory pool of %llu pages.\n",
-            (UINT64)CONFIG_MEMORY_POOL_PAGES));
+            (UINT64)UEFI_MEMORY_POOL_PAGES));
         return status;
     }
 
     /*构造位图数据*/
     pmm_bitmap* cbitmap=(pmm_bitmap*)base;
-    cbitmap->size=CONFIG_MEMORY_POOL_PAGES;
-    cbitmap->free=CONFIG_MEMORY_POOL_PAGES-CONFIG_MEMORY_PREALLOCATED_PAGES;
-    cbitmap->offset=pmm_bitmap_offset(CONFIG_MEMORY_POOL_PAGES);
-    ZeroMem(cbitmap->bitmap,pmm_bitmap_length(CONFIG_MEMORY_POOL_PAGES)*sizeof(UINT64));
+    cbitmap->size=UEFI_MEMORY_POOL_PAGES;
+    cbitmap->free=UEFI_MEMORY_POOL_PAGES-UEFI_MEMORY_PREALLOCATED_PAGES;
+    cbitmap->offset=pmm_bitmap_offset(UEFI_MEMORY_POOL_PAGES);
+    ZeroMem(cbitmap->bitmap,pmm_bitmap_length(UEFI_MEMORY_POOL_PAGES)*sizeof(UINT64));
 
     /*置预分配位*/
-    UINT64 bits=CONFIG_MEMORY_PREALLOCATED_PAGES;
+    UINT64 bits=UEFI_MEMORY_PREALLOCATED_PAGES;
     UINTN index=0;
     while(bits>64)
     {
@@ -160,8 +160,8 @@ EFI_STATUS EFIAPI uefi_pmm_init(OUT UINTN* bitmap,OUT UINTN* meta)
     }
 
     /*置不可分配位*/
-    bits=pmm_bitmap_length(CONFIG_MEMORY_POOL_PAGES)*64-CONFIG_MEMORY_POOL_PAGES;
-    index=pmm_bitmap_length(CONFIG_MEMORY_POOL_PAGES)-1;
+    bits=pmm_bitmap_length(UEFI_MEMORY_POOL_PAGES)*64-UEFI_MEMORY_POOL_PAGES;
+    index=pmm_bitmap_length(UEFI_MEMORY_POOL_PAGES)-1;
     while(bits>64)
     {
         cbitmap->bitmap[index]=MAX_UINT64;
@@ -184,10 +184,10 @@ EFI_STATUS EFIAPI uefi_pmm_init(OUT UINTN* bitmap,OUT UINTN* meta)
     cmeta->magic=PMM_TLSF_MAGIC_META;
 
     /*构造初始空闲区*/
-    pmm_tlsf_block* cblock=(pmm_tlsf_block*)(base+pmm_init_free_offset(CONFIG_MEMORY_POOL_PAGES));
+    pmm_tlsf_block* cblock=(pmm_tlsf_block*)(base+pmm_init_free_offset(UEFI_MEMORY_POOL_PAGES));
     cblock->psize=pmm_tlsf_set_state(0,PMM_TLSF_BLOCK_ALLOC);
-    cblock->csize=pmm_tlsf_set_state(pmm_init_free_size(CONFIG_MEMORY_POOL_PAGES,
-        CONFIG_MEMORY_PREALLOCATED_PAGES),PMM_TLSF_BLOCK_FREE);
+    cblock->csize=pmm_tlsf_set_state(pmm_init_free_size(UEFI_MEMORY_POOL_PAGES,
+        UEFI_MEMORY_PREALLOCATED_PAGES),PMM_TLSF_BLOCK_FREE);
     cblock->magic=PMM_TLSF_MAGIC_FREE;
 
     /*添加该空闲块至对应空闲链表*/
@@ -198,8 +198,8 @@ EFI_STATUS EFIAPI uefi_pmm_init(OUT UINTN* bitmap,OUT UINTN* meta)
     pmm_list_add(cmeta->free[fl][sl], cblock);
 
     /*构造初始哨兵区*/
-    pmm_tlsf_block* csentinel=(pmm_tlsf_block*)(base+pmm_init_free_offset(CONFIG_MEMORY_POOL_PAGES)+
-        pmm_init_free_size(CONFIG_MEMORY_POOL_PAGES,CONFIG_MEMORY_PREALLOCATED_PAGES));
+    pmm_tlsf_block* csentinel=(pmm_tlsf_block*)(base+pmm_init_free_offset(UEFI_MEMORY_POOL_PAGES)+
+        pmm_init_free_size(UEFI_MEMORY_POOL_PAGES,UEFI_MEMORY_PREALLOCATED_PAGES));
     csentinel->psize=cblock->csize;
     csentinel->csize=pmm_tlsf_set_state(sizeof(pmm_tlsf_block),PMM_TLSF_BLOCK_ALLOC);
     csentinel->magic=PMM_TLSF_MAGIC_ALLOC;
@@ -226,7 +226,7 @@ VOID* EFIAPI uefi_page_alloc(IN UINTN pages)
 
     UINTN start=0,count=0,page;
     BOOLEAN found=FALSE;
-    for(page=CONFIG_MEMORY_PREALLOCATED_PAGES;page<bitmap_pool->size;page++)
+    for(page=UEFI_MEMORY_PREALLOCATED_PAGES;page<bitmap_pool->size;page++)
     {
         if(!(bitmap_pool->bitmap[page>>6]&(1ULL<<(page&0x3F))))
         {
@@ -275,8 +275,8 @@ VOID EFIAPI uefi_page_free(IN VOID* ptr)
     {
         return;
     }
-    UINTN start=(UINTN)bitmap_pool+EFI_PAGES_TO_SIZE(CONFIG_MEMORY_PREALLOCATED_PAGES);
-    UINTN end=(UINTN)bitmap_pool+EFI_PAGES_TO_SIZE(CONFIG_MEMORY_POOL_PAGES);
+    UINTN start=(UINTN)bitmap_pool+EFI_PAGES_TO_SIZE(UEFI_MEMORY_PREALLOCATED_PAGES);
+    UINTN end=(UINTN)bitmap_pool+EFI_PAGES_TO_SIZE(UEFI_MEMORY_POOL_PAGES);
     if(start>ptrn||end<=ptrn)
     {
         return;
@@ -575,7 +575,7 @@ VOID EFIAPI uefi_pool_free(IN VOID* ptr)
     {
         ASSERT(phys_next->magic==PMM_TLSF_MAGIC_ALLOC);
 
-        if((UINTN)node>=(EFI_PAGES_TO_SIZE(CONFIG_MEMORY_PREALLOCATED_PAGES)+(UINTN)bitmap_pool))
+        if((UINTN)node>=(EFI_PAGES_TO_SIZE(UEFI_MEMORY_PREALLOCATED_PAGES)+(UINTN)bitmap_pool))
         {
             pmm_list_remove(tlsf_pool->alloc,phys_next);
             VOID* ptr=node;
