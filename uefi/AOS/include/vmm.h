@@ -10,15 +10,15 @@
 #ifndef __AOS_UEFI_VMM_H__
 #define __AOS_UEFI_VMM_H__
 
-#include "defines.h"
+#include "params.h"
 
 /* 
- * 初始化虚拟内存管理功能。
+ * 初始化页表与线性区管理功能。
  * 
  * @param params 启动参数。
  * 
  * @return 应该返回成功。
  */
-EFI_STATUS EFIAPI uefi_vmm_init(IN OUT aos_boot_params* params);
+EFI_STATUS EFIAPI vmm_init(IN OUT aos_boot_params* params);
 
 #endif /*__AOS_UEFI_VMM_H__*/

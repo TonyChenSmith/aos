@@ -10,7 +10,7 @@
 #ifndef __AOS_UEFI_PMM_H__
 #define __AOS_UEFI_PMM_H__
 
-#include "defines.h"
+#include "params.h"
 
 /* 
  * 初始化物理内存与内存池管理功能。
@@ -20,7 +20,7 @@
  * 
  * @return 正常返回成功，异常返回对应错误。
  */
-EFI_STATUS EFIAPI uefi_pmm_init(OUT UINTN* bitmap,OUT UINTN* meta);
+EFI_STATUS EFIAPI pmm_init(OUT UINTN* bitmap,OUT UINTN* meta);
 
 /* 
  * 在位图内分配连续多页。
@@ -29,7 +29,7 @@ EFI_STATUS EFIAPI uefi_pmm_init(OUT UINTN* bitmap,OUT UINTN* meta);
  * 
  * @return 分配成功返回对应地址，分配失败返回空。
  */
-VOID* EFIAPI uefi_page_alloc(IN UINTN pages);
+VOID* EFIAPI page_alloc(IN UINTN pages);
 
 /* 
  * 在位图内释放页面。
@@ -38,7 +38,7 @@ VOID* EFIAPI uefi_page_alloc(IN UINTN pages);
  * 
  * @return 无返回值。不会释放预分配区页面与错误地址。
  */
-VOID EFIAPI uefi_page_free(IN VOID* ptr);
+VOID EFIAPI page_free(IN VOID* ptr);
 
 /* 
  * 在TLSF内存池内申请内存。
@@ -47,7 +47,7 @@ VOID EFIAPI uefi_page_free(IN VOID* ptr);
  * 
  * @return 分配成功返回对应地址，分配失败返回空。
  */
-VOID* EFIAPI uefi_pool_alloc(IN UINTN size);
+VOID* EFIAPI pool_alloc(IN UINTN size);
 
 /* 
  * 向TLSF内存池内释放内存。
@@ -56,21 +56,21 @@ VOID* EFIAPI uefi_pool_alloc(IN UINTN size);
  * 
  * @return 无返回值。对错误指针无反应。
  */
-VOID EFIAPI uefi_pool_free(IN VOID* ptr);
+VOID EFIAPI pool_free(IN VOID* ptr);
 
 /* 
  * 在调试模式转储内存池信息。
  * 
  * @return 无返回值。
  */
-VOID EFIAPI uefi_dump_pool_info(VOID);
+VOID EFIAPI dump_pool_info(VOID);
 
 /* 
  * 内存池功能测试。
  * 
  * @return 无返回值。
  */
-VOID EFIAPI uefi_function_test(VOID);
+VOID EFIAPI function_test(VOID);
 
 /* 
  * 检查数组中每个地址对应的内存类型。不可达区域标记为保留。调用者有义务保证两个数组的空间存在。
@@ -81,6 +81,6 @@ VOID EFIAPI uefi_function_test(VOID);
  * 
  * @return 返回调用状态。
  */
-EFI_STATUS EFIAPI uefi_get_memory_type(IN UINTN* addrs,IN UINTN length,OUT EFI_MEMORY_TYPE* types);
+EFI_STATUS EFIAPI get_memory_type(IN UINTN* addrs,IN UINTN length,OUT EFI_MEMORY_TYPE* types);
 
 #endif /*__AOS_UEFI_PMM_H__*/

@@ -10,7 +10,7 @@
 #ifndef __AOS_UEFI_ENV_H__
 #define __AOS_UEFI_ENV_H__
 
-#include "defines.h"
+#include "params.h"
 
 /* 
  * 初始化运行环境。
@@ -19,6 +19,6 @@
  * 
  * @return 一般成功，出现问题返回错误。
  */
-EFI_STATUS EFIAPI uefi_env_init(IN OUT aos_boot_params* params);
+EFI_STATUS EFIAPI env_init(IN OUT aos_boot_params* params);
 
 #endif /*__AOS_UEFI_ENV_H__*/

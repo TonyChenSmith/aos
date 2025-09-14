@@ -35,24 +35,24 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
 
     /*初始化内存池*/
     UINTN bitmap,meta;
-    status=uefi_pmm_init(&bitmap,&meta);
+    status=pmm_init(&bitmap,&meta);
     if(EFI_ERROR(status))
     {
         return status;
     }
 
     /*初始化启动参数与运行时环境*/
-    aos_boot_params* params=uefi_pool_alloc(sizeof(aos_boot_params));
+    aos_boot_params* params=pool_alloc(sizeof(aos_boot_params));
     ASSERT(params!=NULL);
     params->bitmap_base=bitmap;
     params->tlsf_base=meta;
-    status=uefi_env_init(params);
+    status=env_init(params);
     if(EFI_ERROR(status))
     {
         return status;
     }
 
-    uefi_dump_pool_info();
+    dump_pool_info();
 
     CpuDeadLoop();
 
