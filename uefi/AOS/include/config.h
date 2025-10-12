@@ -16,6 +16,21 @@
 #define CONFIG_MEMORY_POOL_PAGES 256
 
 /* 
+ * 引导内存池总页数。要求显然大于0。
+ */
+#define CONFIG_BOOTSTRAP_POOL 64
+
+/* 
+ * 内核内存池总页数。要求显然大于0。
+ */
+#define CONFIG_KERNEL_POOL 64
+
+/* 
+ * 页表内存池总页数。要求为64的倍数，且显然大于0。
+ */
+#define CONFIG_PAGE_TABLE_POOL 128
+
+/* 
  * 内存池预分配页数。要求小于总页数，且显然大于0。
  */
 #define CONFIG_MEMORY_PREALLOCATED_PAGES 8

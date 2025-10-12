@@ -7,8 +7,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_UEFI_VMM_H__
-#define __AOS_UEFI_VMM_H__
+#ifndef __AOS_UEFI_PVM_H__
+#define __AOS_UEFI_PVM_H__
 
 #include "params.h"
 
@@ -19,6 +19,6 @@
  * 
  * @return 应该返回成功。
  */
-EFI_STATUS EFIAPI vmm_init(IN OUT aos_boot_params* params);
+EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params);
 
-#endif /*__AOS_UEFI_VMM_H__*/
+#endif /*__AOS_UEFI_PVM_H__*/

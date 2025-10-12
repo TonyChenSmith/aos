@@ -7,9 +7,11 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_UEFI_VMM_INTERNAL_H__
-#define __AOS_UEFI_VMM_INTERNAL_H__
+#ifndef __AOS_UEFI_PVM_INTERNAL_H__
+#define __AOS_UEFI_PVM_INTERNAL_H__
 
-#include "vmm.h"
+#include "pvm.h"
 
-#endif /*__AOS_UEFI_VMM_INTERNAL_H__*/
+
+
+#endif /*__AOS_UEFI_PVM_INTERNAL_H__*/

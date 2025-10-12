@@ -19,26 +19,33 @@
  */
 
 /* 
- * CONFIG_MEMORY_POOL_PAGES检查。
+ * CONFIG_BOOTSTRAP_POOL检查。
  */
-#ifndef CONFIG_MEMORY_POOL_PAGES
-#error The macro CONFIG_MEMORY_POOL_PAGES is undefined.
-#elif CONFIG_MEMORY_POOL_PAGES<=0
-#error The macro CONFIG_MEMORY_POOL_PAGES must be greater than 0.
-#elif (CONFIG_MEMORY_POOL_PAGES%64)!=0
-#error The macro CONFIG_MEMORY_POOL_PAGES must be a multiple of 64.
-#endif /*CONFIG_MEMORY_POOL_PAGES*/
+#ifndef CONFIG_BOOTSTRAP_POOL
+#error The macro CONFIG_BOOTSTRAP_POOL is undefined.
+#elif CONFIG_BOOTSTRAP_POOL<=2
+#error The macro CONFIG_BOOTSTRAP_POOL must be greater than 2.
+#endif /*CONFIG_BOOTSTRAP_POOL*/
 
 /* 
- * CONFIG_MEMORY_PREALLOCATED_PAGES检查。
+ * CONFIG_KERNEL_POOL检查。
  */
-#ifndef CONFIG_MEMORY_PREALLOCATED_PAGES
-#error The macro CONFIG_MEMORY_PREALLOCATED_PAGES is undefined.
-#elif CONFIG_MEMORY_PREALLOCATED_PAGES<=0
-#error The macro CONFIG_MEMORY_PREALLOCATED_PAGES must be greater than 0.
-#elif CONFIG_MEMORY_PREALLOCATED_PAGES>CONFIG_MEMORY_POOL_PAGES
-#error The macro CONFIG_MEMORY_PREALLOCATED_PAGES must be less than or equal to CONFIG_MEMORY_POOL_PAGES.
-#endif /*CONFIG_MEMORY_PREALLOCATED_PAGES*/
+#ifndef CONFIG_KERNEL_POOL
+#error The macro CONFIG_KERNEL_POOL is undefined.
+#elif CONFIG_KERNEL_POOL<=2
+#error The macro CONFIG_KERNEL_POOL must be greater than 2.
+#endif /*CONFIG_KERNEL_POOL*/
+
+/* 
+ * CONFIG_PAGE_TABLE_POOL检查。
+ */
+#ifndef CONFIG_PAGE_TABLE_POOL
+#error The macro CONFIG_PAGE_TABLE_POOL is undefined.
+#elif CONFIG_PAGE_TABLE_POOL<=0
+#error The macro CONFIG_PAGE_TABLE_POOL must be greater than 0.
+#elif (CONFIG_PAGE_TABLE_POOL%64)!=0
+#error The macro CONFIG_PAGE_TABLE_POOL must be a multiple of 64.
+#endif /*CONFIG_PAGE_TABLE_POOL*/
 
 /* 
  * CONFIG_GRAPHICS_BACKGROUND_COLOR检查。
@@ -126,8 +133,13 @@ struct _aos_vma
  */
 typedef struct _aos_boot_params
 {
-    UINTN                bitmap_base;     /*位图基址。*/
-    UINTN                tlsf_base;       /*TLSF元数据基址。*/
+    UINTN                bpool_base;      /*引导内存池基址。*/
+    UINTN                bpool_pages;     /*引导内存池页数。*/
+    UINTN                kpool_base;      /*内核内存池基址。*/
+    UINTN                kpool_pages;     /*内核内存池页数。*/
+    UINTN                ppool_base;      /*页表内存池基址。*/
+    UINTN                ppool_pages;     /*页表内存池页数。*/
+    UINTN                bitmap;          /*页表内存池位图地址。*/
     aos_cpu_features     features;        /*CPU特性。*/
     aos_cpu_state        state;           /*CPU状态。*/
     UINTN                acpi;            /*ACPI表。*/

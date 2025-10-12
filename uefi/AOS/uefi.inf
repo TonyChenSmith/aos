@@ -19,7 +19,7 @@
 [Sources]
     src/env.c
     src/flow.c
-    src/pmm.c
+    src/mem.c
 
 [Packages]
     AOS/AOS.dec

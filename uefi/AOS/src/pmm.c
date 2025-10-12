@@ -1,5 +1,5 @@
 /* 
- * 模块“aos.uefi”物理内存与内存池管理功能。
+ * 模块“aos.uefi”内存池管理功能。
  * 实现了相关函数，以及便于调试的函数。
  * @date 2025-06-06
  * 
@@ -117,20 +117,19 @@ STATIC VOID EFIAPI pmm_list_remove(IN pmm_tlsf_block** list,IN pmm_tlsf_block* n
 }
 
 /* 
- * 初始化物理内存与内存池管理功能。
+ * 初始化内存池管理功能。
  * 
- * @param bitmap 位图地址。
- * @param meta   TLSF元数据地址。
+ * @param bpool 引导内存池基址。
  * 
  * @return 正常返回成功，异常返回对应错误。
  */
-EFI_STATUS EFIAPI pmm_init(OUT UINTN* bitmap,OUT UINTN* meta)
+EFI_STATUS EFIAPI pmm_init(OUT UINTN* bpool)
 {
     EFI_STATUS status;
 
     /*分配内存池*/
     EFI_PHYSICAL_ADDRESS base;
-    status=gBS->AllocatePages(AllocateAnyPages,EfiRuntimeServicesData,CONFIG_MEMORY_POOL_PAGES,&base);
+    status=gBS->AllocatePages(AllocateAnyPages,EfiLoaderData,CONFIG_MEMORY_POOL_PAGES,&base);
     if(EFI_ERROR(status))
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.pmm] Failed to allocate memory pool of %llu pages.\n",

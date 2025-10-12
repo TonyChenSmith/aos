@@ -1,5 +1,5 @@
 /* 
- * 模块“aos.uefi”物理内存与内存池管理功能。
+ * 模块“aos.uefi”内存池管理功能。
  * 声明了相关的跨文件使用函数。
  * @date 2025-06-06
  * 
@@ -13,14 +13,13 @@
 #include "params.h"
 
 /* 
- * 初始化物理内存与内存池管理功能。
+ * 初始化内存池管理功能。
  * 
- * @param bitmap 位图地址。
- * @param meta   TLSF元数据地址。
+ * @param bpool 引导内存池基址。
  * 
  * @return 正常返回成功，异常返回对应错误。
  */
-EFI_STATUS EFIAPI pmm_init(OUT UINTN* bitmap,OUT UINTN* meta);
+EFI_STATUS EFIAPI pmm_init(OUT UINTN* bpool);
 
 /* 
  * 在位图内分配连续多页。

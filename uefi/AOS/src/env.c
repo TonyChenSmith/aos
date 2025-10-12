@@ -406,7 +406,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
                     }
                     if(new_apic)
                     {
-                        node=pool_alloc(sizeof(env_apic));
+                        node=malloc(sizeof(env_apic));
                         ASSERT(node!=NULL);
                         node->id=x2apic->X2ApicId;
                         node->next=list;
@@ -445,7 +445,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
                     }
                     if(new_apic)
                     {
-                        node=pool_alloc(sizeof(env_apic));
+                        node=malloc(sizeof(env_apic));
                         ASSERT(node!=NULL);
                         node->id=xapic->ApicId;
                         node->next=list;
@@ -472,14 +472,14 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
             count++;
             node=node->next;
         }
-        UINT32* apics=pool_alloc(count*sizeof(UINT32));
+        UINT32* apics=malloc(count*sizeof(UINT32));
         UINTN itr=0;
         node=list;
         while(node!=NULL)
         {
             apics[itr]=node->id;
             node=node->next;
-            pool_free(list);
+            free(list);
             list=node;
             itr++;
         }
@@ -772,7 +772,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     if(status==EFI_BUFFER_TOO_SMALL)
     {
         ASSERT(count>0);
-        gops=(EFI_HANDLE*)pool_alloc(count);
+        gops=(EFI_HANDLE*)malloc(count);
         status=gBS->LocateHandle(ByProtocol,&gEfiGraphicsOutputProtocolGuid,NULL,&count,gops);
         if(EFI_ERROR(status))
         {
@@ -814,7 +814,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
             target=gops[index];
         }
     }
-    pool_free(gops);
+    free(gops);
     if(gop==NULL)
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The supported Graphics Output Protocol is not found.\n"));
@@ -833,7 +833,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     {
         UINTN size=GetDevicePathSize(device);
         ASSERT(size>0);
-        VOID* buffer=pool_alloc(size);
+        VOID* buffer=malloc(size);
         ASSERT(buffer!=NULL);
         CopyMem(buffer,device,size);
         params->graphics_device=(aos_efi_device_path*)buffer;

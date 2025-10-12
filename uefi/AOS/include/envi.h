@@ -11,7 +11,7 @@
 #define __AOS_UEFI_ENV_INTERNAL_H__
 
 #include "env.h"
-#include "pmm.h"
+#include "mem.h"
 
 #include <Guid/Acpi.h>
 #include <Guid/ConsoleOutDevice.h>

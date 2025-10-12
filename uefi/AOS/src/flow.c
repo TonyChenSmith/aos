@@ -1,5 +1,5 @@
 /* 
- * 模块“aos.uefi”流程控制。
+ * 模块“aos.uefi”运行流程。
  * 实现了相关的跨文件与跨模块使用函数。
  * @date 2025-06-01
  * 
@@ -34,25 +34,24 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     }
 
     /*初始化内存池*/
-    UINTN bitmap,meta;
-    status=pmm_init(&bitmap,&meta);
+    UINTN meta;
+    status=mem_init(&meta);
     if(EFI_ERROR(status))
     {
         return status;
     }
 
     /*初始化启动参数与运行时环境*/
-    aos_boot_params* params=pool_alloc(sizeof(aos_boot_params));
+    aos_boot_params* params=malloc(sizeof(aos_boot_params));
+    ZeroMem(params,sizeof(aos_boot_params));
     ASSERT(params!=NULL);
-    params->bitmap_base=bitmap;
-    params->tlsf_base=meta;
+    params->bpool_base=meta;
+    params->bpool_pages=CONFIG_BOOTSTRAP_POOL;
     status=env_init(params);
     if(EFI_ERROR(status))
     {
         return status;
     }
-
-    dump_pool_info();
 
     CpuDeadLoop();
 

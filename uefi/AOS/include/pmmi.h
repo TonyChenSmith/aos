@@ -1,5 +1,5 @@
 /* 
- * 模块“aos.uefi”物理内存与内存池管理功能。
+ * 模块“aos.uefi”内存池管理功能。
  * 声明了仅在内部使用的的数据类型与宏，并在该文件内对所需配置做第二步检查。
  * @date 2025-06-05
  * 
@@ -124,17 +124,17 @@ struct _pmm_tlsf_meta
 /* 
  * 设置TLSF块数据状态。
  */
-#define pmm_tlsf_set_state(size,state) (((size)&(MAX_UINTN^1))|(state&1))
+#define pmm_tlsf_set_state(size,state) (((size)&(MAX_UINTN^BIT0))|(state&BIT0))
 
 /* 
  * 获取TLSF块数据状态。
  */
-#define pmm_tlsf_get_state(size) ((size)&1)
+#define pmm_tlsf_get_state(size) ((size)&BIT0)
 
 /* 
  * 设置TLSF块数据状态。
  */
-#define pmm_tlsf_get_size(size) ((size)&(MAX_UINTN^1))
+#define pmm_tlsf_get_size(size) ((size)&(MAX_UINTN^BIT0))
 
 /* 
  * 设置TLSF第一级位图。
@@ -172,12 +172,12 @@ struct _pmm_tlsf_meta
  */
 
 /* 
- * CONFIG_MEMORY_POOL_PAGES检查。
- * 这里主要是避免过大，虚拟机默认低4GB映射了2GB，作为初始化使用超过1GB的池没有意义。
+ * 总页数检查。
+ * 这里主要是避免过大，虚拟机默认低4GB映射了2GB，合计使用超过1GB的内存池没有意义。
  */
-#if CONFIG_MEMORY_POOL_PAGES>EFI_SIZE_TO_PAGES(SIZE_1GB)
-#error The macro CONFIG_MEMORY_POOL_PAGES is too large.
-#endif /*CONFIG_MEMORY_POOL_PAGES*/
+#if (CONFIG_BOOTSTRAP_POOL+CONFIG_KERNEL_POOL+CONFIG_PAGE_TABLE_POOL)>EFI_SIZE_TO_PAGES(SIZE_1GB)
+#error The required memory is too large.
+#endif
 
 /* 
  * CONFIG_MEMORY_PREALLOCATED_PAGES检查。
