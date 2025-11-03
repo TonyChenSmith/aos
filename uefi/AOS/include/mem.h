@@ -70,6 +70,15 @@ VOID EFIAPI pool_free(IN VOID* pool,IN VOID* ptr);
 VOID EFIAPI free(IN VOID* ptr);
 
 /* 
+ * 在调试模式转储输入的内存池信息。
+ * 
+ * @param pool 内存池基址。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI dump_pool_info(IN VOID* pool);
+
+/* 
  * 检查数组中每个地址对应的内存类型。不可达区域标记为保留。调用者有义务保证两个数组的空间存在。
  * 
  * @param addrs  内存地址数组。

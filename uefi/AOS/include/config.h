@@ -11,11 +11,6 @@
 #define __AOS_UEFI_CONFIG_H__
 
 /* 
- * 内存池总页数。要求为64的倍数，且显然大于0。
- */
-#define CONFIG_MEMORY_POOL_PAGES 256
-
-/* 
  * 引导内存池总页数。要求显然大于0。
  */
 #define CONFIG_BOOTSTRAP_POOL 64

@@ -53,6 +53,8 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
         return status;
     }
 
+    dump_pool_info((VOID*)meta);
+
     CpuDeadLoop();
 
     return EFI_SUCCESS;

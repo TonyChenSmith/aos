@@ -139,7 +139,8 @@ typedef struct _aos_boot_params
     UINTN                kpool_pages;     /*内核内存池页数。*/
     UINTN                ppool_base;      /*页表内存池基址。*/
     UINTN                ppool_pages;     /*页表内存池页数。*/
-    UINTN                bitmap;          /*页表内存池位图地址。*/
+    UINT8*               bitmap;          /*页表内存池位图地址。*/
+    UINTN                bitmap_length;   /*页表内存池位图长度。*/
     aos_cpu_features     features;        /*CPU特性。*/
     aos_cpu_state        state;           /*CPU状态。*/
     UINTN                acpi;            /*ACPI表。*/
@@ -258,5 +259,10 @@ typedef VOID (*aos_kernel_trampoline)(aos_boot_params* restrict params);
  * 线性区可执行标志。
  */
 #define AOS_VMA_EXECUTE BIT2
+
+/* 
+ * 线性区已分配标志。
+ */
+#define AOS_VMA_ALLOCATED BIT3
 
 #endif /*__AOS_UEFI_DEFINES_H__*/

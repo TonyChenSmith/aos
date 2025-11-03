@@ -44,6 +44,11 @@ CONST UINT64 ENV_GDT[]={
 };
 
 /* 
+ * 位图使用的掩码。
+ */
+CONST UINT8 ENV_BITMAP_MASK[]={0,0x80,0xC0,0xE0,0xF0,0xF8,0xFC,0xFE};
+
+/* 
  * APIC ID链表结构。
  */
 typedef struct _env_apic

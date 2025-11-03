@@ -162,8 +162,8 @@ EFI_STATUS EFIAPI mem_init(OUT UINTN* bpool)
 {
     EFI_STATUS status;
 
-    EFI_PHYSICAL_ADDRESS base;
-    status=gBS->AllocatePages(AllocateAnyPages,EfiLoaderData,CONFIG_BOOTSTRAP_POOL,&base);
+    EFI_PHYSICAL_ADDRESS base=SIZE_2GB;
+    status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,CONFIG_BOOTSTRAP_POOL,&base);
     if(EFI_ERROR(status))
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.mem] Failed to allocate bootstrap memory pool "
@@ -453,6 +453,85 @@ VOID EFIAPI pool_free(IN VOID* pool,IN VOID* ptr)
 VOID EFIAPI free(IN VOID* ptr)
 {
     return pool_free(boot_pool,ptr);
+}
+
+/* 
+ * 在调试模式转储输入的内存池信息。
+ * 
+ * @param pool 内存池基址。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI dump_pool_info(IN VOID* pool)
+{
+    DEBUG_CODE_BEGIN();
+    mem_tlsf_meta* meta=(mem_tlsf_meta*)pool;
+    if(meta==NULL||meta->magic!=MEM_TLSF_MAGIC_META)
+    {
+        DEBUG((DEBUG_ERROR,"[aos.uefi.mem] The address is not a memory pool.\n"));
+    }
+    DEBUG((DEBUG_INFO,"[aos.uefi.mem] ==================================================\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.mem] Memory Pool Dump\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.mem] Pool Base: 0x%016X.\n",(UINTN)pool));
+    DEBUG((DEBUG_INFO,"[aos.uefi.mem] TLSF FL Bitmap: %08X.\n",meta->fl_bitmap));
+    for(UINTN index=0;index<32;index++)
+    {
+        DEBUG((DEBUG_INFO,"[aos.uefi.mem] TLSF SL Bitmap-%lu: %02X.\n",index,
+            (UINT32)meta->sl_bitmap[index]));
+    }
+    DEBUG((DEBUG_INFO,"[aos.uefi.mem] --------------------------------------------------\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.mem] TLSF Allocated Memory List\n"));
+    UINTN index=0;
+    for(mem_tlsf_block* node=meta->alloc[0];node!=NULL;node=node->next)
+    {
+        DEBUG((DEBUG_INFO,"[aos.uefi.mem] ----------\n"));
+        DEBUG((DEBUG_INFO,"[aos.uefi.mem] Index-%lu: 0x%016lX.\n",index,(UINTN)node));
+        DEBUG((DEBUG_INFO,"[aos.uefi.mem]    Previous Size: 0x%016lX.\n",
+            mem_tlsf_get_size(node->psize)));
+        DEBUG((DEBUG_INFO,"[aos.uefi.mem]    Current Size:  0x%016lX.\n",
+            mem_tlsf_get_size(node->csize)));
+        DEBUG((DEBUG_INFO,"[aos.uefi.mem]    Current Magic: 0x%016lX.\n",node->magic));
+        DEBUG((DEBUG_INFO,"[aos.uefi.mem]    Previous Node: 0x%016lX.\n",(UINTN)node->prev));
+        DEBUG((DEBUG_INFO,"[aos.uefi.mem]    Next Node:     0x%016lX.\n",(UINTN)node->next));
+        index++;
+    }
+    DEBUG((DEBUG_INFO,"[aos.uefi.mem] --------------------------------------------------\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.mem] TLSF Free Memory List State\n"));
+    for(UINTN fl=0;fl<32;fl++)
+    {
+        for(UINTN sl=0;sl<8;sl++)
+        {
+            if(meta->free[fl][sl][0]==NULL)
+            {
+            }
+            else
+            {
+                DEBUG((DEBUG_INFO,"[aos.uefi.mem] --------------------\n"));
+                DEBUG((DEBUG_INFO,"[aos.uefi.mem] List-(%lu,%lu): 0x%016lX.\n",fl,sl,
+                    (UINTN)meta->free[fl][sl][0]));
+                UINTN index=0;
+                for(mem_tlsf_block* node=meta->free[fl][sl][0];node!=NULL;node=node->next)
+                {
+                    DEBUG((DEBUG_INFO,"[aos.uefi.mem] ----------\n"));
+                    DEBUG((DEBUG_INFO,"[aos.uefi.mem] Index-%lu: 0x%016lX.\n",index,
+                        (UINTN)node));
+                    DEBUG((DEBUG_INFO,"[aos.uefi.mem]    Previous Size: 0x%016X.\n",
+                        mem_tlsf_get_size(node->psize)));
+                    DEBUG((DEBUG_INFO,"[aos.uefi.mem]    Current Size:  0x%016X.\n",
+                        mem_tlsf_get_size(node->csize)));
+                    DEBUG((DEBUG_INFO,"[aos.uefi.mem]    Current Magic: 0x%016lX.\n",
+                        node->magic));
+                    DEBUG((DEBUG_INFO,"[aos.uefi.mem]    Previous Node: 0x%016lX.\n",
+                        (UINTN)node->prev));
+                    DEBUG((DEBUG_INFO,"[aos.uefi.mem]    Next Node:     0x%016lX.\n",
+                        (UINTN)node->next));
+                    index++;
+                }
+            }
+        }
+    }
+    DEBUG((DEBUG_INFO,"[aos.uefi.mem] ==================================================\n"));
+    DEBUG_CODE_END();
 }
 
 /* 

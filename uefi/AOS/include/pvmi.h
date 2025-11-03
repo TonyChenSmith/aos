@@ -11,7 +11,18 @@
 #define __AOS_UEFI_PVM_INTERNAL_H__
 
 #include "pvm.h"
+#include "mem.h"
 
+#include <Library/BaseMemoryLib.h>
 
+/* 
+ * 位图用掩码。
+ */
+CONST UINT8 PVM_BITMAP_MASK[]={BIT0,BIT1,BIT2,BIT3,BIT4,BIT5,BIT6,BIT7};
+
+/* 
+ * 错误指针。
+ */
+UINT64* CONST PVM_ERROR=(UINT64*)0x101;
 
 #endif /*__AOS_UEFI_PVM_INTERNAL_H__*/

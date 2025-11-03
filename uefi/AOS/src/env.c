@@ -553,7 +553,7 @@ STATIC EFI_STATUS EFIAPI env_set_gdt(IN OUT aos_boot_params* params)
 {
     params->gdt_size=sizeof(ENV_GDT)+(params->cpus_length<<4);
     EFI_PHYSICAL_ADDRESS base=SIZE_1MB-SIZE_8KB;
-    EFI_STATUS status=gBS->AllocatePages(AllocateMaxAddress,EfiRuntimeServicesData,EFI_SIZE_TO_PAGES(params->gdt_size),
+    EFI_STATUS status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,EFI_SIZE_TO_PAGES(params->gdt_size),
         &base);
     if(EFI_ERROR(status))
     {
@@ -1045,5 +1045,37 @@ EFI_STATUS EFIAPI env_init(IN OUT aos_boot_params* params)
     {
         return status;
     }
+
+    EFI_PHYSICAL_ADDRESS base=SIZE_2GB;
+    status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,CONFIG_KERNEL_POOL,&base);
+    if(EFI_ERROR(status))
+    {
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] Failed to allocate kernel memory pool "
+            "of %llu pages.\n",(UINT64)CONFIG_KERNEL_POOL));
+        return status;
+    }
+    params->kpool_base=base;
+    params->kpool_pages=CONFIG_KERNEL_POOL;
+
+    base=SIZE_2GB;
+    status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,CONFIG_PAGE_TABLE_POOL,&base);
+    if(EFI_ERROR(status))
+    {
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] Failed to allocate page table memory pool "
+            "of %llu pages.\n",(UINT64)CONFIG_PAGE_TABLE_POOL));
+        return status;
+    }
+    params->ppool_base=base;
+    params->ppool_pages=CONFIG_PAGE_TABLE_POOL;
+    params->bitmap_length=CONFIG_PAGE_TABLE_POOL/8+CONFIG_PAGE_TABLE_POOL%8?1:0;
+    params->bitmap=(UINT8*)malloc(params->bitmap_length);
+    if(params->bitmap==NULL)
+    {
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] Failed to allocate page table memory pool bitmap "
+            "of %llu pages.\n",(UINT64)CONFIG_PAGE_TABLE_POOL));
+        return EFI_OUT_OF_RESOURCES;
+    }
+    ZeroMem(params->bitmap,params->bitmap_length);
+    params->bitmap[params->bitmap_length-1]=ENV_BITMAP_MASK[CONFIG_PAGE_TABLE_POOL%8];
     return EFI_SUCCESS;
 }
