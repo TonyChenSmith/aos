@@ -116,15 +116,15 @@ typedef struct _aos_efi_device_path
  * 线性区。这里使用了简单的双向链表结构用于传递信息。
  * 红黑树版本的在内核再实现。
  */
-typedef struct _aos_vma aos_vma;
+typedef struct _aos_boot_vma aos_boot_vma;
 
-struct _aos_vma
+struct _aos_boot_vma
 {
-    aos_vma* prev;  /*前一线性区。*/
-    aos_vma* next;  /*后一线性区。*/
-    UINTN    start; /*开始地址。*/
-    UINTN    end;   /*结束地址。*/
-    UINT64   flags; /*标志。*/
+    aos_boot_vma* prev;  /*前一线性区。*/
+    aos_boot_vma* next;  /*后一线性区。*/
+    UINTN         start; /*开始地址。*/
+    UINTN         end;   /*结束地址。*/
+    UINT64        flags; /*标志。*/
 };
 
 /* 
@@ -152,8 +152,8 @@ typedef struct _aos_boot_params
     aos_graphics_info    graphics;        /*图形信息。*/
     aos_efi_device_path* graphics_device; /*图形设备路径。*/
     UINTN                page_table;      /*内核页表地址。*/
-    aos_vma*             vma_head;        /*线性区头地址。*/
-    aos_vma*             vma_tail;        /*线性区尾地址。*/
+    aos_boot_vma*        vma_head;        /*线性区头地址。*/
+    aos_boot_vma*        vma_tail;        /*线性区尾地址。*/
 } aos_boot_params;
 
 /* 
@@ -193,27 +193,27 @@ typedef VOID (*aos_kernel_trampoline)(aos_boot_params* restrict params);
 /* 
  * 特性NX标志位。
  */
-#define AOS_FEATURES_NX_BIT BIT0
+#define AOS_FEATURES_NX BIT0
 
 /* 
  * 特性Page1GB标志位。
  */
-#define AOS_FEATURES_PAGE1GB_BIT BIT1
+#define AOS_FEATURES_PAGE1GB BIT1
 
 /* 
  * 特性LA57标志位。
  */
-#define AOS_FEATURES_LA57_BIT BIT2
+#define AOS_FEATURES_LA57 BIT2
 
 /* 
  * 特性xAPIC标志位。
  */
-#define AOS_FEATURES_XAPIC_BIT BIT3
+#define AOS_FEATURES_XAPIC BIT3
 
 /* 
  * 特性x2APIC标志位。
  */
-#define AOS_FEATURES_X2APIC_BIT BIT4
+#define AOS_FEATURES_X2APIC BIT4
 
 /* 
  * 状态魔数。
@@ -246,23 +246,73 @@ typedef VOID (*aos_kernel_trampoline)(aos_boot_params* restrict params);
 #define AOS_APIC_X2APIC 2
 
 /* 
+ * 线性区内存类型掩码。
+ */
+#define AOS_BOOT_VMA_TYPE_MASK MAX_UINT8
+
+/* 
+ * 线性区无缓存类型。
+ */
+#define AOS_BOOT_VMA_TYPE_UC 0
+
+/* 
+ * 线性区写合并类型。
+ */
+#define AOS_BOOT_VMA_TYPE_WC 1
+
+/* 
+ * 线性区写直通类型。
+ */
+#define AOS_BOOT_VMA_TYPE_WT 2
+
+/* 
+ * 线性区写回类型。
+ */
+#define AOS_BOOT_VMA_TYPE_WB 3
+
+/* 
+ * 线性区写保护类型。
+ */
+#define AOS_BOOT_VMA_TYPE_WP 4
+
+/* 
+ * 线性区无缓存减类型。
+ */
+#define AOS_BOOT_VMA_TYPE_UCM 5
+
+/* 
  * 线性区可读标志。
  */
-#define AOS_VMA_READ BIT0
+#define AOS_BOOT_VMA_READ BIT8
 
 /* 
  * 线性区可写标志。
  */
-#define AOS_VMA_WRITE BIT1
+#define AOS_BOOT_VMA_WRITE BIT9
 
 /* 
  * 线性区可执行标志。
  */
-#define AOS_VMA_EXECUTE BIT2
+#define AOS_BOOT_VMA_EXECUTE BIT10
+
+/* 
+ * 线性区读写可执行掩码。
+ */
+#define AOS_BOOT_VMA_RWX_MASK (AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_EXECUTE)
+
+/* 
+ * 线性区用户级标志。
+ */
+#define AOS_BOOT_VMA_USER BIT11
+
+/* 
+ * 线性区全局标志。
+ */
+#define AOS_BOOT_VMA_GLOBAL BIT12
 
 /* 
  * 线性区已分配标志。
  */
-#define AOS_VMA_ALLOCATED BIT3
+#define AOS_BOOT_VMA_ALLOCATED BIT13
 
 #endif /*__AOS_UEFI_DEFINES_H__*/

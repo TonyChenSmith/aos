@@ -96,11 +96,11 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
     }
     if(ml1edx.Bits.APIC)
     {
-        params->features.features|=AOS_FEATURES_XAPIC_BIT;
+        params->features.features|=AOS_FEATURES_XAPIC;
     }
     if(ml1ecx.Bits.x2APIC)
     {
-        params->features.features|=AOS_FEATURES_X2APIC_BIT;
+        params->features.features|=AOS_FEATURES_X2APIC;
     }
 
     /*检查APIC启动情况*/
@@ -142,15 +142,15 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
     }
     if(el1edx.Bits.Page1GB)
     {
-        params->features.features|=AOS_FEATURES_PAGE1GB_BIT;
+        params->features.features|=AOS_FEATURES_PAGE1GB;
     }
     if(el1edx.Bits.NX)
     {
-        params->features.features|=AOS_FEATURES_NX_BIT;
+        params->features.features|=AOS_FEATURES_NX;
     }
     if(ml7ecx.Bits.FiveLevelPage)
     {
-        params->features.features|=AOS_FEATURES_LA57_BIT;
+        params->features.features|=AOS_FEATURES_LA57;
     }
 
     /*设置内存属性*/
