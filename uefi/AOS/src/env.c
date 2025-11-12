@@ -164,7 +164,7 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
     cr4.Bits.SMAP=0;
     if(cr4.Bits.LA57)
     {
-        params->state.state|=AOS_STATE_LA57_BIT;
+        params->state.state|=AOS_STATE_LA57;
     }
     AsmWriteCr4(cr4.UintN);
 
@@ -178,7 +178,7 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
     }
     if(mtrrcap.Bits.FIX)
     {
-        params->state.state|=AOS_STATE_FIXED_MTRR_BIT;
+        params->state.state|=AOS_STATE_FIXED_MTRR;
     }
     params->state.vmtrr=mtrrcap.Bits.VCNT;
 

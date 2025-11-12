@@ -223,12 +223,12 @@ typedef VOID (*aos_kernel_trampoline)(aos_boot_params* restrict params);
 /* 
  * 状态LA57标志位。
  */
-#define AOS_STATE_LA57_BIT BIT0
+#define AOS_STATE_LA57 BIT0
 
 /* 
  * 状态Fixed MTRR标志位。
  */
-#define AOS_STATE_FIXED_MTRR_BIT BIT1
+#define AOS_STATE_FIXED_MTRR BIT1
 
 /* 
  * 未启用APIC。
