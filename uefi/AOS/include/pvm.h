@@ -13,6 +13,27 @@
 #include "params.h"
 
 /* 
+ * 添加一个内核线性区。
+ * 
+ * @param vaddr 线性区域基址。
+ * @param paddr 物理区域基址。
+ * @param pages 区域页数。
+ * @param flags 线性区标记。
+ * 
+ * @return 正常返回成功。出现问题返回对应错误。
+ */
+EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN UINT64 flags);
+
+/* 
+ * 删除一个内核线性区。仅在通过输入参数能够找到线性区时才会删除。
+ * 
+ * @param vaddr 线性区域地址。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI remove_kernel_vma(IN UINTN vaddr);
+
+/* 
  * 初始化页表与线性区管理功能。
  * 
  * @param params 启动参数。

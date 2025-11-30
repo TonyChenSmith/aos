@@ -26,11 +26,6 @@
 #define CONFIG_PAGE_TABLE_POOL 128
 
 /* 
- * 内存池预分配页数。要求小于总页数，且显然大于0。
- */
-#define CONFIG_MEMORY_PREALLOCATED_PAGES 8
-
-/* 
  * 强制填充图形界面背景。要求为一个可以表示真假的数值。
  */
 #define CONFIG_FORCE_FILL_GRAPHICS_BACKGROUND FALSE

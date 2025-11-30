@@ -10,69 +10,6 @@
 #include "pvmi.h"
 
 /* 
- * 添加线性区到启动参数。
- * 
- * @param params 启动参数。
- * @param vma    线性区。
- * 
- * @return 无返回值。
- */
-STATIC VOID EFIAPI pvm_add_vma(IN OUT aos_boot_params* params,IN aos_boot_vma* vma)
-{
-    if(params->vma_tail==NULL)
-    {
-        params->vma_head=vma;
-        params->vma_tail=vma;
-    }
-    else
-    {
-        params->vma_tail->next=vma;
-        vma->prev=params->vma_tail;
-        params->vma_tail=vma;
-    }
-}
-
-/* 
- * 在启动参数删除一个线性区。删除依据以指针一致为准。
- * 
- * @param params 启动参数。
- * @param vma    线性区。
- * 
- * @return 无返回值。
- */
-STATIC VOID EFIAPI pvm_remove_vma(IN OUT aos_boot_params* params,IN aos_boot_vma* vma)
-{
-    if(params->vma_head!=NULL)
-    {
-        aos_boot_vma* node=params->vma_head;
-        while(node!=vma)
-        {
-            node=node->next;
-        }
-
-        if(node->prev==NULL)
-        {
-            params->vma_head=node->next;
-        }
-        else
-        {
-            node->prev->next=node->next;
-        }
-        if(node->next==NULL)
-        {
-            params->vma_tail=node->prev;
-        }
-        else
-        {
-            node->next->prev=node->prev;
-        }
-
-        node->prev=NULL;
-        node->next=NULL;
-    }
-}
-
-/* 
  * 位图指针。
  */
 STATIC UINT8* bitmap;
@@ -153,11 +90,6 @@ STATIC BOOLEAN nx=FALSE;
 STATIC BOOLEAN page1gb=FALSE;
 
 /* 
- * 5级分页。
- */
-STATIC BOOLEAN ptl5=FALSE;
-
-/* 
  * 释放一页内存。
  * 
  * @return 无返回值。
@@ -176,95 +108,6 @@ STATIC VOID EFIAPI pvm_page_free(IN VOID* addr)
     ptr=ptr>>3;
     bitmap[ptr]=bitmap[ptr]&(~PVM_BITMAP_MASK[bit]);
 }
-
-/* 
- * 将线性区标志转换成映射标志。
- * 
- * @param flags 线性区标志。
- * 
- * @return 对应的映射标志。
- */
-STATIC UINT64 EFIAPI pvm_flags_to_pflags(IN UINT64 flags)
-{
-    UINT64 pflags=0;
-
-    if(flags&AOS_BOOT_VMA_USER)
-    {
-        pflags|=PVM_PTE_US;
-    }
-
-    if(flags&AOS_BOOT_VMA_GLOBAL)
-    {
-        pflags|=PVM_PTE_G;
-    }
-
-    UINT64 rwx=flags&AOS_BOOT_VMA_RWX_MASK;
-    if(nx)
-    {
-        switch(rwx)
-        {
-            case AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE:
-                pflags|=PVM_PTE_RW|PVM_PTE_NX;
-                break;
-            case AOS_BOOT_VMA_READ|AOS_BOOT_VMA_EXECUTE:
-                break;
-            case AOS_BOOT_VMA_READ:
-            default:
-                pflags|=PVM_PTE_NX;
-                break;
-        }
-    }
-    else
-    {
-        switch(rwx)
-        {
-            case AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE:
-                pflags|=PVM_PTE_RW;
-                break;
-            case AOS_BOOT_VMA_READ|AOS_BOOT_VMA_EXECUTE:
-            case AOS_BOOT_VMA_READ:
-            default:
-                break;
-        }
-    }
-
-    switch(flags&AOS_BOOT_VMA_TYPE_MASK)
-    {
-        case AOS_BOOT_VMA_TYPE_WB:
-            break;
-        case AOS_BOOT_VMA_TYPE_WP:
-            pflags|=PVM_PDE_PAT|PVM_PTE_PAT|PVM_PTE_PWT;
-            break;
-        case AOS_BOOT_VMA_TYPE_WT:
-            pflags|=PVM_PTE_PWT;
-            break;
-        case AOS_BOOT_VMA_TYPE_WC:
-            pflags|=PVM_PDE_PAT|PVM_PTE_PAT;
-            break;
-        case AOS_BOOT_VMA_TYPE_UCM:
-            pflags|=PVM_PTE_PCD;
-            break;
-        case AOS_BOOT_VMA_TYPE_UC:
-        default:
-            pflags|=PVM_PTE_PWT|PVM_PTE_PCD;
-            break;
-    }
-
-    return pflags;
-}
-
-/* 
- * 将物理内存块映射到页表内。其后续存在性维护不归映射函数管理。
- * 
- * @param pml   顶级页表地址。
- * @param vaddr 映射目标起始地址。
- * @param paddr 映射物理起始地址。
- * @param pages 内存块页数。
- * @param flags 映射标志。
- * 
- * @return 正常映射返回成功，页面申请失败返回资源耗尽。
- */
-STATIC EFI_STATUS EFIAPI (*pvm_pml_map)(IN VOID* pml,IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN UINT64 flags);
 
 /* 
  * 将物理内存块映射到页表项内。
@@ -518,17 +361,6 @@ STATIC BOOLEAN EFIAPI pvm_pt_is_empty(IN VOID* pt)
 /* 
  * 将页表内指定线性地址解除映射。
  * 
- * @param pml   顶级页表地址。
- * @param vaddr 映射起始地址。
- * @param pages 映射页数。
- * 
- * @return 无返回值。
- */
-STATIC VOID EFIAPI (*pvm_pml_unmap)(IN VOID* pml,IN UINTN vaddr,IN UINTN pages);
-
-/* 
- * 将页表内指定线性地址解除映射。
- * 
  * @param pt    页表地址。
  * @param vaddr 映射起始地址。
  * @param pages 映射页数。
@@ -689,11 +521,512 @@ STATIC VOID EFIAPI pvm_pml5e_unmap(IN VOID* pml5,IN UINTN vaddr,IN UINTN pages)
 }
 
 /* 
+ * 将线性区标志转换成映射标志。
+ * 
+ * @param flags 线性区标志。
+ * 
+ * @return 对应的映射标志。
+ */
+STATIC UINT64 EFIAPI pvm_flags_to_pflags(IN UINT64 flags)
+{
+    UINT64 pflags=0;
+
+    if(flags&AOS_BOOT_VMA_USER)
+    {
+        pflags|=PVM_PTE_US;
+    }
+
+    if(flags&AOS_BOOT_VMA_GLOBAL)
+    {
+        pflags|=PVM_PTE_G;
+    }
+
+    UINT64 rwx=flags&AOS_BOOT_VMA_RWX_MASK;
+    if(nx)
+    {
+        switch(rwx)
+        {
+            case AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_EXECUTE:
+                pflags|=PVM_PTE_RW;
+                break;
+            case AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE:
+                pflags|=PVM_PTE_RW|PVM_PTE_NX;
+                break;
+            case AOS_BOOT_VMA_READ|AOS_BOOT_VMA_EXECUTE:
+                break;
+            case AOS_BOOT_VMA_READ:
+            default:
+                pflags|=PVM_PTE_NX;
+                break;
+        }
+    }
+    else
+    {
+        switch(rwx)
+        {
+            case AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_EXECUTE:
+            case AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE:
+                pflags|=PVM_PTE_RW;
+                break;
+            case AOS_BOOT_VMA_READ|AOS_BOOT_VMA_EXECUTE:
+            case AOS_BOOT_VMA_READ:
+            default:
+                break;
+        }
+    }
+
+    switch(flags&AOS_BOOT_VMA_TYPE_MASK)
+    {
+        case AOS_BOOT_VMA_TYPE_WB:
+            break;
+        case AOS_BOOT_VMA_TYPE_WP:
+            pflags|=PVM_PDE_PAT|PVM_PTE_PAT|PVM_PTE_PWT;
+            break;
+        case AOS_BOOT_VMA_TYPE_WT:
+            pflags|=PVM_PTE_PWT;
+            break;
+        case AOS_BOOT_VMA_TYPE_WC:
+            pflags|=PVM_PDE_PAT|PVM_PTE_PAT;
+            break;
+        case AOS_BOOT_VMA_TYPE_UCM:
+            pflags|=PVM_PTE_PCD;
+            break;
+        case AOS_BOOT_VMA_TYPE_UC:
+        default:
+            pflags|=PVM_PTE_PWT|PVM_PTE_PCD;
+            break;
+    }
+
+    return pflags;
+}
+
+/* 
+ * 顶级页表根地址。
+ */
+STATIC VOID* page_table=NULL;
+
+/* 
+ * 将物理地址范围映射到5级分页的线性地址范围。
+ * 
+ * @param vaddr 线性起始地址。
+ * @param paddr 物理起始地址。
+ * @param pages 映射页数。
+ * @param flags 线性区标志。
+ * 
+ * @return 映射状态。
+ */
+STATIC EFI_STATUS EFIAPI pvm_pml5_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN UINT64 flags)
+{
+    if(pages>EFI_SIZE_TO_PAGES(SIZE_128PB))
+    {
+        /*不支持的页数。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] The page count is not supported.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    UINTN mask=vaddr&PVM_VADDR5_RESERVED_MASK;
+    if(mask!=0&&mask!=PVM_VADDR5_RESERVED_MASK)
+    {
+        /*地址不是规范地址。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address is not in canonical form.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    if(flags&AOS_BOOT_VMA_HUGEPAGE)
+    {
+        if((paddr&PVM_PAGE_2M_OFFSET_MASK)||(vaddr&PVM_PAGE_2M_OFFSET_MASK))
+        {
+            /*地址偏移区未对齐。*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address offset region is not aligned.\n"));
+            return EFI_UNSUPPORTED;
+        }
+
+        if(pages%EFI_SIZE_TO_PAGES(SIZE_2MB))
+        {
+            /*映射页数非大页倍数。*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] "
+                "Number of pages to map is not a multiple of a huge page.\n"));
+            return EFI_UNSUPPORTED;
+        }
+    }
+
+    UINTN plimit=paddr+EFI_PAGES_TO_SIZE(pages)-1;
+    UINTN vlimit=vaddr+EFI_PAGES_TO_SIZE(pages)-1;
+
+    if(plimit<paddr||vlimit<vaddr)
+    {
+        /*地址发生回绕。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address wrap-around occurred.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    UINT64 pflags=pvm_flags_to_pflags(flags);
+    if(page_table!=NULL)
+    {
+        pvm_pml5e_unmap(page_table,vaddr,pages);
+        if(EFI_ERROR(pvm_pml5e_map(page_table,vaddr,paddr,pages,pflags)))
+        {
+            /*可用发生回绕。*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Out of available pages.\n"));
+            pvm_pml5e_unmap(page_table,vaddr,pages);
+            return EFI_OUT_OF_RESOURCES;
+        }
+    }
+
+    return EFI_SUCCESS;
+}
+
+/* 
+ * 将物理地址范围映射到4级分页的线性地址范围。
+ * 
+ * @param vaddr 线性起始地址。
+ * @param paddr 物理起始地址。
+ * @param pages 映射页数。
+ * @param flags 线性区标志。
+ * 
+ * @return 映射状态。
+ */
+STATIC EFI_STATUS EFIAPI pvm_pml4_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN UINT64 flags)
+{
+    if(pages>EFI_SIZE_TO_PAGES(SIZE_256TB))
+    {
+        /*不支持的页数。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] The page count is not supported.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    UINTN mask=vaddr&PVM_VADDR4_RESERVED_MASK;
+    if(mask!=0&&mask!=PVM_VADDR4_RESERVED_MASK)
+    {
+        /*地址不是规范地址。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address is not in canonical form.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    if(flags&AOS_BOOT_VMA_HUGEPAGE)
+    {
+        if((paddr&PVM_PAGE_2M_OFFSET_MASK)||(vaddr&PVM_PAGE_2M_OFFSET_MASK))
+        {
+            /*地址偏移区未对齐。*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address offset region is not aligned.\n"));
+            return EFI_UNSUPPORTED;
+        }
+
+        if(pages%EFI_SIZE_TO_PAGES(SIZE_2MB))
+        {
+            /*映射页数非大页倍数。*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] "
+                "Number of pages to map is not a multiple of a huge page.\n"));
+            return EFI_UNSUPPORTED;
+        }
+    }
+
+    UINTN plimit=paddr+EFI_PAGES_TO_SIZE(pages)-1;
+    UINTN vlimit=vaddr+EFI_PAGES_TO_SIZE(pages)-1;
+
+    if(plimit<paddr||vlimit<vaddr)
+    {
+        /*地址发生回绕。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address wrap-around occurred.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    UINT64 pflags=pvm_flags_to_pflags(flags);
+    if(page_table!=NULL)
+    {
+        pvm_pml4e_unmap(page_table,vaddr,pages);
+        if(EFI_ERROR(pvm_pml4e_map(page_table,vaddr,paddr,pages,pflags)))
+        {
+            /*可用发生回绕。*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Out of available pages.\n"));
+            pvm_pml4e_unmap(page_table,vaddr,pages);
+            return EFI_OUT_OF_RESOURCES;
+        }
+    }
+
+    return EFI_SUCCESS;
+}
+
+/* 
+ * 将物理地址范围映射到页表的线性地址范围。
+ * 
+ * @param vaddr 线性起始地址。
+ * @param paddr 物理起始地址。
+ * @param pages 映射页数。
+ * @param flags 线性区标志。
+ * 
+ * @return 映射状态。
+ */
+STATIC EFI_STATUS EFIAPI (*pvm_pml_map)(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN UINT64 flags);
+
+/* 
+ * 解除5级分页内的线性地址范围。
+ * 
+ * @param start 线性起始地址。
+ * @param end   线性结束地址。
+ * 
+ * @return 映射状态。
+ */
+STATIC EFI_STATUS EFIAPI pvm_pml5_unmap(IN UINTN start,IN UINTN end)
+{
+    UINTN pages=EFI_SIZE_TO_PAGES(end-start);
+
+    pvm_pml5e_unmap(page_table,start,pages);
+
+    return EFI_SUCCESS;
+}
+
+/* 
+ * 解除4级分页内的线性地址范围。
+ * 
+ * @param start 线性起始地址。
+ * @param end   线性结束地址。
+ * 
+ * @return 映射状态。
+ */
+STATIC EFI_STATUS EFIAPI pvm_pml4_unmap(IN UINTN start,IN UINTN end)
+{
+    UINTN pages=EFI_SIZE_TO_PAGES(end-start);
+
+    pvm_pml4e_unmap(page_table,start,pages);
+
+    return EFI_SUCCESS;
+}
+
+/* 
+ * 解除页表内的线性地址范围。
+ * 
+ * @param start 线性起始地址。
+ * @param end   线性结束地址。
+ * 
+ * @return 映射状态。
+ */
+STATIC EFI_STATUS EFIAPI (*pvm_pml_unmap)(IN UINTN start,IN UINTN end);
+
+/* 
+ * 线性区链表头。
+ */
+STATIC aos_boot_vma** head=NULL;
+
+/* 
+ * 线性区链表尾。
+ */
+STATIC aos_boot_vma** tail=NULL;
+
+/* 
+ * 添加线性区到启动参数。
+ * 
+ * @param vma 线性区。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI pvm_add_vma_node(IN aos_boot_vma* vma)
+{
+    if(*tail==NULL)
+    {
+        *head=vma;
+        *tail=vma;
+    }
+    else
+    {
+        (*tail)->next=vma;
+        vma->prev=*tail;
+        *tail=vma;
+    }
+}
+
+/* 
+ * 在启动参数删除一个线性区。删除依据以指针一致为准。
+ * 
+ * @param vma 线性区。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI pvm_remove_vma_node(IN aos_boot_vma* vma)
+{
+    if(*head!=NULL)
+    {
+        aos_boot_vma* node=*head;
+        while(node!=vma)
+        {
+            node=node->next;
+        }
+
+        if(node->prev==NULL)
+        {
+            *head=node->next;
+        }
+        else
+        {
+            node->prev->next=node->next;
+        }
+        if(node->next==NULL)
+        {
+            *tail=node->prev;
+        }
+        else
+        {
+            node->next->prev=node->prev;
+        }
+
+        node->prev=NULL;
+        node->next=NULL;
+    }
+}
+
+/* 
+ * 通过线性地址寻找对应的线性区结点。
+ * 
+ * @param vaddr 线性区域地址。
+ * 
+ * @param 找到返回结点地址，未找到返回空。
+ */
+STATIC aos_boot_vma* EFIAPI pvm_find_vma_node(IN UINTN vaddr)
+{
+    aos_boot_vma* node=*head;
+    UINTN start,end;
+
+    while(node!=NULL)
+    {
+        start=node->start;
+        end=node->end-1;
+
+        if(vaddr>=start&&vaddr<=end)
+        {
+            break;
+        }
+        else
+        {
+            node=node->next;
+        }
+    }
+
+    return node;
+}
+
+/* 
+ * 检查输入的线性区域内是否存在已有的线性区。
+ * 
+ * @param vaddr 线性区域地址。
+ * @param pages 线性区域页数。
+ * 
+ * @param 有重叠区域返回真。
+ */
+STATIC BOOLEAN EFIAPI pvm_check_vma_node(IN UINTN vaddr,IN UINTN pages)
+{
+    aos_boot_vma* node=*head;
+    UINTN start,end;
+
+    UINTN limit=vaddr+EFI_PAGES_TO_SIZE(pages)-1;
+
+    while(node!=NULL)
+    {
+        start=node->start;
+        end=node->end-1;
+
+        if(vaddr<end&&start<limit)
+        {
+            return TRUE;
+        }
+        else
+        {
+            node=node->next;
+        }
+    }
+
+    return FALSE;
+}
+
+/* 
+ * 添加一个内核线性区。
+ * 
+ * @param vaddr 线性区域基址。
+ * @param paddr 物理区域基址。
+ * @param pages 区域页数。
+ * @param flags 线性区标记。
+ * 
+ * @return 正常返回成功。出现问题返回对应错误。
+ */
+EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN UINT64 flags)
+{
+    if(pages==0)
+    {
+        /*不支持的页数。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] The page count is not supported.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    if((paddr&PVM_PAGE_4K_OFFSET_MASK)||(vaddr&PVM_PAGE_4K_OFFSET_MASK))
+    {
+        /*地址偏移区未对齐。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address offset region is not aligned.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    if(paddr&PVM_PADDR_RESERVED_MASK)
+    {
+        /*地址超出页表管理范围。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address is out of page table management range.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    if(pvm_check_vma_node(vaddr,pages))
+    {
+        /*添加的线性区与已有线性区重叠。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] The added VMA overlaps with existing VMAs.\n"));
+        return EFI_UNSUPPORTED;
+    }
+
+    aos_boot_vma* vma=malloc(sizeof(aos_boot_vma));
+    if(vma==NULL)
+    {
+        /*内存池内没有足够的空间申请线性区。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] "
+            "Insufficient space in memory pool for VMA allocation.\n"));
+        return EFI_OUT_OF_RESOURCES;
+    }
+
+    if(EFI_ERROR(pvm_pml_map(vaddr,paddr,pages,flags)))
+    {
+        free(vma);
+        return EFI_UNSUPPORTED;
+    }
+    else
+    {
+        vma->start=vaddr;
+        vma->end=vaddr+EFI_PAGES_TO_SIZE(pages);
+        vma->flags=flags|AOS_BOOT_VMA_ALLOCATED;
+        vma->prev=NULL;
+        vma->next=NULL;
+        pvm_add_vma_node(vma);
+        return EFI_SUCCESS;
+    }
+}
+
+/* 
+ * 删除一个内核线性区。仅在通过输入参数能够找到线性区时才会删除。
+ * 
+ * @param vaddr 线性区域地址。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI remove_kernel_vma(IN UINTN vaddr)
+{
+    aos_boot_vma* node=pvm_find_vma_node(vaddr);
+    if(node!=NULL)
+    {
+        pvm_pml_unmap(node->start,node->end);
+        pvm_remove_vma_node(node);
+        free(node);
+    }
+}
+
+/* 
  * 初始化页表与线性区管理功能。
  * 
  * @param params 启动参数。
  * 
- * @return 应该返回成功。
+ * @return 正常设置线性区返回成功。
  */
 EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params)
 {
@@ -701,19 +1034,43 @@ EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params)
     bitmap=params->bitmap;
     bitmap_length=params->bitmap_length;
     ppages=params->ppool_pages;
+    head=&params->vma_head;
+    tail=&params->vma_tail;
 
     nx=params->features.features&AOS_FEATURES_NX;
     page1gb=params->features.features&AOS_FEATURES_PAGE1GB;
     if(params->state.state&AOS_STATE_LA57)
     {
-        pvm_pml_map=pvm_pml5e_map;
-        pvm_pml_unmap=pvm_pml5e_unmap;
-        ptl5=TRUE;
+        pvm_pml_map=pvm_pml5_map;
+        pvm_pml_unmap=pvm_pml5_unmap;
     }
     else
     {
-        pvm_pml_map=pvm_pml4e_map;
-        pvm_pml_unmap=pvm_pml4e_unmap;
+        pvm_pml_map=pvm_pml4_map;
+        pvm_pml_unmap=pvm_pml4_unmap;
     }
+
+    /*必不可能报错。*/
+    page_table=pvm_page_alloc();
+    params->page_table=(UINTN)page_table;
+
+    /*以下为线性区添加*/
+    EFI_STATUS status;
+    status=add_kernel_vma(0,0,EFI_SIZE_TO_PAGES(SIZE_4GB),
+        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_EXECUTE|AOS_BOOT_VMA_TYPE_UC);
+    if(EFI_ERROR(status))
+    {
+        /*建立1：1映射线性区失败。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to create 1:1 mapping vma.\n"));
+        return EFI_OUT_OF_RESOURCES;
+    }
+
+    UINTN base=0;
+    UINT16 value=0x2025;
+    GetRandomNumber16(&value);
+
+    status=add_kernel_vma(base,params->gdt_base,EFI_SIZE_TO_PAGES(params->gdt_size),
+        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_USER|AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_TYPE_UC);
+    
     return EFI_SUCCESS;
 }

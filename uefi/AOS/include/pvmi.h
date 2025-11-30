@@ -14,6 +14,7 @@
 #include "mem.h"
 
 #include <Library/BaseMemoryLib.h>
+#include <Library/RngLib.h>
 
 /* 
  * 位图用掩码。
@@ -53,11 +54,6 @@ UINT64* CONST PVM_ERROR=(UINT64*)0x101;
 #define PVM_PAGE_1G_OFFSET_MASK 0x3FFFFFFF
 
 /* 
- * 页表项地址高位保留掩码。
- */
-#define PVM_PTE_ADDR_HIGH_RESERVED_MASK 0xFFF0000000000000ULL
-
-/* 
  * 页表项地址掩码。
  */
 #define PVM_PTE_ADDR_MASK 0x000FFFFFFFFFF000ULL
@@ -73,5 +69,20 @@ UINT64* CONST PVM_ERROR=(UINT64*)0x101;
  * 页目录项使用标志。
  */
 #define PVM_PDE_FLAGS (PVM_PTE_P|PVM_PTE_RW|PVM_PTE_US)
+
+/* 
+ * 物理地址保留掩码。
+ */
+#define PVM_PADDR_RESERVED_MASK 0xFFF0000000000000ULL
+
+/* 
+ * 4级分页线性地址保留掩码。
+ */
+#define PVM_VADDR4_RESERVED_MASK 0xFFFF800000000000ULL
+
+/* 
+ * 5级分页线性地址保留掩码。
+ */
+#define PVM_VADDR5_RESERVED_MASK 0xFF00000000000000ULL
 
 #endif /*__AOS_UEFI_PVM_INTERNAL_H__*/

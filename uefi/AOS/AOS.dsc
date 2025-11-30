@@ -46,6 +46,13 @@
     UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
     #FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
 
+    # Random Number
+    HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
+    PciCf8Lib|MdePkg/Library/BasePciCf8Lib/BasePciCf8Lib.inf
+    PciLib|MdePkg/Library/BasePciLibCf8/BasePciLibCf8.inf
+    RngLib|MdeModulePkg/Library/BaseRngLibTimerLib/BaseRngLibTimerLib.inf
+    TimerLib|OvmfPkg/Library/AcpiTimerLib/DxeAcpiTimerLib.inf
+
 [LibraryClasses.common.UEFI_APPLICATION]
 
 [Components.X64]

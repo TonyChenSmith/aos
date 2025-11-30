@@ -315,4 +315,9 @@ typedef VOID (*aos_kernel_trampoline)(aos_boot_params* restrict params);
  */
 #define AOS_BOOT_VMA_ALLOCATED BIT13
 
+/* 
+ * 线性区大页标志。
+ */
+#define AOS_BOOT_VMA_HUGEPAGE BIT14
+
 #endif /*__AOS_UEFI_DEFINES_H__*/

@@ -12,6 +12,7 @@
 
 #include "env.h"
 #include "mem.h"
+#include "pvm.h"
 
 #include <Library/BaseMemoryLib.h>
 
