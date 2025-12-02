@@ -19,9 +19,6 @@
     SKUID_IDENTIFIER               = DEFAULT
 
 [BuildOptions]
-    GCC:RELEASE_*_*_CC_FLAGS       = -DMDEPKG_NDEBUG
-    INTEL:RELEASE_*_*_CC_FLAGS     = /D MDEPKG_NDEBUG
-    MSFT:RELEASE_*_*_CC_FLAGS      = /D MDEPKG_NDEBUG
 !if $(TOOL_CHAIN_TAG) != "XCODE5" && $(TOOL_CHAIN_TAG) != "CLANGPDB"
     GCC:*_*_*_CC_FLAGS             = -mno-mmx -mno-sse
 !endif
@@ -30,7 +27,6 @@
     BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
     BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
     CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
-    DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
     DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf
     DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
     IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
@@ -45,6 +41,13 @@
     UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
     UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
     #FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
+    
+    # Debug Library
+!if $(TARGET) == RELEASE
+    DebugLib|MdePkg/Library/BaseDebugLibNull/BaseDebugLibNull.inf
+!else
+    DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
+!endif
 
     # Random Number
     HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf

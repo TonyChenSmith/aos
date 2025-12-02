@@ -13,6 +13,20 @@
 #include "params.h"
 
 /* 
+ * 遍历位图信息。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI dump_bitmap();
+
+/* 
+ * 遍历全部内核页表。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI dump_page_table();
+
+/* 
  * 添加一个内核线性区。
  * 
  * @param vaddr 线性区域基址。
@@ -32,6 +46,13 @@ EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
  * @return 无返回值。
  */
 VOID EFIAPI remove_kernel_vma(IN UINTN vaddr);
+
+/* 
+ * 遍历所有线性区信息。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI dump_vma();
 
 /* 
  * 初始化页表与线性区管理功能。

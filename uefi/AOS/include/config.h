@@ -35,4 +35,9 @@
  */
 #define CONFIG_GRAPHICS_BACKGROUND_COLOR 0x191970
 
+/* 
+ * 随机化内核基址功能。
+ */
+#define CONFIG_RANDOMIZE_BASE TRUE
+
 #endif /*__AOS_UEFI_CONFIG_H__*/

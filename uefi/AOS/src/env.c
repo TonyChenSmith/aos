@@ -1067,7 +1067,7 @@ EFI_STATUS EFIAPI env_init(IN OUT aos_boot_params* params)
     }
     params->ppool_base=base;
     params->ppool_pages=CONFIG_PAGE_TABLE_POOL;
-    params->bitmap_length=CONFIG_PAGE_TABLE_POOL/8+CONFIG_PAGE_TABLE_POOL%8?1:0;
+    params->bitmap_length=CONFIG_PAGE_TABLE_POOL/8+(CONFIG_PAGE_TABLE_POOL%8?1:0);
     params->bitmap=(UINT8*)malloc(params->bitmap_length);
     if(params->bitmap==NULL)
     {

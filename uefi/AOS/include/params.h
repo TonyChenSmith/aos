@@ -7,11 +7,12 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_UEFI_DEFINES_H__
-#define __AOS_UEFI_DEFINES_H__
+#ifndef __AOS_UEFI_PARAMS_H__
+#define __AOS_UEFI_PARAMS_H__
 
 #include "config.h"
 #include "includes.h"
+#include "version.h"
 
 /* 
  * 第一轮检查。
@@ -320,4 +321,4 @@ typedef VOID (*aos_kernel_trampoline)(aos_boot_params* restrict params);
  */
 #define AOS_BOOT_VMA_HUGEPAGE BIT14
 
-#endif /*__AOS_UEFI_DEFINES_H__*/
+#endif /*__AOS_UEFI_PARAMS_H__*/

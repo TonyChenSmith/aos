@@ -53,9 +53,17 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
         return status;
     }
 
-    ASSERT(pvm_init(params));
+    status=pvm_init(params);
+    if(EFI_ERROR(status))
+    {
+        return status;
+    }
 
-    dump_pool_info((VOID*)meta);
+    //dump_pool_info((VOID*)meta);
+    
+    dump_bitmap();
+    dump_vma();
+    dump_page_table();
 
     CpuDeadLoop();
 

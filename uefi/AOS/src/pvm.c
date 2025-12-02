@@ -72,22 +72,13 @@ STATIC VOID* EFIAPI pvm_page_alloc()
                 break;
             }
         }
+        bitmap[index]|=PVM_BITMAP_MASK[bit];
         index=(index<<3)+bit;
         VOID* addr=(VOID*)((index<<12)+pbase);
         ZeroMem(addr,SIZE_4KB);
         return addr;
     }
 }
-
-/* 
- * 不可执行位。
- */
-STATIC BOOLEAN nx=FALSE;
-
-/* 
- * 大页位。
- */
-STATIC BOOLEAN page1gb=FALSE;
 
 /* 
  * 释放一页内存。
@@ -108,6 +99,36 @@ STATIC VOID EFIAPI pvm_page_free(IN VOID* addr)
     ptr=ptr>>3;
     bitmap[ptr]=bitmap[ptr]&(~PVM_BITMAP_MASK[bit]);
 }
+
+/* 
+ * 遍历位图信息。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI dump_bitmap()
+{
+    DEBUG_CODE_BEGIN();
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] ==================================================\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Bitmap Pool Base:0x%016lX\n",pbase));
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Bitmap Pool Size:%lu\n",ppages));
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] ==================================================\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Bitmap Info\n"));
+    for(UINTN index=0;index<bitmap_length;index++)
+    {
+        DEBUG((DEBUG_INFO,"[aos.uefi.pvm] %02lu:%02X\n",index,bitmap[index]));
+    }
+    DEBUG_CODE_END();
+}
+
+/* 
+ * 不可执行位。
+ */
+STATIC BOOLEAN nx=FALSE;
+
+/* 
+ * 大页位。
+ */
+STATIC BOOLEAN page1gb=FALSE;
 
 /* 
  * 将物理内存块映射到页表项内。
@@ -157,7 +178,7 @@ STATIC UINTN EFIAPI pvm_pde_map(IN VOID* pd,IN UINTN vaddr,IN UINTN paddr,IN UIN
         if(block==0x200&&!(vaddr&PVM_PAGE_2M_OFFSET_MASK||paddr&PVM_PAGE_2M_OFFSET_MASK))
         {
             pde=flags&PVM_PTE_2M_FLAGS_MASK;
-            pde|=PVM_PTE_P|PVM_PDE_PS;
+            pde|=PVM_PTE_P|PVM_PDE_PS|paddr;
             ((UINT64*)pd)[index]=pde;
         }
         else
@@ -210,7 +231,7 @@ STATIC EFI_STATUS EFIAPI pvm_pdpe_map(IN VOID* pdp,IN UINTN vaddr,IN UINTN paddr
         if(page1gb&&block==0x40000&&!(vaddr&PVM_PAGE_1G_OFFSET_MASK||paddr&PVM_PAGE_1G_OFFSET_MASK))
         {
             pdpe=flags&PVM_PTE_1G_FLAGS_MASK;
-            pdpe|=PVM_PTE_P|PVM_PDE_PS;
+            pdpe|=PVM_PTE_P|PVM_PDE_PS|paddr;
             ((UINT64*)pdp)[index]=pdpe;
         }
         else
@@ -804,6 +825,88 @@ STATIC EFI_STATUS EFIAPI pvm_pml4_unmap(IN UINTN start,IN UINTN end)
 STATIC EFI_STATUS EFIAPI (*pvm_pml_unmap)(IN UINTN start,IN UINTN end);
 
 /* 
+ * 遍历页表内容。
+ * 
+ * @param pt    页表地址。
+ * @param top   是否为顶级页表。
+ * @param level 当前页表层级。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI pvm_dump_page_table(IN VOID* pt,IN BOOLEAN top,IN UINTN level)
+{
+    DEBUG_CODE_BEGIN();
+    UINT64* pte=(UINT64*)pt;
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] ==================================================\n"));
+    if(top)
+    {
+        DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Top Page Table: 0x%016lX\n",(UINTN)pt));
+    }
+    else
+    {
+        DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Page Table: 0x%016lX\n",(UINTN)pt));
+    }
+
+    UINTN index;
+    for(index=0;index<512;index++)
+    {
+        DEBUG((DEBUG_INFO,"[aos.uefi.pvm] %03lu: %016lX\n",index,pte[index]));
+    }
+
+    if(level==0)
+    {
+        return;
+    }
+
+    for(index=0;index<512;index++)
+    {
+        if((pte[index]&PVM_PTE_P)&&!(pte[index]&PVM_PDE_PS))
+        {
+            UINT64 lpt=pte[index]&PVM_PTE_ADDR_MASK;
+            pvm_dump_page_table((VOID*)lpt,FALSE,level-1);
+        }
+    }
+    DEBUG_CODE_END();
+}
+
+/* 
+ * 遍历5级页表。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI pvm_dump_pml5()
+{
+    pvm_dump_page_table(page_table,TRUE,4);
+}
+
+/* 
+ * 遍历4级页表。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI pvm_dump_pml4()
+{
+    pvm_dump_page_table(page_table,TRUE,3);
+}
+
+/* 
+ * 遍历顶级页表。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI (*pvm_dump_pml)();
+
+/* 
+ * 遍历全部内核页表。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI dump_page_table()
+{
+    pvm_dump_pml();
+}
+
+/* 
  * 线性区链表头。
  */
 STATIC aos_boot_vma** head=NULL;
@@ -829,9 +932,33 @@ STATIC VOID EFIAPI pvm_add_vma_node(IN aos_boot_vma* vma)
     }
     else
     {
-        (*tail)->next=vma;
-        vma->prev=*tail;
-        *tail=vma;
+        aos_boot_vma* pnode=NULL;
+        aos_boot_vma* cnode=*head;
+        while(cnode!=NULL&&cnode->end<=vma->start)
+        {
+            pnode=cnode;
+            cnode=cnode->next;
+        }
+
+        if(pnode==NULL)
+        {
+            cnode->prev=vma;
+            vma->next=cnode;
+            *head=vma;
+        }
+        else if(cnode==NULL)
+        {
+            pnode->next=vma;
+            vma->prev=pnode;
+            *tail=vma;
+        }
+        else
+        {
+            vma->prev=pnode;
+            vma->next=cnode;
+            pnode->next=vma;
+            cnode->prev=vma;
+        }
     }
 }
 
@@ -891,17 +1018,18 @@ STATIC aos_boot_vma* EFIAPI pvm_find_vma_node(IN UINTN vaddr)
         start=node->start;
         end=node->end-1;
 
-        if(vaddr>=start&&vaddr<=end)
+        if(start>vaddr)
         {
-            break;
+            return NULL;
         }
-        else
+        else if(vaddr<=end)
         {
-            node=node->next;
+            return node;
         }
+        node=node->next;
     }
 
-    return node;
+    return NULL;
 }
 
 /* 
@@ -924,7 +1052,11 @@ STATIC BOOLEAN EFIAPI pvm_check_vma_node(IN UINTN vaddr,IN UINTN pages)
         start=node->start;
         end=node->end-1;
 
-        if(vaddr<end&&start<limit)
+        if(start>=limit)
+        {
+            return FALSE;
+        }
+        else if(vaddr<end)
         {
             return TRUE;
         }
@@ -1022,6 +1154,38 @@ VOID EFIAPI remove_kernel_vma(IN UINTN vaddr)
 }
 
 /* 
+ * 遍历所有线性区信息。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI dump_vma()
+{
+    DEBUG_CODE_BEGIN();
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] ==================================================\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] VMA Info\n"));
+    if(*head==NULL)
+    {
+        DEBUG((DEBUG_INFO,"[aos.uefi.pvm] ==================================================\n"));
+        DEBUG((DEBUG_INFO,"[aos.uefi.pvm] No VMA.\n"));
+    }
+    else
+    {
+        aos_boot_vma* node=*head;
+        UINTN index=0;
+        while(node!=NULL)
+        {
+            DEBUG((DEBUG_INFO,"[aos.uefi.pvm] ==================================================\n"));
+            DEBUG((DEBUG_INFO,"[aos.uefi.pvm] VMA-%lu\n",index));
+            DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Range:0x%016lX-0x%016lX\n",node->start,node->end));
+            DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Flags:%016lX\n",node->flags));
+            node=node->next;
+            index++;
+        }
+    }
+    DEBUG_CODE_END();
+}
+
+/* 
  * 初始化页表与线性区管理功能。
  * 
  * @param params 启动参数。
@@ -1043,11 +1207,13 @@ EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params)
     {
         pvm_pml_map=pvm_pml5_map;
         pvm_pml_unmap=pvm_pml5_unmap;
+        pvm_dump_pml=pvm_dump_pml5;
     }
     else
     {
         pvm_pml_map=pvm_pml4_map;
         pvm_pml_unmap=pvm_pml4_unmap;
+        pvm_dump_pml=pvm_dump_pml4;
     }
 
     /*必不可能报错。*/
@@ -1065,12 +1231,52 @@ EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params)
         return EFI_OUT_OF_RESOURCES;
     }
 
-    UINTN base=0;
-    UINT16 value=0x2025;
-    GetRandomNumber16(&value);
+    UINTN base=-SIZE_512GB;
+    UINT32 value=AOS_UEFI_VERSION;
+    GetRandomNumber32(&value);
+
+    UINTN offset=value&0x3FFFF;
+    offset=offset<<21;
+    while(SIZE_512GB-offset<SIZE_4GB)
+    {
+        GetRandomNumber32(&value);
+        offset=value&0x3FFFF;
+        offset=offset<<21;
+    }
+
+    if(!CONFIG_RANDOMIZE_BASE)
+    {
+        offset=0;
+    }
+    base+=offset;
 
     status=add_kernel_vma(base,params->gdt_base,EFI_SIZE_TO_PAGES(params->gdt_size),
         AOS_BOOT_VMA_READ|AOS_BOOT_VMA_USER|AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_TYPE_UC);
-    
+    if(EFI_ERROR(status))
+    {
+        /*建立GDT线性区失败。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to create the GDT vma.\n"));
+        return EFI_OUT_OF_RESOURCES;
+    }
+
+    status=add_kernel_vma(base+params->kpool_base,params->kpool_base,params->kpool_pages,
+        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_TYPE_WB);
+    if(EFI_ERROR(status))
+    {
+        /*建立内核内存池线性区失败。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to create the kernel memory vma.\n"));
+        return EFI_OUT_OF_RESOURCES;
+    }
+
+    status=add_kernel_vma(base+params->graphics.fb_base,params->graphics.fb_base,
+        EFI_SIZE_TO_PAGES(params->graphics.fb_size),
+        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_TYPE_WC);
+    if(EFI_ERROR(status))
+    {
+        /*建立帧缓冲线性区失败。*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to create the frame buffer vma.\n"));
+        return EFI_OUT_OF_RESOURCES;
+    }
+
     return EFI_SUCCESS;
 }
