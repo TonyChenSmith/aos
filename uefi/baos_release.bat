@@ -1,4 +1,7 @@
 @rem
+@rem 构造模块“aos.uefi”的发布版本。
+@rem @date 2025-06-01
+@rem
 @rem Copyright (c) 2025 Tony Chen Smith
 @rem
 @rem SPDX-License-Identifier: MIT

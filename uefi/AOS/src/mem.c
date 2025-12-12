@@ -1,6 +1,5 @@
-/* 
- * 模块“aos.uefi”内存池管理功能。
- * 实现了相关函数，以及便于调试的函数。
+/**
+ * 模块内存池管理。
  * @date 2025-06-06
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -14,7 +13,7 @@
  */
 STATIC mem_tlsf_meta* boot_pool=NULL;
 
-/* 
+/**
  * 获取大小对应第一级索引。
  * 
  * @param size 块大小。
@@ -39,7 +38,7 @@ STATIC UINT8 EFIAPI inline mem_fl_index(IN UINTN size)
     }
 }
 
-/* 
+/**
  * 获取大小对应第二级索引。
  * 
  * @param size 块大小。
@@ -57,7 +56,7 @@ STATIC UINT8 EFIAPI inline mem_sl_index(IN UINTN size,IN UINT8 fl)
     return (size>>(fl+3))&0x7;
 }
 
-/* 
+/**
  * 将结点添加到双向链表内。
  * 
  * @param list 双向链表。
@@ -80,7 +79,7 @@ STATIC VOID EFIAPI mem_list_add(IN mem_tlsf_block** list,IN mem_tlsf_block* node
     list[0]=node;
 }
 
-/* 
+/**
  * 将结点从双向链表内删除。
  * 
  * @param list 双向链表。
@@ -110,7 +109,7 @@ STATIC VOID EFIAPI mem_list_remove(IN mem_tlsf_block** list,IN mem_tlsf_block* n
     node->next=NULL;
 }
 
-/* 
+/**
  * 使用内存空间构造一个内存池。调用者有义务保证参数的合理性。
  * 
  * @param addr 内存块地址。
@@ -151,7 +150,7 @@ EFI_STATUS EFIAPI create_pool(IN VOID* addr,IN UINTN size)
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 初始化内存池管理功能。这里管理的是引导内存池。
  * 
  * @param bpool 引导内存池基址。
@@ -182,7 +181,7 @@ EFI_STATUS EFIAPI mem_init(OUT UINTN* bpool)
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 将空闲内存块从内存池空闲链表中删除，并按情况进行分配。
  * 
  * @param pool 内存池基址。
@@ -235,7 +234,7 @@ STATIC VOID* EFIAPI mem_block_alloc(IN mem_tlsf_meta* pool,IN UINTN size,IN mem_
     return (VOID*)((UINTN)node+sizeof(mem_tlsf_block));
 }
 
-/* 
+/**
  * 在内存池内申请一块内存。
  * 
  * @param pool 内存池基址。
@@ -337,19 +336,19 @@ VOID* EFIAPI pool_alloc(IN VOID* pool,IN UINTN size)
     }
 }
 
-/* 
+/**
  * 在引导内存池内申请一块内存。
  * 
  * @param size 申请大小。
  * 
  * @return 分配成功返回对应地址，分配失败返回空。
  */
-VOID* EFIAPI malloc(IN UINTN size)
+VOID* EFIAPI umalloc(IN UINTN size)
 {
     return pool_alloc(boot_pool,size);
 }
 
-/* 
+/**
  * 向内存池内释放内存。调用者有义务保证释放指针归属于该内存池，为了性能不做指针大范围检查。
  * 
  * @param pool 内存池基址。
@@ -443,19 +442,19 @@ VOID EFIAPI pool_free(IN VOID* pool,IN VOID* ptr)
     mem_list_add(tpool->free[node_fl][node_sl],node);
 }
 
-/* 
+/**
  * 向引导内存池内释放内存。调用者有义务保证释放指针归属于该内存池，为了性能不做指针大范围检查。
  * 
  * @param ptr 内存块基址。
  * 
  * @return 无返回值。
  */
-VOID EFIAPI free(IN VOID* ptr)
+VOID EFIAPI ufree(IN VOID* ptr)
 {
     return pool_free(boot_pool,ptr);
 }
 
-/* 
+/**
  * 在调试模式转储输入的内存池信息。
  * 
  * @param pool 内存池基址。
@@ -534,7 +533,7 @@ VOID EFIAPI dump_pool_info(IN VOID* pool)
     DEBUG_CODE_END();
 }
 
-/* 
+/**
  * 检查数组中每个地址对应的内存类型。不可达区域标记为保留。调用者有义务保证两个数组的空间存在。
  * 
  * @param addrs  内存地址数组。
@@ -572,7 +571,7 @@ EFI_STATUS EFIAPI get_memory_type(IN UINTN* addrs,IN UINTN length,OUT EFI_MEMORY
     else
     {
         ASSERT(map_size>0);
-        memmap=malloc(map_size);
+        memmap=umalloc(map_size);
         if(memmap==NULL)
         {
             DEBUG((DEBUG_ERROR,"[aos.uefi.mem] The configured memory pool space "
@@ -612,7 +611,7 @@ EFI_STATUS EFIAPI get_memory_type(IN UINTN* addrs,IN UINTN length,OUT EFI_MEMORY
                 types[index]=EfiReservedMemoryType;
             }
         }
-        free(memmap);
+        ufree(memmap);
         return EFI_SUCCESS;
     }
 }

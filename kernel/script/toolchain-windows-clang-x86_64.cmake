@@ -1,6 +1,7 @@
 # 
 # 为Windows Clang/LLVM环境配置的x86-64目标架构工具链文件。
 # 在该环境下，仅默认系统也处于x86-64架构下。
+# @date 2025-12-02
 # 
 # Copyright (c) 2025 Tony Chen Smith
 # 
@@ -44,6 +45,7 @@ add_compile_options(
     -funsigned-char
     -mno-stack-arg-probe
     -fno-unwind-tables
+    -mcmodel=small
 
     -Wall
     -Werror
@@ -55,8 +57,8 @@ add_compile_options(
 add_link_options(
     --lto=full
     -pie
-    --nostdlib
     --gc-sections
+    --nostdlib
     --hash-style=sysv
 )
 

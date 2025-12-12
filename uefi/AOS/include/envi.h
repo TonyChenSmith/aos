@@ -1,6 +1,5 @@
-/* 
- * 模块“aos.uefi”运行环境管理。
- * 声明了仅在内部使用的的数据类型与宏。
+/**
+ * 模块运行环境管理所需的不公开内容。
  * @date 2025-06-11
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -17,9 +16,11 @@
 #include <Guid/ConsoleOutDevice.h>
 #include <Guid/SmBios.h>
 #include <IndustryStandard/Acpi.h>
+#include <Library/BaseCryptLib.h>
 #include <Library/CpuLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DevicePathLib.h>
+#include <Library/RngLib.h>
 #include <Protocol/EdidActive.h>
 #include <Protocol/EdidDiscovered.h>
 #include <Protocol/GraphicsOutput.h>
@@ -29,7 +30,7 @@
 #include <Register/Intel/Cpuid.h>
 #include <Register/Intel/LocalApic.h>
 
-/* 
+/**
  * 环境使用的GDT设置。
  */
 CONST UINT64 ENV_GDT[]={
@@ -43,12 +44,12 @@ CONST UINT64 ENV_GDT[]={
     0x0000000000000000ULL, /*BOUNDARY*/
 };
 
-/* 
+/**
  * 位图使用的掩码。
  */
 CONST UINT8 ENV_BITMAP_MASK[]={0,0x80,0xC0,0xE0,0xF0,0xF8,0xFC,0xFE};
 
-/* 
+/**
  * APIC ID链表结构。
  */
 typedef struct _env_apic
@@ -57,7 +58,7 @@ typedef struct _env_apic
     struct _env_apic* next; /*下一个链表节点。*/
 } env_apic;
 
-/* 
+/**
  * EDID结构，下面仅对必要条目进行注释，详细解释看VESA文档。
  */
 #pragma pack(1)
@@ -133,7 +134,7 @@ typedef struct _env_edid
 } env_edid;
 #pragma pack()
 
-/* 
+/**
  * 图形像素。
  */
 typedef union _env_graphics_pixel
@@ -142,44 +143,44 @@ typedef union _env_graphics_pixel
     UINT32 pixel;   /*像素值。*/
 } env_graphics_pixel;
 
-/* 
+/**
  * 环境使用的固定MTRR内存类型。
  */
 #define ENV_FIXED_MTRR_TYPE ((UINT64)SIGNATURE_64(MSR_IA32_MTRR_CACHE_WRITE_BACK,MSR_IA32_MTRR_CACHE_WRITE_BACK,\
     MSR_IA32_MTRR_CACHE_WRITE_BACK,MSR_IA32_MTRR_CACHE_WRITE_BACK,MSR_IA32_MTRR_CACHE_WRITE_BACK,\
     MSR_IA32_MTRR_CACHE_WRITE_BACK,MSR_IA32_MTRR_CACHE_WRITE_BACK,MSR_IA32_MTRR_CACHE_WRITE_BACK))
 
-/* 
+/**
  * VGA水平分辨率。
  */
 #define ENV_VGA_HORIZONTAL_RESOLUTION 640
 
-/* 
+/**
  * VGA竖直分辨率。
  */
 #define ENV_VGA_VERTICAL_RESOLUTION 480
 
-/* 
+/**
  * SVGA水平分辨率。
  */
 #define ENV_SVGA_HORIZONTAL_RESOLUTION 800
 
-/* 
+/**
  * SVGA竖直分辨率。
  */
 #define ENV_SVGA_VERTICAL_RESOLUTION 600
 
-/* 
+/**
  * 背景色红值。
  */
 #define ENV_BACKGROUND_RED ((CONFIG_GRAPHICS_BACKGROUND_COLOR>>16)&MAX_UINT8)
 
-/* 
+/**
  * 背景色绿值。
  */
 #define ENV_BACKGROUND_GREEN ((CONFIG_GRAPHICS_BACKGROUND_COLOR>>8)&MAX_UINT8)
 
-/* 
+/**
  * 背景色蓝值。
  */
 #define ENV_BACKGROUND_BLUE (CONFIG_GRAPHICS_BACKGROUND_COLOR&MAX_UINT8)

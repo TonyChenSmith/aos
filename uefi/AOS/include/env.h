@@ -1,6 +1,5 @@
-/* 
- * 模块“aos.uefi”运行环境管理。
- * 声明了相关的跨文件使用函数。
+/**
+ * 模块运行环境管理。
  * @date 2025-06-11
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -12,7 +11,7 @@
 
 #include "params.h"
 
-/* 
+/**
  * 初始化运行环境。
  * 
  * @param parmas 启动参数。

@@ -6,13 +6,14 @@
 	],
 	"settings": {
 		"clangd.arguments": [
-			"--compile-commands-dir=${workspaceFolder}/out/build/",
+			"--compile-commands-dir=${workspaceFolder}/out/",
 			"--header-insertion=never"
 		],
 		"editor.renderWhitespace": "all",
 		"editor.rulers": [
 			120
 		],
-		"cmake.copyCompileCommands": "${workspaceFolder}/out/compile_commands.json"
+		"cmake.copyCompileCommands": "${workspaceFolder}/out/compile_commands.json",
+		"clangd.checkUpdates": false
 	}
 }

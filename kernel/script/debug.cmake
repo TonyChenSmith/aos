@@ -1,10 +1,13 @@
 # 
-# 调试变量输出。
+# 调试功能函数。
+# @date 2025-12-02
 # 
 # Copyright (c) 2025 Tony Chen Smith
 # 
 # SPDX-License-Identifier: MIT
 # 
+
+# 调试变量输出。
 macro(print_all_variables)
     # 获取所有变量名
     get_cmake_property(_vars VARIABLES)

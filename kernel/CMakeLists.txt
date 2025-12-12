@@ -1,4 +1,7 @@
 # 
+# 内核总脚本。
+# @date 2025-12-02
+# 
 # Copyright (c) 2025 Tony Chen Smith
 # 
 # SPDX-License-Identifier: MIT
@@ -6,11 +9,24 @@
 cmake_minimum_required(VERSION 4.0)
 project(aos.kernel VERSION 0.0.1 LANGUAGES C ASM)
 
+include(script/target.cmake)
+
 include_directories(include)
 
+set(AOS_KERNEL aos.kernel)
+
+# 模块列表
 add_subdirectory(init)
-add_executable(aoskernel
-    trampoline/main.c
+add_subdirectory(klibc)
+
+add_executable(${AOS_KERNEL}
+    entry/main.c
+    entry/trampoline.S
 )
-target_link_libraries(aoskernel PRIVATE aos.kernel.init)
-target_link_options(aoskernel PRIVATE --entry=tt)
+
+# 模块链接
+target_link_libraries(${AOS_KERNEL} PRIVATE aos.kernel.init)
+target_link_libraries(${AOS_KERNEL} PRIVATE aos.kernel.klibc)
+
+target_link_options(${AOS_KERNEL} PRIVATE --entry=aos_kernel_trampoline)
+add_aos_target(${AOS_KERNEL})

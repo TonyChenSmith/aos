@@ -1,6 +1,5 @@
-/* 
- * 模块“aos.uefi”页表与线性区管理功能。
- * 实现了相关函数，以及便于调试的函数。
+/**
+ * 模块页表与线性区管理。
  * @date 2025-07-13
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -9,27 +8,27 @@
  */
 #include "pvmi.h"
 
-/* 
+/**
  * 位图指针。
  */
 STATIC UINT8* bitmap;
 
-/* 
+/**
  * 位图长度。
  */
 STATIC UINTN bitmap_length;
 
-/* 
+/**
  * 页表池基址。
  */
 STATIC UINTN pbase;
 
-/* 
+/**
  * 页表池页数。
  */
 STATIC UINTN ppages;
 
-/* 
+/**
  * 申请一页内存。
  * 
  * @return 正常返回一页指针基址，错误返回固定常量。
@@ -80,7 +79,7 @@ STATIC VOID* EFIAPI pvm_page_alloc()
     }
 }
 
-/* 
+/**
  * 释放一页内存。
  * 
  * @return 无返回值。
@@ -100,7 +99,7 @@ STATIC VOID EFIAPI pvm_page_free(IN VOID* addr)
     bitmap[ptr]=bitmap[ptr]&(~PVM_BITMAP_MASK[bit]);
 }
 
-/* 
+/**
  * 遍历位图信息。
  * 
  * @return 无返回值。
@@ -120,17 +119,17 @@ VOID EFIAPI dump_bitmap()
     DEBUG_CODE_END();
 }
 
-/* 
+/**
  * 不可执行位。
  */
 STATIC BOOLEAN nx=FALSE;
 
-/* 
+/**
  * 大页位。
  */
 STATIC BOOLEAN page1gb=FALSE;
 
-/* 
+/**
  * 将物理内存块映射到页表项内。
  * 
  * @param pt    页表地址。
@@ -156,7 +155,7 @@ STATIC EFI_STATUS EFIAPI pvm_pte_map(IN VOID* pt,IN UINTN vaddr,IN UINTN paddr,I
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 将物理内存块映射到页目录项内。
  * 
  * @param pd    页目录地址。
@@ -209,7 +208,7 @@ STATIC UINTN EFIAPI pvm_pde_map(IN VOID* pd,IN UINTN vaddr,IN UINTN paddr,IN UIN
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 将物理内存块映射到页目录指针项内。
  * 
  * @param pdp   页目录指针地址。
@@ -265,7 +264,7 @@ STATIC EFI_STATUS EFIAPI pvm_pdpe_map(IN VOID* pdp,IN UINTN vaddr,IN UINTN paddr
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 将物理内存块映射到4级页映射项内。
  * 
  * @param pml4  4级页映射地址。
@@ -311,7 +310,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml4e_map(IN VOID* pml4,IN UINTN vaddr,IN UINTN pad
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 将物理内存块映射到5级页映射内。
  * 
  * @param pml5  5级页映射地址。
@@ -357,7 +356,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml5e_map(IN VOID* pml5,IN UINTN vaddr,IN UINTN pad
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 返回页表是否为空。
  * 
  * @param pt    页表地址。
@@ -379,7 +378,7 @@ STATIC BOOLEAN EFIAPI pvm_pt_is_empty(IN VOID* pt)
     return TRUE;
 }
 
-/* 
+/**
  * 将页表内指定线性地址解除映射。
  * 
  * @param pt    页表地址。
@@ -399,7 +398,7 @@ STATIC VOID EFIAPI pvm_pte_unmap(IN VOID* pt,IN UINTN vaddr,IN UINTN pages)
     }
 }
 
-/* 
+/**
  * 将页目录内指定线性地址解除映射。
  * 
  * @param pd    页目录地址。
@@ -438,7 +437,7 @@ STATIC VOID EFIAPI pvm_pde_unmap(IN VOID* pd,IN UINTN vaddr,IN UINTN pages)
     }
 }
 
-/* 
+/**
  * 将页目录指针内指定线性地址解除映射。
  * 
  * @param pdp   页目录指针地址。
@@ -477,7 +476,7 @@ STATIC VOID EFIAPI pvm_pdpe_unmap(IN VOID* pdp,IN UINTN vaddr,IN UINTN pages)
     }
 }
 
-/* 
+/**
  * 将4级页映射内指定线性地址解除映射。
  * 
  * @param pml4  4级页映射地址。
@@ -509,7 +508,7 @@ STATIC VOID EFIAPI pvm_pml4e_unmap(IN VOID* pml4,IN UINTN vaddr,IN UINTN pages)
     }
 }
 
-/* 
+/**
  * 将5级页映射内指定线性地址解除映射。
  * 
  * @param pml5  5级页映射地址。
@@ -541,7 +540,7 @@ STATIC VOID EFIAPI pvm_pml5e_unmap(IN VOID* pml5,IN UINTN vaddr,IN UINTN pages)
     }
 }
 
-/* 
+/**
  * 将线性区标志转换成映射标志。
  * 
  * @param flags 线性区标志。
@@ -621,12 +620,12 @@ STATIC UINT64 EFIAPI pvm_flags_to_pflags(IN UINT64 flags)
     return pflags;
 }
 
-/* 
+/**
  * 顶级页表根地址。
  */
 STATIC VOID* page_table=NULL;
 
-/* 
+/**
  * 将物理地址范围映射到5级分页的线性地址范围。
  * 
  * @param vaddr 线性起始地址。
@@ -697,7 +696,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml5_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 将物理地址范围映射到4级分页的线性地址范围。
  * 
  * @param vaddr 线性起始地址。
@@ -768,7 +767,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml4_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 将物理地址范围映射到页表的线性地址范围。
  * 
  * @param vaddr 线性起始地址。
@@ -780,7 +779,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml4_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
  */
 STATIC EFI_STATUS EFIAPI (*pvm_pml_map)(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN UINT64 flags);
 
-/* 
+/**
  * 解除5级分页内的线性地址范围。
  * 
  * @param start 线性起始地址。
@@ -797,7 +796,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml5_unmap(IN UINTN start,IN UINTN end)
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 解除4级分页内的线性地址范围。
  * 
  * @param start 线性起始地址。
@@ -814,7 +813,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml4_unmap(IN UINTN start,IN UINTN end)
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 解除页表内的线性地址范围。
  * 
  * @param start 线性起始地址。
@@ -824,7 +823,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml4_unmap(IN UINTN start,IN UINTN end)
  */
 STATIC EFI_STATUS EFIAPI (*pvm_pml_unmap)(IN UINTN start,IN UINTN end);
 
-/* 
+/**
  * 遍历页表内容。
  * 
  * @param pt    页表地址。
@@ -869,7 +868,7 @@ STATIC VOID EFIAPI pvm_dump_page_table(IN VOID* pt,IN BOOLEAN top,IN UINTN level
     DEBUG_CODE_END();
 }
 
-/* 
+/**
  * 遍历5级页表。
  * 
  * @return 无返回值。
@@ -879,7 +878,7 @@ STATIC VOID EFIAPI pvm_dump_pml5()
     pvm_dump_page_table(page_table,TRUE,4);
 }
 
-/* 
+/**
  * 遍历4级页表。
  * 
  * @return 无返回值。
@@ -889,14 +888,14 @@ STATIC VOID EFIAPI pvm_dump_pml4()
     pvm_dump_page_table(page_table,TRUE,3);
 }
 
-/* 
+/**
  * 遍历顶级页表。
  * 
  * @return 无返回值。
  */
 STATIC VOID EFIAPI (*pvm_dump_pml)();
 
-/* 
+/**
  * 遍历全部内核页表。
  * 
  * @return 无返回值。
@@ -906,17 +905,17 @@ VOID EFIAPI dump_page_table()
     pvm_dump_pml();
 }
 
-/* 
+/**
  * 线性区链表头。
  */
 STATIC aos_boot_vma** head=NULL;
 
-/* 
+/**
  * 线性区链表尾。
  */
 STATIC aos_boot_vma** tail=NULL;
 
-/* 
+/**
  * 添加线性区到启动参数。
  * 
  * @param vma 线性区。
@@ -962,7 +961,7 @@ STATIC VOID EFIAPI pvm_add_vma_node(IN aos_boot_vma* vma)
     }
 }
 
-/* 
+/**
  * 在启动参数删除一个线性区。删除依据以指针一致为准。
  * 
  * @param vma 线性区。
@@ -1001,7 +1000,7 @@ STATIC VOID EFIAPI pvm_remove_vma_node(IN aos_boot_vma* vma)
     }
 }
 
-/* 
+/**
  * 通过线性地址寻找对应的线性区结点。
  * 
  * @param vaddr 线性区域地址。
@@ -1032,7 +1031,7 @@ STATIC aos_boot_vma* EFIAPI pvm_find_vma_node(IN UINTN vaddr)
     return NULL;
 }
 
-/* 
+/**
  * 检查输入的线性区域内是否存在已有的线性区。
  * 
  * @param vaddr 线性区域地址。
@@ -1069,7 +1068,7 @@ STATIC BOOLEAN EFIAPI pvm_check_vma_node(IN UINTN vaddr,IN UINTN pages)
     return FALSE;
 }
 
-/* 
+/**
  * 添加一个内核线性区。
  * 
  * @param vaddr 线性区域基址。
@@ -1109,7 +1108,7 @@ EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
         return EFI_UNSUPPORTED;
     }
 
-    aos_boot_vma* vma=malloc(sizeof(aos_boot_vma));
+    aos_boot_vma* vma=umalloc(sizeof(aos_boot_vma));
     if(vma==NULL)
     {
         /*内存池内没有足够的空间申请线性区。*/
@@ -1120,7 +1119,7 @@ EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
 
     if(EFI_ERROR(pvm_pml_map(vaddr,paddr,pages,flags)))
     {
-        free(vma);
+        ufree(vma);
         return EFI_UNSUPPORTED;
     }
     else
@@ -1135,7 +1134,7 @@ EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
     }
 }
 
-/* 
+/**
  * 删除一个内核线性区。仅在通过输入参数能够找到线性区时才会删除。
  * 
  * @param vaddr 线性区域地址。
@@ -1149,11 +1148,11 @@ VOID EFIAPI remove_kernel_vma(IN UINTN vaddr)
     {
         pvm_pml_unmap(node->start,node->end);
         pvm_remove_vma_node(node);
-        free(node);
+        ufree(node);
     }
 }
 
-/* 
+/**
  * 遍历所有线性区信息。
  * 
  * @return 无返回值。
@@ -1185,7 +1184,12 @@ VOID EFIAPI dump_vma()
     DEBUG_CODE_END();
 }
 
-/* 
+/**
+ * 高半核参考基址。
+ */
+STATIC UINTN base=0;
+
+/**
  * 初始化页表与线性区管理功能。
  * 
  * @param params 启动参数。
@@ -1231,17 +1235,39 @@ EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params)
         return EFI_OUT_OF_RESOURCES;
     }
 
-    UINTN base=-SIZE_512GB;
-    UINT32 value=AOS_UEFI_VERSION;
-    GetRandomNumber32(&value);
+    base=-SIZE_512GB;
+    UINT32 value1=PVM_ADDR_MAGIC,value2=AOS_UEFI_VESION_0_0_1,value3=AOS_UEFI_VESION_0_0_2;
 
-    UINTN offset=value&0x3FFFF;
-    offset=offset<<21;
+    RandomBytes((UINT8*)&value1,sizeof(value1));
+    MicroSecondDelay((value1&0xF)+1);
+    RandomBytes((UINT8*)&value2,sizeof(value2));
+    MicroSecondDelay((value2&0xF)+2);
+    RandomBytes((UINT8*)&value3,sizeof(value3));
+
+    UINT32 value=LRotU32(value1,13);
+    value^=value2;
+    value=LRotU32(value,17);
+    value^=value3;
+    value=value*PVM_RANDOM_MAGIC;
+    value^=value>>16;
+
+    UINTN offset=(value&0x3FFFF)<<21;
     while(SIZE_512GB-offset<SIZE_4GB)
     {
-        GetRandomNumber32(&value);
-        offset=value&0x3FFFF;
-        offset=offset<<21;
+        RandomBytes((UINT8*)&value1,sizeof(value1));
+        MicroSecondDelay((value1&0xF)+3);
+        RandomBytes((UINT8*)&value2,sizeof(value2));
+        MicroSecondDelay((value2&0xF)+7);
+        RandomBytes((UINT8*)&value3,sizeof(value3));
+
+        value=LRotU32(value1,13);
+        value^=value2;
+        value=LRotU32(value,17);
+        value^=value3;
+        value=value*PVM_RANDOM_MAGIC;
+        value^=value>>16;
+
+        offset=(value&0x3FFFF)<<21;
     }
 
     if(!CONFIG_RANDOMIZE_BASE)

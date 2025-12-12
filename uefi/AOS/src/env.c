@@ -1,6 +1,5 @@
-/* 
- * 模块“aos.uefi”运行环境管理。
- * 实现了相关函数。
+/**
+ * 模块运行环境管理。
  * @date 2025-06-11
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -9,7 +8,7 @@
  */
 #include "envi.h"
 
-/* 
+/**
  * 在UEFI阶段设置CPU必要功能。
  * 
  * @param parmas 启动参数。
@@ -246,7 +245,7 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 在UEFI阶段设置系统所需表。主要是ACPI、SMBIOS。
  * 
  * @param parmas 启动参数。
@@ -317,7 +316,7 @@ STATIC EFI_STATUS EFIAPI env_set_table(IN OUT aos_boot_params* params)
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 在UEFI阶段计算可用核心数目。
  * 
  * @param parmas 启动参数。
@@ -406,7 +405,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
                     }
                     if(new_apic)
                     {
-                        node=malloc(sizeof(env_apic));
+                        node=umalloc(sizeof(env_apic));
                         ASSERT(node!=NULL);
                         node->id=x2apic->X2ApicId;
                         node->next=list;
@@ -445,7 +444,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
                     }
                     if(new_apic)
                     {
-                        node=malloc(sizeof(env_apic));
+                        node=umalloc(sizeof(env_apic));
                         ASSERT(node!=NULL);
                         node->id=xapic->ApicId;
                         node->next=list;
@@ -472,14 +471,14 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
             count++;
             node=node->next;
         }
-        UINT32* apics=malloc(count*sizeof(UINT32));
+        UINT32* apics=umalloc(count*sizeof(UINT32));
         UINTN itr=0;
         node=list;
         while(node!=NULL)
         {
             apics[itr]=node->id;
             node=node->next;
-            free(list);
+            ufree(list);
             list=node;
             itr++;
         }
@@ -542,7 +541,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
     }
 }
 
-/* 
+/**
  * 在UEFI阶段，在最低1MB内按页对齐放置GDT。
  * 
  * @param parmas 启动参数。
@@ -570,7 +569,7 @@ STATIC EFI_STATUS EFIAPI env_set_gdt(IN OUT aos_boot_params* params)
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 将掩码转为位移与位宽。
  * 
  * @param mask  掩码。
@@ -599,7 +598,7 @@ STATIC VOID EFIAPI env_mask_to_shift_width(IN UINT32 mask,OUT UINT8* shift,OUT U
     }
 }
 
-/* 
+/**
  * 获取单个像素所占位宽。
  * 
  * @param info 图形输出模式信息。
@@ -627,7 +626,7 @@ STATIC UINT8 EFIAPI env_get_pixel_bit_width(IN EFI_GRAPHICS_OUTPUT_MODE_INFORMAT
     }
 }
 
-/* 
+/**
  * 获取单个像素所占位宽。
  * 
  * @param info 图形输出模式信息。
@@ -685,7 +684,7 @@ STATIC EFI_STATUS EFIAPI env_get_edid_info(IN EFI_HANDLE gop,OUT UINT32* hres,OU
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 对标准色彩值按像素格式要求缩放。
  * 
  * @param value 单色色值。
@@ -706,7 +705,7 @@ STATIC UINT32 EFIAPI env_scale_color(IN UINT8 value,IN UINT8 width)
     }
 }
 
-/* 
+/**
  * 在指定区域内填充颜色。调用者有责任保证参数合理。
  * 
  * @param pixel     像素颜色。
@@ -750,7 +749,7 @@ STATIC VOID EFIAPI env_fill_color(IN env_graphics_pixel pixel,IN UINT8 size,IN U
     }
 }
 
-/* 
+/**
  * 获取图形信息。
  * 
  * @param parmas 启动参数。
@@ -763,7 +762,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     EFI_HANDLE* gops=NULL;
     UINTN count=0;
 
-    /* 
+    /*
      * 寻找显示当前屏幕的图形输出协议。仅支持GOP，EFI 1.X时代的UGA不考虑。
      * 寻找逻辑为搜索所有拥有GOP的句柄，优先考虑带ConsoleOutDevice协议，其次考虑第一个GOP。
      * 上述GOP中不存在仅Blt输出的，这种GOP视为无效。如果没找到GOP，说明不能图形显示，不属于设计目标，报错终止。
@@ -772,7 +771,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     if(status==EFI_BUFFER_TOO_SMALL)
     {
         ASSERT(count>0);
-        gops=(EFI_HANDLE*)malloc(count);
+        gops=(EFI_HANDLE*)umalloc(count);
         status=gBS->LocateHandle(ByProtocol,&gEfiGraphicsOutputProtocolGuid,NULL,&count,gops);
         if(EFI_ERROR(status))
         {
@@ -814,7 +813,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
             target=gops[index];
         }
     }
-    free(gops);
+    ufree(gops);
     if(gop==NULL)
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The supported Graphics Output Protocol is not found.\n"));
@@ -833,7 +832,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     {
         UINTN size=GetDevicePathSize(device);
         ASSERT(size>0);
-        VOID* buffer=malloc(size);
+        VOID* buffer=umalloc(size);
         ASSERT(buffer!=NULL);
         CopyMem(buffer,device,size);
         params->graphics_device=(aos_efi_device_path*)buffer;
@@ -1005,7 +1004,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     return EFI_SUCCESS;
 }
 
-/* 
+/**
  * 初始化运行环境。
  * 
  * @param parmas 启动参数。
@@ -1068,7 +1067,7 @@ EFI_STATUS EFIAPI env_init(IN OUT aos_boot_params* params)
     params->ppool_base=base;
     params->ppool_pages=CONFIG_PAGE_TABLE_POOL;
     params->bitmap_length=CONFIG_PAGE_TABLE_POOL/8+(CONFIG_PAGE_TABLE_POOL%8?1:0);
-    params->bitmap=(UINT8*)malloc(params->bitmap_length);
+    params->bitmap=(UINT8*)umalloc(params->bitmap_length);
     if(params->bitmap==NULL)
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] Failed to allocate page table memory pool bitmap "
@@ -1077,5 +1076,9 @@ EFI_STATUS EFIAPI env_init(IN OUT aos_boot_params* params)
     }
     ZeroMem(params->bitmap,params->bitmap_length);
     params->bitmap[params->bitmap_length-1]=ENV_BITMAP_MASK[CONFIG_PAGE_TABLE_POOL%8];
+
+    UINT64 seed=AOS_UEFI_VERSION;
+    GetRandomNumber64(&seed);
+    RandomSeed((UINT8*)&seed,sizeof(UINT64));
     return EFI_SUCCESS;
 }

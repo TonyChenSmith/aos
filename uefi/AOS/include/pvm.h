@@ -1,6 +1,5 @@
-/* 
- * 模块“aos.uefi”页表与线性区管理功能。
- * 声明了相关的跨文件使用函数。
+/**
+ * 模块页表与线性区管理。
  * @date 2025-08-24
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -12,21 +11,21 @@
 
 #include "params.h"
 
-/* 
+/**
  * 遍历位图信息。
  * 
  * @return 无返回值。
  */
 VOID EFIAPI dump_bitmap();
 
-/* 
+/**
  * 遍历全部内核页表。
  * 
  * @return 无返回值。
  */
 VOID EFIAPI dump_page_table();
 
-/* 
+/**
  * 添加一个内核线性区。
  * 
  * @param vaddr 线性区域基址。
@@ -38,7 +37,7 @@ VOID EFIAPI dump_page_table();
  */
 EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN UINT64 flags);
 
-/* 
+/**
  * 删除一个内核线性区。仅在通过输入参数能够找到线性区时才会删除。
  * 
  * @param vaddr 线性区域地址。
@@ -47,14 +46,14 @@ EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
  */
 VOID EFIAPI remove_kernel_vma(IN UINTN vaddr);
 
-/* 
+/**
  * 遍历所有线性区信息。
  * 
  * @return 无返回值。
  */
 VOID EFIAPI dump_vma();
 
-/* 
+/**
  * 初始化页表与线性区管理功能。
  * 
  * @param params 启动参数。

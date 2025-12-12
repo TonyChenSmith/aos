@@ -1,5 +1,6 @@
 # 
 # Module "aos.uefi".
+# @date 2025-01-24
 # 
 # Copyright (c) 2025 Tony Chen Smith
 # 
@@ -24,16 +25,19 @@
 
 [Packages]
     AOS/AOS.dec
+    CryptoPkg/CryptoPkg.dec
     MdeModulePkg/MdeModulePkg.dec
     MdePkg/MdePkg.dec
     UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses]
+    BaseCryptLib
     BaseLib
     BaseMemoryLib
     CpuLib
     DebugLib
     DebugPrintErrorLevelLib
+    FileHandleLib
     RngLib
     UefiApplicationEntryPoint
     UefiBootServicesTableLib
@@ -44,11 +48,8 @@
     gEfiEdidActiveProtocolGuid
     gEfiEdidDiscoveredProtocolGuid
     gEfiGraphicsOutputProtocolGuid
-    #gEfiLoadedImageProtocolGuid
-    #gEfiMpServiceProtocolGuid
-    #gEfiSimpleFileSystemProtocolGuid
-    #gEfiPciIoProtocolGuid
-    #gEfiPciRootBridgeIoProtocolGuid
+    gEfiLoadedImageProtocolGuid
+    gEfiSimpleFileSystemProtocolGuid
 
 [Guids]
     gEfiAcpiTableGuid

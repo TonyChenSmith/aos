@@ -1,6 +1,5 @@
-/* 
- * 模块“aos.uefi”启动参数定义。
- * 声明了跨模块使用的公共宏与数据类型。
+/**
+ * 模块启动参数定义。
  * @date 2025-06-01
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -11,55 +10,10 @@
 #define __AOS_UEFI_PARAMS_H__
 
 #include "config.h"
-#include "includes.h"
+#include "lib.h"
 #include "version.h"
 
-/* 
- * 第一轮检查。
- * 主要根据宏用途初步确定范围。
- */
-
-/* 
- * CONFIG_BOOTSTRAP_POOL检查。
- */
-#ifndef CONFIG_BOOTSTRAP_POOL
-#error The macro CONFIG_BOOTSTRAP_POOL is undefined.
-#elif CONFIG_BOOTSTRAP_POOL<=2
-#error The macro CONFIG_BOOTSTRAP_POOL must be greater than 2.
-#endif /*CONFIG_BOOTSTRAP_POOL*/
-
-/* 
- * CONFIG_KERNEL_POOL检查。
- */
-#ifndef CONFIG_KERNEL_POOL
-#error The macro CONFIG_KERNEL_POOL is undefined.
-#elif CONFIG_KERNEL_POOL<=2
-#error The macro CONFIG_KERNEL_POOL must be greater than 2.
-#endif /*CONFIG_KERNEL_POOL*/
-
-/* 
- * CONFIG_PAGE_TABLE_POOL检查。
- */
-#ifndef CONFIG_PAGE_TABLE_POOL
-#error The macro CONFIG_PAGE_TABLE_POOL is undefined.
-#elif CONFIG_PAGE_TABLE_POOL<=0
-#error The macro CONFIG_PAGE_TABLE_POOL must be greater than 0.
-#elif (CONFIG_PAGE_TABLE_POOL%64)!=0
-#error The macro CONFIG_PAGE_TABLE_POOL must be a multiple of 64.
-#endif /*CONFIG_PAGE_TABLE_POOL*/
-
-/* 
- * CONFIG_GRAPHICS_BACKGROUND_COLOR检查。
- */
-#ifndef CONFIG_GRAPHICS_BACKGROUND_COLOR
-#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR is undefined.
-#elif CONFIG_GRAPHICS_BACKGROUND_COLOR<0
-#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR must be greater than or equal to 0.
-#elif CONFIG_GRAPHICS_BACKGROUND_COLOR>0xFFFFFF
-#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR must be less than or equal to 0xFFFFFF.
-#endif /*CONFIG_GRAPHICS_BACKGROUND_COLOR*/
-
-/* 
+/**
  * CPU特性。
  * 记录了在运行环境管理过程中提前探测的环境情况。
  */
@@ -71,7 +25,7 @@ typedef struct _aos_cpu_features
     UINT8 features; /*CPU特性。*/
 } aos_cpu_features;
 
-/* 
+/**
  * CPU状态。
  * 记录了在运行环境管理过程中提前探测的环境情况。
  * PAT设置为硬写值，按顺序分别是WB、WT、UC-、UC、WC、WP、UC-、UC。在引导阶段它们不会被使用，因此不定义宏常量。
@@ -84,7 +38,7 @@ typedef struct _aos_cpu_state
     UINT8 apic;  /*APIC状态。*/
 } aos_cpu_state;
 
-/* 
+/**
  * 图形信息。
  * 记录了在运行环境管理过程中提前探测的环境情况。
  */
@@ -101,7 +55,7 @@ typedef struct _aos_graphics_info
     UINT32 scan_line; /*扫描线长度。*/
 } aos_graphics_info;
 
-/* 
+/**
  * 设备路径结点。
  * 具体结构定义参考UEFI规范。
  */
@@ -113,7 +67,7 @@ typedef struct _aos_efi_device_path
     UINT8 data[];    /*数据数组。*/
 } aos_efi_device_path;
 
-/* 
+/**
  * 线性区。这里使用了简单的双向链表结构用于传递信息。
  * 红黑树版本的在内核再实现。
  */
@@ -128,7 +82,7 @@ struct _aos_boot_vma
     UINT64        flags; /*标志。*/
 };
 
-/* 
+/**
  * 启动参数。
  * 记录了需要传递到内核的参数。
  */
@@ -157,7 +111,7 @@ typedef struct _aos_boot_params
     aos_boot_vma*        vma_tail;        /*线性区尾地址。*/
 } aos_boot_params;
 
-/* 
+/**
  * 内核蹦床函数，进入后进入内核，并且不返回。
  * 
  * @param params 启动参数。
@@ -166,157 +120,157 @@ typedef struct _aos_boot_params
  */
 typedef VOID (*aos_kernel_trampoline)(aos_boot_params* restrict params);
 
-/* 
+/**
  * 特性魔数。
  */
 #define AOS_FEATURES_MAGIC 0xAF
 
-/* 
+/**
  * x86-64-v1基线。详细定义见SysV ABI。
  */
 #define AOS_BASELINE_X86_64_V1 0
 
-/* 
+/**
  * x86-64-v2基线。详细定义见SysV ABI。
  */
 #define AOS_BASELINE_X86_64_V2 1
 
-/* 
+/**
  * Intel处理器。
  */
 #define AOS_VENDOR_INTEL 0
 
-/* 
+/**
  * AMD处理器。
  */
 #define AOS_VENDOR_AMD 1
 
-/* 
+/**
  * 特性NX标志位。
  */
 #define AOS_FEATURES_NX BIT0
 
-/* 
+/**
  * 特性Page1GB标志位。
  */
 #define AOS_FEATURES_PAGE1GB BIT1
 
-/* 
+/**
  * 特性LA57标志位。
  */
 #define AOS_FEATURES_LA57 BIT2
 
-/* 
+/**
  * 特性xAPIC标志位。
  */
 #define AOS_FEATURES_XAPIC BIT3
 
-/* 
+/**
  * 特性x2APIC标志位。
  */
 #define AOS_FEATURES_X2APIC BIT4
 
-/* 
+/**
  * 状态魔数。
  */
 #define AOS_STATE_MAGIC 0xAE
 
-/* 
+/**
  * 状态LA57标志位。
  */
 #define AOS_STATE_LA57 BIT0
 
-/* 
+/**
  * 状态Fixed MTRR标志位。
  */
 #define AOS_STATE_FIXED_MTRR BIT1
 
-/* 
+/**
  * 未启用APIC。
  */
 #define AOS_APIC_NO_APIC 0
 
-/* 
+/**
  * 已经启用xAPIC。
  */
 #define AOS_APIC_XAPIC 1
 
-/* 
+/**
  * 已经启用x2APIC。
  */
 #define AOS_APIC_X2APIC 2
 
-/* 
+/**
  * 线性区内存类型掩码。
  */
 #define AOS_BOOT_VMA_TYPE_MASK MAX_UINT8
 
-/* 
+/**
  * 线性区无缓存类型。
  */
 #define AOS_BOOT_VMA_TYPE_UC 0
 
-/* 
+/**
  * 线性区写合并类型。
  */
 #define AOS_BOOT_VMA_TYPE_WC 1
 
-/* 
+/**
  * 线性区写直通类型。
  */
 #define AOS_BOOT_VMA_TYPE_WT 2
 
-/* 
+/**
  * 线性区写回类型。
  */
 #define AOS_BOOT_VMA_TYPE_WB 3
 
-/* 
+/**
  * 线性区写保护类型。
  */
 #define AOS_BOOT_VMA_TYPE_WP 4
 
-/* 
+/**
  * 线性区无缓存减类型。
  */
 #define AOS_BOOT_VMA_TYPE_UCM 5
 
-/* 
+/**
  * 线性区可读标志。
  */
 #define AOS_BOOT_VMA_READ BIT8
 
-/* 
+/**
  * 线性区可写标志。
  */
 #define AOS_BOOT_VMA_WRITE BIT9
 
-/* 
+/**
  * 线性区可执行标志。
  */
 #define AOS_BOOT_VMA_EXECUTE BIT10
 
-/* 
+/**
  * 线性区读写可执行掩码。
  */
 #define AOS_BOOT_VMA_RWX_MASK (AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_EXECUTE)
 
-/* 
+/**
  * 线性区用户级标志。
  */
 #define AOS_BOOT_VMA_USER BIT11
 
-/* 
+/**
  * 线性区全局标志。
  */
 #define AOS_BOOT_VMA_GLOBAL BIT12
 
-/* 
+/**
  * 线性区已分配标志。
  */
 #define AOS_BOOT_VMA_ALLOCATED BIT13
 
-/* 
+/**
  * 线性区大页标志。
  */
 #define AOS_BOOT_VMA_HUGEPAGE BIT14

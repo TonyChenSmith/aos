@@ -1,6 +1,5 @@
-/* 
- * 模块“aos.uefi”运行流程。
- * 声明了相关的跨文件与跨模块使用函数。
+/**
+ * 模块运行流程管理。
  * @date 2025-06-01
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -16,7 +15,7 @@
 
 #include <Library/BaseMemoryLib.h>
 
-/* 
+/**
  * 模块“aos.uefi”入口。
  * 
  * @param image_handle 模块句柄。

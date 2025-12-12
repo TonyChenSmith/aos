@@ -1,0 +1,33 @@
+# 
+# Module "aos.uefi.timer".
+# @date 2025-12-09
+# 
+# Copyright (c) 2025 Tony Chen Smith
+# 
+# SPDX-License-Identifier: MIT
+# 
+[Defines]
+    INF_VERSION                    = 0x00010005
+    BASE_NAME                      = aos.uefi.timer
+    MODULE_UNI_FILE                = timer.uni
+    # UUID.nameUUIDFromBytes("aos.uefi.timer".getBytes("UTF-8"))
+    FILE_GUID                      = 3E318C9C-3C2F-32C5-9FDB-DBEF5D73B353
+    MODULE_TYPE                    = BASE
+    # Major.Minor.Patch Before the official launch, do not increment the major version number.
+    VERSION_STRING                 = 1.0.0
+    LIBRARY_CLASS                  = TimerLib|UEFI_APPLICATION
+    CONSTRUCTOR                    = aos_uefi_timer_entry
+
+[Sources]
+    timer.c
+
+[Packages]
+    MdePkg/MdePkg.dec
+
+[LibraryClasses]
+    BaseLib
+    UefiBootServicesTableLib
+
+[Protocols]
+
+[Guids]

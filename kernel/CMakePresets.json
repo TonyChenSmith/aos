@@ -9,7 +9,7 @@
             "binaryDir": "${sourceDir}/out/${presetName}/build",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-windows-clang-x86_64.cmake",
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/script/toolchain-windows-clang-x86_64.cmake",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/${presetName}/install"
             }
         },
@@ -21,7 +21,7 @@
             "binaryDir": "${sourceDir}/out/${presetName}/build",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-windows-clang-x86_64.cmake",
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/script/toolchain-windows-clang-x86_64.cmake",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/${presetName}/install"
             }
         }
