@@ -10,10 +10,12 @@
 #define __AOS_UEFI_FLOW_H__
 
 #include "env.h"
+#include "loader.h"
 #include "mem.h"
 #include "pvm.h"
 
 #include <Library/BaseMemoryLib.h>
+#include <Library/UefiRuntimeServicesTableLib.h>
 
 /**
  * 模块“aos.uefi”入口。

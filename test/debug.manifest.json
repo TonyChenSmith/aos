@@ -5,6 +5,11 @@
             "file":"BOOTx64.efi",
             "project":"uefi/Build/AOS/DEBUG_CLANGPDB/X64/",
             "disk":"EFI/BOOT/"
+        },
+        {
+            "file":"aos.kernel",
+            "project":"kernel/out/Debug/build/",
+            "disk":"aos/"
         }
     ]
 }

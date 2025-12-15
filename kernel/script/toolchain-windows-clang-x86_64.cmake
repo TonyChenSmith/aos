@@ -57,9 +57,7 @@ add_compile_options(
 add_link_options(
     --lto=full
     -pie
-    --gc-sections
     --nostdlib
-    --hash-style=sysv
 )
 
 if(CMAKE_BUILD_TYPE MATCHES "Release")

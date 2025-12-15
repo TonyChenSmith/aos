@@ -29,6 +29,7 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     if(EFI_ERROR(status))
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.flow] Failed to shut down the watchdog.\n"));
+        gRT->ResetSystem(EfiResetShutdown,status,0,NULL);
         return status;
     }
 
@@ -37,6 +38,7 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     status=mem_init(&meta);
     if(EFI_ERROR(status))
     {
+        gRT->ResetSystem(EfiResetShutdown,status,0,NULL);
         return status;
     }
 
@@ -49,16 +51,25 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     status=env_init(params);
     if(EFI_ERROR(status))
     {
+        gRT->ResetSystem(EfiResetShutdown,status,0,NULL);
         return status;
     }
 
+    /*初始化分页线性区管理*/
     status=pvm_init(params);
     if(EFI_ERROR(status))
     {
+        gRT->ResetSystem(EfiResetShutdown,status,0,NULL);
         return status;
     }
 
-    //dump_pool_info((VOID*)meta);
+    /*载入内核*/
+    status=load_kernel(params);
+    if(EFI_ERROR(status))
+    {
+        gRT->ResetSystem(EfiResetShutdown,status,0,NULL);
+        return status;
+    }
     
     dump_bitmap();
     dump_vma();

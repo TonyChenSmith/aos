@@ -47,11 +47,32 @@ EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
 VOID EFIAPI remove_kernel_vma(IN UINTN vaddr);
 
 /**
+ * 检查一个线性区域是否与存在的已有线性区重叠。
+ * 
+ * @param vaddr 线性区域地址。
+ * @param pages 线性区域页数。从实用角度，调用者有必要输入非零值。
+ * 
+ * @return 有重叠区域返回真。
+ */
+BOOLEAN EFIAPI check_vma_overlap(IN UINTN vaddr,IN UINTN pages);
+
+/**
  * 遍历所有线性区信息。
  * 
  * @return 无返回值。
  */
 VOID EFIAPI dump_vma();
+
+/**
+ * 生成随机32位数。内部增强算法，但由于熵源单一还是容易被撞击。参数通过指针传递，方便后续二次加强计算。
+ * 
+ * @param a 参数A。
+ * @param b 参数B。
+ * @param c 参数C。
+ * 
+ * @return 返回一个随机数。
+ */
+UINT32 EFIAPI random32(IN OUT UINT32* a,IN OUT UINT32* b,IN OUT UINT32* c);
 
 /**
  * 初始化页表与线性区管理功能。

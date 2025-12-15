@@ -20,6 +20,7 @@
 [Sources]
     src/env.c
     src/flow.c
+    src/fsm.c
     src/mem.c
     src/pvm.c
 
@@ -56,4 +57,4 @@
     gEfiConsoleOutDeviceGuid
     gEfiSmbios3TableGuid
     gEfiSmbiosTableGuid
-    #gEfiFileInfoGuid
+    gEfiFileInfoGuid

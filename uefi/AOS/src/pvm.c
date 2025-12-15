@@ -1005,7 +1005,7 @@ STATIC VOID EFIAPI pvm_remove_vma_node(IN aos_boot_vma* vma)
  * 
  * @param vaddr 线性区域地址。
  * 
- * @param 找到返回结点地址，未找到返回空。
+ * @return 找到返回结点地址，未找到返回空。
  */
 STATIC aos_boot_vma* EFIAPI pvm_find_vma_node(IN UINTN vaddr)
 {
@@ -1032,12 +1032,12 @@ STATIC aos_boot_vma* EFIAPI pvm_find_vma_node(IN UINTN vaddr)
 }
 
 /**
- * 检查输入的线性区域内是否存在已有的线性区。
+ * 检查输入的线性区域内是否存在于已有的线性区。
  * 
  * @param vaddr 线性区域地址。
  * @param pages 线性区域页数。
  * 
- * @param 有重叠区域返回真。
+ * @return 有重叠区域返回真。
  */
 STATIC BOOLEAN EFIAPI pvm_check_vma_node(IN UINTN vaddr,IN UINTN pages)
 {
@@ -1153,6 +1153,23 @@ VOID EFIAPI remove_kernel_vma(IN UINTN vaddr)
 }
 
 /**
+ * 检查一个线性区域是否与存在的已有线性区重叠。
+ * 
+ * @param vaddr 线性区域地址。
+ * @param pages 线性区域页数。从实用角度，调用者有必要输入非零值。
+ * 
+ * @return 有重叠区域返回真。
+ */
+BOOLEAN EFIAPI check_vma_overlap(IN UINTN vaddr,IN UINTN pages)
+{
+    if(pages==0)
+    {
+        return FALSE;
+    }
+    return pvm_check_vma_node(vaddr,pages);
+}
+
+/**
  * 遍历所有线性区信息。
  * 
  * @return 无返回值。
@@ -1185,9 +1202,31 @@ VOID EFIAPI dump_vma()
 }
 
 /**
- * 高半核参考基址。
+ * 生成随机32位数。内部增强算法，但由于熵源单一还是容易被撞击。参数通过指针传递，方便后续二次加强计算。
+ * 
+ * @param a 参数A。
+ * @param b 参数B。
+ * @param c 参数C。
+ * 
+ * @return 返回一个随机数。
  */
-STATIC UINTN base=0;
+UINT32 EFIAPI random32(IN OUT UINT32* a,IN OUT UINT32* b,IN OUT UINT32* c)
+{
+    RandomBytes((UINT8*)a,sizeof(UINT32));
+    MicroSecondDelay((*a&0xF)+1);
+    RandomBytes((UINT8*)b,sizeof(UINT32));
+    MicroSecondDelay((*b&0xF)+2);
+    RandomBytes((UINT8*)c,sizeof(UINT32));
+
+    UINT32 value=LRotU32(*a,13);
+    value^=*b;
+    value=LRotU32(value,17);
+    value^=*c;
+    value=value*PVM_RANDOM_MAGIC;
+    value^=value>>16;
+
+    return value;
+}
 
 /**
  * 初始化页表与线性区管理功能。
@@ -1232,75 +1271,6 @@ EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params)
     {
         /*建立1：1映射线性区失败。*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to create 1:1 mapping vma.\n"));
-        return EFI_OUT_OF_RESOURCES;
-    }
-
-    base=-SIZE_512GB;
-    UINT32 value1=PVM_ADDR_MAGIC,value2=AOS_UEFI_VESION_0_0_1,value3=AOS_UEFI_VESION_0_0_2;
-
-    RandomBytes((UINT8*)&value1,sizeof(value1));
-    MicroSecondDelay((value1&0xF)+1);
-    RandomBytes((UINT8*)&value2,sizeof(value2));
-    MicroSecondDelay((value2&0xF)+2);
-    RandomBytes((UINT8*)&value3,sizeof(value3));
-
-    UINT32 value=LRotU32(value1,13);
-    value^=value2;
-    value=LRotU32(value,17);
-    value^=value3;
-    value=value*PVM_RANDOM_MAGIC;
-    value^=value>>16;
-
-    UINTN offset=(value&0x3FFFF)<<21;
-    while(SIZE_512GB-offset<SIZE_4GB)
-    {
-        RandomBytes((UINT8*)&value1,sizeof(value1));
-        MicroSecondDelay((value1&0xF)+3);
-        RandomBytes((UINT8*)&value2,sizeof(value2));
-        MicroSecondDelay((value2&0xF)+7);
-        RandomBytes((UINT8*)&value3,sizeof(value3));
-
-        value=LRotU32(value1,13);
-        value^=value2;
-        value=LRotU32(value,17);
-        value^=value3;
-        value=value*PVM_RANDOM_MAGIC;
-        value^=value>>16;
-
-        offset=(value&0x3FFFF)<<21;
-    }
-
-    if(!CONFIG_RANDOMIZE_BASE)
-    {
-        offset=0;
-    }
-    base+=offset;
-
-    status=add_kernel_vma(base,params->gdt_base,EFI_SIZE_TO_PAGES(params->gdt_size),
-        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_USER|AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_TYPE_UC);
-    if(EFI_ERROR(status))
-    {
-        /*建立GDT线性区失败。*/
-        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to create the GDT vma.\n"));
-        return EFI_OUT_OF_RESOURCES;
-    }
-
-    status=add_kernel_vma(base+params->kpool_base,params->kpool_base,params->kpool_pages,
-        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_TYPE_WB);
-    if(EFI_ERROR(status))
-    {
-        /*建立内核内存池线性区失败。*/
-        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to create the kernel memory vma.\n"));
-        return EFI_OUT_OF_RESOURCES;
-    }
-
-    status=add_kernel_vma(base+params->graphics.fb_base,params->graphics.fb_base,
-        EFI_SIZE_TO_PAGES(params->graphics.fb_size),
-        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_TYPE_WC);
-    if(EFI_ERROR(status))
-    {
-        /*建立帧缓冲线性区失败。*/
-        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to create the frame buffer vma.\n"));
         return EFI_OUT_OF_RESOURCES;
     }
 

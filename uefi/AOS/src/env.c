@@ -940,9 +940,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
             "[aos.uefi.env] No valid mode found, using current mode. (Mode %u)\n",mode));
     }
 
-    /* 
-     * 设置模式与输出信息。
-     */
+    /*设置模式与输出信息*/
     if(mode!=gop->Mode->Mode)
     {
         status=gop->SetMode(gop,mode);

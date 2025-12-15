@@ -9,8 +9,8 @@
 #ifndef __AOS_UEFI_PVM_INTERNAL_H__
 #define __AOS_UEFI_PVM_INTERNAL_H__
 
-#include "pvm.h"
 #include "mem.h"
+#include "pvm.h"
 
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseCryptLib.h>
@@ -84,11 +84,6 @@ UINT64* CONST PVM_ERROR=(UINT64*)0x101;
  * 5级分页线性地址保留掩码。
  */
 #define PVM_VADDR5_RESERVED_MASK 0xFF00000000000000ULL
-
-/**
- * 地址魔数。
- */
-#define PVM_ADDR_MAGIC 0x20251226
 
 /**
  * 随机魔数。这里是黄金比例常数。

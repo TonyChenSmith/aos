@@ -11,4 +11,13 @@
 
 #include "mem.h"
 
+/**
+ * 将内核文件加载到目标区域。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 正常返回成功。
+ */
+EFI_STATUS EFIAPI load_kernel(IN OUT aos_boot_params* params);
+
 #endif /*__AOS_UEFI_LOADER_H__*/

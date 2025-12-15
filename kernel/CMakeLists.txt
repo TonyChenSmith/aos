@@ -25,8 +25,16 @@ add_executable(${AOS_KERNEL}
 )
 
 # 模块链接
+
+if(CMAKE_BUILD_TYPE MATCHES "Release")
+    target_link_options(${AOS_KERNEL} PRIVATE --script=${CMAKE_CURRENT_SOURCE_DIR}/script/release.ld)
+    set_target_properties(${AOS_KERNEL} PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/script/release.ld)
+else()
+    target_link_options(${AOS_KERNEL} PRIVATE --script=${CMAKE_CURRENT_SOURCE_DIR}/script/debug.ld)
+    set_target_properties(${AOS_KERNEL} PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/script/debug.ld)
+endif()
+
 target_link_libraries(${AOS_KERNEL} PRIVATE aos.kernel.init)
 target_link_libraries(${AOS_KERNEL} PRIVATE aos.kernel.klibc)
 
-target_link_options(${AOS_KERNEL} PRIVATE --entry=aos_kernel_trampoline)
 add_aos_target(${AOS_KERNEL})

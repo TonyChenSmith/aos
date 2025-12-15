@@ -1,0 +1,15 @@
+{
+    "disk":"test/hda.vhd",
+    "manifest":[
+        {
+            "file":"BOOTx64.efi",
+            "project":"uefi/Build/AOS/RELEASE_CLANGPDB/X64/",
+            "disk":"EFI/BOOT/"
+        },
+        {
+            "file":"aos.kernel",
+            "project":"kernel/out/Release/build/",
+            "disk":"aos/"
+        }
+    ]
+}

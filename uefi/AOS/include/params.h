@@ -83,6 +83,21 @@ struct _aos_boot_vma
 };
 
 /**
+ * 内核信息。
+ */
+typedef struct _aos_kernel_info
+{
+    UINTN   kbase;  /*内核程序基址。*/
+    UINTN   sbase;  /*栈基址。*/
+    UINTN   spages; /*栈页数。*/
+    UINTN   entry;  /*入口偏移。*/
+    UINTN   load;   /*加载段数目。*/
+    UINTN*  start;  /*加载段起始数组。*/
+    UINTN*  size;   /*加载段大小数组。*/
+    UINT64* flags;  /*加载段线性区标志数组。*/
+} aos_kernel_info;
+
+/**
  * 启动参数。
  * 记录了需要传递到内核的参数。
  */
@@ -106,9 +121,11 @@ typedef struct _aos_boot_params
     UINT32               gdt_size;        /*GDT大小。*/
     aos_graphics_info    graphics;        /*图形信息。*/
     aos_efi_device_path* graphics_device; /*图形设备路径。*/
+    aos_efi_device_path* esp;             /*ESP设备路径。*/
     UINTN                page_table;      /*内核页表地址。*/
     aos_boot_vma*        vma_head;        /*线性区头地址。*/
     aos_boot_vma*        vma_tail;        /*线性区尾地址。*/
+    aos_kernel_info      kinfo;           /*内核信息。*/
 } aos_boot_params;
 
 /**

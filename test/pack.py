@@ -1,11 +1,12 @@
 # 
-# 将所有文件打包到虚拟机硬盘。要求硬盘文件存在且格式化为FAT32，盘符唯一。
+# 将所有文件打包到虚拟机硬盘。要求硬盘文件存在且格式化为FAT32，盘符有序。
 # @date 2025-12-03
 # 
 # Copyright (c) 2025 Tony Chen Smith
 # 
 # SPDX-License-Identifier: MIT
 # 
+import argparse
 import ctypes
 import os
 import json
@@ -59,14 +60,28 @@ def unmount_vhd(vhd_path):
     run_ps_command(script)
 
 if __name__=="__main__":
+    parser=argparse.ArgumentParser()
+    groups=parser.add_mutually_exclusive_group()
+    groups.add_argument('-d','-D','-debug','-Debug','-DEBUG',action='store_const',dest='mode',default='Debug',const='Debug')
+    groups.add_argument('-r','-R','-release','-Release','-RELEASE',action='store_const',dest='mode',const='Release')
+    args=parser.parse_args()
+
+    manifest_path='debug.manifest.json'
+    if args.mode=='Release':
+        manifest_path='release.manifest.json'
+
     run_as_admin()
 
     project_base=os.path.normpath(os.path.abspath('../'))
     disk_base=None
     manifest=None
-    if os.path.exists('manifest.json'):
-        with open('manifest.json','r') as jsonfile:
+    if os.path.exists(manifest_path):
+        with open(manifest_path,'r') as jsonfile:
             manifest=json.load(jsonfile)
+    else:
+        print(f'文件{manifest_path}未找到。')
+        input()
+        sys.exit(1)
 
     vhd=os.path.normpath(os.path.join(project_base,manifest['disk']))
     if os.path.exists(vhd):
@@ -86,3 +101,9 @@ if __name__=="__main__":
                 shutil.copy2(ppath,dpath)
 
         unmount_vhd(vhd)
+    
+    if args.mode=='Release':
+        print('已复制发行版清单内的所有文件。')
+    else:
+        print('已复制调试版清单内的所有文件。')
+    input()

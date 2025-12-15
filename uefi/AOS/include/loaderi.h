@@ -9,7 +9,12 @@
 #ifndef __AOS_UEFI_LOADER_INTERNAL_H__
 #define __AOS_UEFI_LOADER_INTERNAL_H__
 
+#include "fsm.h"
 #include "loader.h"
+#include "pvm.h"
+
+#include <Library/BaseMemoryLib.h>
+#include <Library/MemoryAllocationLib.h>
 
 /**
  * ELF 64位数据类型。
@@ -29,19 +34,19 @@ typedef UINT8 loader_elf64_uchar;
 typedef struct _loader_elf64_ehdr
 {
     loader_elf64_uchar e_ident[16]; /*标识。*/
-    loader_elf64_half  e_type;             /*类型。*/
-    loader_elf64_half  e_machine;          /*机器。*/
-    loader_elf64_word  e_version;          /*版本。*/
-    loader_elf64_addr  e_entry;            /*入口地址。*/
-    loader_elf64_off   e_phoff;            /*程序头偏移。*/
-    loader_elf64_off   e_shoff;            /*节头偏移。*/
-    loader_elf64_word  e_flags;            /*处理器特定标志。*/
-    loader_elf64_half  e_ehsize;           /*ELF头大小。*/
-    loader_elf64_half  e_phentsize;        /*程序头条目大小。*/
-    loader_elf64_half  e_phnum;            /*程序头条目数目。*/
-    loader_elf64_half  e_shentsize;        /*节头条目大小。*/
-    loader_elf64_half  e_shnum;            /*节头条目数目。*/
-    loader_elf64_half  e_shstrndx;         /*节字符串表索引。*/
+    loader_elf64_half  e_type;      /*类型。*/
+    loader_elf64_half  e_machine;   /*机器。*/
+    loader_elf64_word  e_version;   /*版本。*/
+    loader_elf64_addr  e_entry;     /*入口地址。*/
+    loader_elf64_off   e_phoff;     /*程序头偏移。*/
+    loader_elf64_off   e_shoff;     /*节头偏移。*/
+    loader_elf64_word  e_flags;     /*处理器特定标志。*/
+    loader_elf64_half  e_ehsize;    /*ELF头大小。*/
+    loader_elf64_half  e_phentsize; /*程序头条目大小。*/
+    loader_elf64_half  e_phnum;     /*程序头条目数目。*/
+    loader_elf64_half  e_shentsize; /*节头条目大小。*/
+    loader_elf64_half  e_shnum;     /*节头条目数目。*/
+    loader_elf64_half  e_shstrndx;  /*节字符串表索引。*/
 } loader_elf64_ehdr;
 
 /**
@@ -274,5 +279,20 @@ typedef struct _loader_elf64_dyn
 #define LOADER_DF_P1_GROUPPERM 0x2
 #define LOADER_DF_P1_DEFERRED 0x4
 #define LOADER_DF_P1_EXISTING 0x8
+
+/**
+ * 内核地址魔数。
+ */
+#define LOADER_ADDR_MAGIC 0x20251226
+
+/**
+ * 内核签名文件路径。
+ */
+#define LOADER_SIG_PATH L"aos\\aos.kernel.sig"
+
+/**
+ * 内核文件路径。
+ */
+#define LOADER_KERNEL_PATH L"aos\\aos.kernel"
 
 #endif /*__AOS_UEFI_LOADER_INTERNAL_H__*/

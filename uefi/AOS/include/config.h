@@ -25,6 +25,11 @@
 #define CONFIG_PAGE_TABLE_POOL 128
 
 /**
+ * 内核栈使用页数。实际处理时会前后各添加一页作为边界，但是这一步骤由内核重构线性区时进行。
+ */
+#define CONFIG_KERNEL_STACK 16
+
+/**
  * 强制填充图形界面背景。要求为一个可以表示真假的数值。
  */
 #define CONFIG_FORCE_FILL_GRAPHICS_BACKGROUND FALSE
@@ -35,7 +40,7 @@
 #define CONFIG_GRAPHICS_BACKGROUND_COLOR 0x191970
 
 /**
- * 随机化内核基址功能。
+ * 随机化基址功能。
  */
 #define CONFIG_RANDOMIZE_BASE TRUE
 
@@ -49,8 +54,8 @@
  */
 #ifndef CONFIG_BOOTSTRAP_POOL
 #error The macro CONFIG_BOOTSTRAP_POOL is undefined.
-#elif CONFIG_BOOTSTRAP_POOL<=2
-#error The macro CONFIG_BOOTSTRAP_POOL must be greater than 2.
+#elif CONFIG_BOOTSTRAP_POOL<=16
+#error The macro CONFIG_BOOTSTRAP_POOL must be greater than 16.
 #endif /*CONFIG_BOOTSTRAP_POOL*/
 
 /**
@@ -58,8 +63,8 @@
  */
 #ifndef CONFIG_KERNEL_POOL
 #error The macro CONFIG_KERNEL_POOL is undefined.
-#elif CONFIG_KERNEL_POOL<=2
-#error The macro CONFIG_KERNEL_POOL must be greater than 2.
+#elif CONFIG_KERNEL_POOL<=16
+#error The macro CONFIG_KERNEL_POOL must be greater than 16.
 #endif /*CONFIG_KERNEL_POOL*/
 
 /**
@@ -67,11 +72,22 @@
  */
 #ifndef CONFIG_PAGE_TABLE_POOL
 #error The macro CONFIG_PAGE_TABLE_POOL is undefined.
-#elif CONFIG_PAGE_TABLE_POOL<=0
-#error The macro CONFIG_PAGE_TABLE_POOL must be greater than 0.
+#elif CONFIG_PAGE_TABLE_POOL<=64
+#error The macro CONFIG_PAGE_TABLE_POOL must be greater than 64.
 #elif (CONFIG_PAGE_TABLE_POOL%64)!=0
 #error The macro CONFIG_PAGE_TABLE_POOL must be a multiple of 64.
 #endif /*CONFIG_PAGE_TABLE_POOL*/
+
+/**
+ * CONFIG_KERNEL_STACK检查。
+ */
+#ifndef CONFIG_KERNEL_STACK
+#error The macro CONFIG_KERNEL_STACK is undefined.
+#elif CONFIG_KERNEL_STACK<=8
+#error The macro CONFIG_KERNEL_STACK must be greater than 8.
+#elif (CONFIG_KERNEL_STACK%8)!=0
+#error The macro CONFIG_KERNEL_STACK must be a multiple of 8.
+#endif /*CONFIG_KERNEL_STACK*/
 
 /**
  * CONFIG_GRAPHICS_BACKGROUND_COLOR检查。
@@ -83,5 +99,12 @@
 #elif CONFIG_GRAPHICS_BACKGROUND_COLOR>0xFFFFFF
 #error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR must be less than or equal to 0xFFFFFF.
 #endif /*CONFIG_GRAPHICS_BACKGROUND_COLOR*/
+
+/**
+ * CONFIG_RANDOMIZE_BASE检查。
+ */
+#ifndef CONFIG_RANDOMIZE_BASE
+#error The macro CONFIG_RANDOMIZE_BASE is undefined.
+#endif /*CONFIG_RANDOMIZE_BASE*/
 
 #endif /*__AOS_UEFI_CONFIG_H__*/
