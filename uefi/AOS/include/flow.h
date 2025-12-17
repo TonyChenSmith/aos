@@ -10,6 +10,7 @@
 #define __AOS_UEFI_FLOW_H__
 
 #include "env.h"
+#include "fsm.h"
 #include "loader.h"
 #include "mem.h"
 #include "pvm.h"

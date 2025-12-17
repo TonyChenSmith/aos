@@ -2,4 +2,5 @@
 *.log
 *.fd
 *.vhd
+__pycache__/
 sig/

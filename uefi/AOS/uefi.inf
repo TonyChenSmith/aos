@@ -21,6 +21,7 @@
     src/env.c
     src/flow.c
     src/fsm.c
+    src/loader.c
     src/mem.c
     src/pvm.c
 

@@ -13,8 +13,55 @@
 #include "loader.h"
 #include "pvm.h"
 
+#include <Library/BaseCryptLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/MemoryAllocationLib.h>
+
+/**
+ * 验证签名所需公钥内容。
+ */
+#ifdef AOS_NDEBUG
+CONST UINT8 LOADER_SIGNATURE_RSA_KEY_N[]={
+#include "../../../test/sig/Release/signature_keyn.txt"
+};
+
+CONST UINT8 LOADER_SIGNATURE_RSA_KEY_E[]={
+#include "../../../test/sig/Release/signature_keye.txt"
+};
+
+CONST UINT8 LOADER_RSA_KEY_N[]={
+#include "../../../test/sig/Release/keyn.txt"
+};
+
+CONST UINT8 LOADER_RSA_KEY_E[]={
+#include "../../../test/sig/Release/keye.txt"
+};
+#else
+CONST UINT8 LOADER_SIGNATURE_RSA_KEY_N[]={
+#include "../../../test/sig/Debug/signature_keyn.txt"
+};
+
+CONST UINT8 LOADER_SIGNATURE_RSA_KEY_E[]={
+#include "../../../test/sig/Debug/signature_keye.txt"
+};
+
+CONST UINT8 LOADER_KERNEL_RSA_KEY_N[]={
+#include "../../../test/sig/Debug/kernel_keyn.txt"
+};
+
+CONST UINT8 LOADER_KERNEL_RSA_KEY_E[]={
+#include "../../../test/sig/Debug/kernel_keye.txt"
+};
+#endif
+
+/**
+ * 签名结构定义。
+ */
+typedef struct _loader_signature_node
+{
+    UINT8 sha256[32];   /*SHA-256摘要。*/
+    UINT8 rsa4096[512]; /*RSA-PSS签名。*/
+} loader_signature_node;
 
 /**
  * ELF 64位数据类型。

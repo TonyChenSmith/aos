@@ -10,6 +10,11 @@
             "file":"aos.kernel",
             "project":"kernel/out/Release/build/",
             "disk":"aos/"
+        },
+        {
+            "file":"aos.kernel.sig",
+            "project":"test/sig/Release/",
+            "disk":"aos/"
         }
     ]
 }

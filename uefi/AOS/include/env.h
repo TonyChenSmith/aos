@@ -1,5 +1,5 @@
 /**
- * 模块运行环境管理。
+ * 模块启动环境管理。
  * @date 2025-06-11
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -12,7 +12,7 @@
 #include "params.h"
 
 /**
- * 初始化运行环境。
+ * 初始化启动环境。
  * 
  * @param parmas 启动参数。
  * 

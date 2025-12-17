@@ -1,5 +1,5 @@
 /**
- * 模块运行环境管理。
+ * 模块启动环境管理。
  * @date 2025-06-11
  * 
  * Copyright (c) 2025 Tony Chen Smith
@@ -1003,7 +1003,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
 }
 
 /**
- * 初始化运行环境。
+ * 初始化启动环境。
  * 
  * @param parmas 启动参数。
  * 

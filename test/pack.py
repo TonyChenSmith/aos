@@ -10,6 +10,7 @@ import argparse
 import ctypes
 import os
 import json
+import sign
 import shutil
 import subprocess
 import sys
@@ -66,11 +67,14 @@ if __name__=="__main__":
     groups.add_argument('-r','-R','-release','-Release','-RELEASE',action='store_const',dest='mode',const='Release')
     args=parser.parse_args()
 
+    run_as_admin()
+    
     manifest_path='debug.manifest.json'
     if args.mode=='Release':
+        sign.sign_kernel(False)
         manifest_path='release.manifest.json'
-
-    run_as_admin()
+    else:
+        sign.sign_kernel(True)
 
     project_base=os.path.normpath(os.path.abspath('../'))
     disk_base=None
