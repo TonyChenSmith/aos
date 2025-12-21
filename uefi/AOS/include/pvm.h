@@ -83,4 +83,42 @@ UINT32 EFIAPI random32(IN OUT UINT32* a,IN OUT UINT32* b,IN OUT UINT32* c);
  */
 EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params);
 
+/**
+ * 获取内存映射。应该在准备结束启动服务时调用。
+ * 
+ * @param params  启动参数。
+ * @param map_key 映射键。关闭启动服务时使用。
+ * @param version 描述符版本。修改映射时使用。
+ * 
+ * @return 一般返回成功。出问题建议调整内存池参数。
+ */
+EFI_STATUS EFIAPI get_memory_map(IN OUT aos_boot_params* params,OUT UINTN* map_key,OUT UINT32* version);
+
+/**
+ * 设置代码段寄存器。
+ * 
+ * @param cs 代码段选择子。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI set_cs(UINT16 cs);
+
+/**
+ * 设置数据段寄存器。
+ * 
+ * @param ds 数据段选择子。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI set_ds(UINT16 ds);
+
+/**
+ * 更新页表为内核页表。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI use_kernel_page_table(IN aos_boot_params* params);
+
 #endif /*__AOS_UEFI_PVM_H__*/

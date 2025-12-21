@@ -342,4 +342,19 @@ typedef struct _loader_elf64_dyn
  */
 #define LOADER_KERNEL_PATH L"aos\\aos.kernel"
 
+/**
+ * 共享数据区域基址。
+ */
+#define LOADER_SHARED_BASE ((UINTN)(-SIZE_512GB))
+
+/**
+ * 硬件区域基址。
+ */
+#define LOADER_HARDWARE_BASE ((UINTN)(-3*SIZE_512GB))
+
+/**
+ * 内核程序区域基址。
+ */
+#define LOADER_KERNEL_BASE ((UINTN)(-4*SIZE_512GB))
+
 #endif /*__AOS_UEFI_LOADER_INTERNAL_H__*/

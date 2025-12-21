@@ -22,6 +22,8 @@ add_subdirectory(klibc)
 add_executable(${AOS_KERNEL}
     entry/main.c
     entry/trampoline.S
+
+    entry/temp.S
 )
 
 # 模块链接

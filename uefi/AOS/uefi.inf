@@ -24,6 +24,7 @@
     src/loader.c
     src/mem.c
     src/pvm.c
+    src/pvm_asm.nasm
 
 [Packages]
     AOS/AOS.dec
@@ -56,6 +57,7 @@
 [Guids]
     gEfiAcpiTableGuid
     gEfiConsoleOutDeviceGuid
+    gEfiMemoryAttributesTableGuid
     gEfiSmbios3TableGuid
     gEfiSmbiosTableGuid
     gEfiFileInfoGuid

@@ -30,16 +30,6 @@
 #define CONFIG_KERNEL_STACK 16
 
 /**
- * 强制填充图形界面背景。要求为一个可以表示真假的数值。
- */
-#define CONFIG_FORCE_FILL_GRAPHICS_BACKGROUND FALSE
-
-/**
- * 图形界面背景色。要求范围为[0,0xFFFFFF]。
- */
-#define CONFIG_GRAPHICS_BACKGROUND_COLOR 0x191970
-
-/**
  * 随机化基址功能。
  */
 #define CONFIG_RANDOMIZE_BASE TRUE
@@ -88,17 +78,6 @@
 #elif (CONFIG_KERNEL_STACK%8)!=0
 #error The macro CONFIG_KERNEL_STACK must be a multiple of 8.
 #endif /*CONFIG_KERNEL_STACK*/
-
-/**
- * CONFIG_GRAPHICS_BACKGROUND_COLOR检查。
- */
-#ifndef CONFIG_GRAPHICS_BACKGROUND_COLOR
-#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR is undefined.
-#elif CONFIG_GRAPHICS_BACKGROUND_COLOR<0
-#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR must be greater than or equal to 0.
-#elif CONFIG_GRAPHICS_BACKGROUND_COLOR>0xFFFFFF
-#error The macro CONFIG_GRAPHICS_BACKGROUND_COLOR must be less than or equal to 0xFFFFFF.
-#endif /*CONFIG_GRAPHICS_BACKGROUND_COLOR*/
 
 /**
  * CONFIG_RANDOMIZE_BASE检查。

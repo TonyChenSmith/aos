@@ -38,12 +38,12 @@ typedef __INTPTR_TYPE__ intn;
 typedef __UINTPTR_TYPE__ uintn;
 
 /**
- * 其他类型。
+ * 其他类型。字符类型为支持字面量选择了有符号类型。
  */
 typedef uint8 bool;
-typedef uint8 char8;
-typedef uint16 char16;
-typedef uint32 char32;
+typedef char char8;
+typedef int16 char16;
+typedef int32 char32;
 
 /**
  * 整型取值极限。
@@ -159,7 +159,6 @@ typedef uint32 char32;
 /**
  * 其他常量定义。
  */
-#define __bool_true_false_are_defined 1
 #define NULL ((void*)0)
 
 #endif /*__AOS_KERNEL_BASE_H__*/

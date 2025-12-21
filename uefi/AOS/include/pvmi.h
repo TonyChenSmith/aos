@@ -12,6 +12,7 @@
 #include "mem.h"
 #include "pvm.h"
 
+#include <Guid/MemoryAttributesTable.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseCryptLib.h>
 #include <Library/TimerLib.h>
@@ -89,5 +90,15 @@ UINT64* CONST PVM_ERROR=(UINT64*)0x101;
  * 随机魔数。这里是黄金比例常数。
  */
 #define PVM_RANDOM_MAGIC 0x9E3779B9
+
+/**
+ * 代码段选择子。
+ */
+#define PVM_CODE_SEL 24
+
+/**
+ * 数据段选择子。
+ */
+#define PVM_DATA_SEL 32
 
 #endif /*__AOS_UEFI_PVM_INTERNAL_H__*/

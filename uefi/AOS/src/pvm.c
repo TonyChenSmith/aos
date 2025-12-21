@@ -51,7 +51,7 @@ STATIC VOID* EFIAPI pvm_page_alloc()
 
     if(index>=bitmap_length)
     {
-        /*页面内存池耗尽，无页面可用。*/
+        /*页面内存池耗尽，无页面可用*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] "
             "The page memory pool is exhausted and no pages are available.\n"));
         return PVM_ERROR;
@@ -639,7 +639,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml5_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
 {
     if(pages>EFI_SIZE_TO_PAGES(SIZE_128PB))
     {
-        /*不支持的页数。*/
+        /*不支持的页数*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] The page count is not supported.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -647,7 +647,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml5_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
     UINTN mask=vaddr&PVM_VADDR5_RESERVED_MASK;
     if(mask!=0&&mask!=PVM_VADDR5_RESERVED_MASK)
     {
-        /*地址不是规范地址。*/
+        /*地址不是规范地址*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address is not in canonical form.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -656,14 +656,14 @@ STATIC EFI_STATUS EFIAPI pvm_pml5_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
     {
         if((paddr&PVM_PAGE_2M_OFFSET_MASK)||(vaddr&PVM_PAGE_2M_OFFSET_MASK))
         {
-            /*地址偏移区未对齐。*/
+            /*地址偏移区未对齐*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address offset region is not aligned.\n"));
             return EFI_UNSUPPORTED;
         }
 
         if(pages%EFI_SIZE_TO_PAGES(SIZE_2MB))
         {
-            /*映射页数非大页倍数。*/
+            /*映射页数非大页倍数*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] "
                 "Number of pages to map is not a multiple of a huge page.\n"));
             return EFI_UNSUPPORTED;
@@ -675,7 +675,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml5_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
 
     if(plimit<paddr||vlimit<vaddr)
     {
-        /*地址发生回绕。*/
+        /*地址发生回绕*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address wrap-around occurred.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -686,7 +686,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml5_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
         pvm_pml5e_unmap(page_table,vaddr,pages);
         if(EFI_ERROR(pvm_pml5e_map(page_table,vaddr,paddr,pages,pflags)))
         {
-            /*可用发生回绕。*/
+            /*可用发生回绕*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Out of available pages.\n"));
             pvm_pml5e_unmap(page_table,vaddr,pages);
             return EFI_OUT_OF_RESOURCES;
@@ -710,7 +710,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml4_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
 {
     if(pages>EFI_SIZE_TO_PAGES(SIZE_256TB))
     {
-        /*不支持的页数。*/
+        /*不支持的页数*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] The page count is not supported.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -718,7 +718,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml4_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
     UINTN mask=vaddr&PVM_VADDR4_RESERVED_MASK;
     if(mask!=0&&mask!=PVM_VADDR4_RESERVED_MASK)
     {
-        /*地址不是规范地址。*/
+        /*地址不是规范地址*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address is not in canonical form.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -727,14 +727,14 @@ STATIC EFI_STATUS EFIAPI pvm_pml4_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
     {
         if((paddr&PVM_PAGE_2M_OFFSET_MASK)||(vaddr&PVM_PAGE_2M_OFFSET_MASK))
         {
-            /*地址偏移区未对齐。*/
+            /*地址偏移区未对齐*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address offset region is not aligned.\n"));
             return EFI_UNSUPPORTED;
         }
 
         if(pages%EFI_SIZE_TO_PAGES(SIZE_2MB))
         {
-            /*映射页数非大页倍数。*/
+            /*映射页数非大页倍数*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] "
                 "Number of pages to map is not a multiple of a huge page.\n"));
             return EFI_UNSUPPORTED;
@@ -746,7 +746,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml4_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
 
     if(plimit<paddr||vlimit<vaddr)
     {
-        /*地址发生回绕。*/
+        /*地址发生回绕*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address wrap-around occurred.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -757,7 +757,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml4_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pag
         pvm_pml4e_unmap(page_table,vaddr,pages);
         if(EFI_ERROR(pvm_pml4e_map(page_table,vaddr,paddr,pages,pflags)))
         {
-            /*可用发生回绕。*/
+            /*可用发生回绕*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Out of available pages.\n"));
             pvm_pml4e_unmap(page_table,vaddr,pages);
             return EFI_OUT_OF_RESOURCES;
@@ -1051,11 +1051,11 @@ STATIC BOOLEAN EFIAPI pvm_check_vma_node(IN UINTN vaddr,IN UINTN pages)
         start=node->start;
         end=node->end-1;
 
-        if(start>=limit)
+        if(start>limit)
         {
             return FALSE;
         }
-        else if(vaddr<end)
+        else if(vaddr<=end)
         {
             return TRUE;
         }
@@ -1082,28 +1082,28 @@ EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
 {
     if(pages==0)
     {
-        /*不支持的页数。*/
+        /*不支持的页数*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] The page count is not supported.\n"));
         return EFI_UNSUPPORTED;
     }
 
     if((paddr&PVM_PAGE_4K_OFFSET_MASK)||(vaddr&PVM_PAGE_4K_OFFSET_MASK))
     {
-        /*地址偏移区未对齐。*/
+        /*地址偏移区未对齐*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address offset region is not aligned.\n"));
         return EFI_UNSUPPORTED;
     }
 
     if(paddr&PVM_PADDR_RESERVED_MASK)
     {
-        /*地址超出页表管理范围。*/
+        /*地址超出页表管理范围*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Address is out of page table management range.\n"));
         return EFI_UNSUPPORTED;
     }
 
     if(pvm_check_vma_node(vaddr,pages))
     {
-        /*添加的线性区与已有线性区重叠。*/
+        /*添加的线性区与已有线性区重叠*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] The added VMA overlaps with existing VMAs.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -1111,7 +1111,7 @@ EFI_STATUS EFIAPI add_kernel_vma(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
     aos_boot_vma* vma=umalloc(sizeof(aos_boot_vma));
     if(vma==NULL)
     {
-        /*内存池内没有足够的空间申请线性区。*/
+        /*内存池内没有足够的空间申请线性区*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] "
             "Insufficient space in memory pool for VMA allocation.\n"));
         return EFI_OUT_OF_RESOURCES;
@@ -1237,10 +1237,10 @@ UINT32 EFIAPI random32(IN OUT UINT32* a,IN OUT UINT32* b,IN OUT UINT32* c)
  */
 EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params)
 {
-    pbase=params->ppool_base;
+    pbase=params->minfo.fblock_paddr[1];
     bitmap=params->bitmap;
     bitmap_length=params->bitmap_length;
-    ppages=params->ppool_pages;
+    ppages=params->minfo.fblock_pages[1];
     head=&params->vma_head;
     tail=&params->vma_tail;
 
@@ -1259,7 +1259,7 @@ EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params)
         pvm_dump_pml=pvm_dump_pml4;
     }
 
-    /*必不可能报错。*/
+    /*必不可能报错*/
     page_table=pvm_page_alloc();
     params->page_table=(UINTN)page_table;
 
@@ -1269,10 +1269,265 @@ EFI_STATUS EFIAPI pvm_init(IN OUT aos_boot_params* params)
         AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_EXECUTE|AOS_BOOT_VMA_TYPE_UC);
     if(EFI_ERROR(status))
     {
-        /*建立1：1映射线性区失败。*/
+        /*建立1：1映射线性区失败*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to create 1:1 mapping vma.\n"));
         return EFI_OUT_OF_RESOURCES;
     }
 
     return EFI_SUCCESS;
+}
+
+/**
+ * 内存属性表表头。
+ */
+STATIC EFI_MEMORY_ATTRIBUTES_TABLE* mat=NULL;
+
+/**
+ * 内存属性表的描述符数组。
+ */
+STATIC EFI_MEMORY_DESCRIPTOR* runtime_map=NULL;
+
+/**
+ * 根据内存描述符的属性生成基础线性区标志。
+ * 
+ * @param attrs 内存描述符的属性。
+ * 
+ * @return 线性区标志。
+ */
+STATIC UINT64 EFIAPI pvm_get_vma_flags(IN UINT64 attrs)
+{
+    UINT64 flags=0;
+    if(attrs&EFI_MEMORY_WB)
+    {
+        flags|=AOS_BOOT_VMA_TYPE_WB;
+    }
+    else
+    {
+        flags|=AOS_BOOT_VMA_TYPE_UC;
+    }
+
+    if(attrs&EFI_MEMORY_RO)
+    {
+        flags|=AOS_BOOT_VMA_READ;
+    }
+    else
+    {
+        flags|=AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE;
+    }
+
+    if(!(attrs&EFI_MEMORY_XP))
+    {
+        flags|=AOS_BOOT_VMA_EXECUTE;
+    }
+
+    return flags;
+}
+
+/**
+ * 检查是否存在内存属性表，有则设置指针。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI pvm_check_mat()
+{
+    EFI_STATUS status=EfiGetSystemConfigurationTable(&gEfiMemoryAttributesTableGuid,(VOID**)&mat);
+    if(EFI_ERROR(status))
+    {
+        /*未发现内存属性表*/
+        DEBUG((DEBUG_INFO,"[aos.uefi.pvm] No memory attributes table found.\n"));
+    }
+    else
+    {
+        runtime_map=(EFI_MEMORY_DESCRIPTOR*)((UINTN)mat+sizeof(EFI_MEMORY_ATTRIBUTES_TABLE));
+
+        for(UINTN i=0;i<mat->NumberOfEntries;i++)
+        {
+            EFI_MEMORY_DESCRIPTOR* a=(EFI_MEMORY_DESCRIPTOR*)((UINTN)runtime_map+i*mat->DescriptorSize);
+            UINTN al=a->PhysicalStart;
+            UINTN ar=a->PhysicalStart+EFI_PAGES_TO_SIZE(a->NumberOfPages)-1;
+            for(UINTN j=i+1;j<mat->NumberOfEntries;j++)
+            {
+                EFI_MEMORY_DESCRIPTOR* b=(EFI_MEMORY_DESCRIPTOR*)((UINTN)runtime_map+j*mat->DescriptorSize);
+                UINTN bl=b->PhysicalStart;
+                UINTN br=b->PhysicalStart+EFI_PAGES_TO_SIZE(b->NumberOfPages)-1;
+                if(al<=br&&bl<=ar)
+                {
+                    mat=NULL;
+                    runtime_map=NULL;
+                    return;
+                }
+            }
+        }
+
+        if(mat->NumberOfEntries==0)
+        {
+            mat=NULL;
+            runtime_map=NULL;
+        }
+    }
+}
+
+/**
+ * 数据映射线性基址。
+ */
+STATIC UINTN vbase;
+
+/**
+ * 添加运行时内存块的线性区。
+ * 
+ * @param runtime 运行时内存描述符。
+ * 
+ * @return 一般成功。
+ */
+STATIC EFI_STATUS EFIAPI pvm_set_runtime_vma(IN EFI_MEMORY_DESCRIPTOR* runtime)
+{
+    ASSERT(runtime->Attribute&EFI_MEMORY_UC);
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Runtime base:0x%016lX,type:%u.\n",runtime->PhysicalStart,
+        runtime->Type));
+    UINT64 flags;
+    EFI_STATUS status;
+
+    if(mat!=NULL&&(runtime->Type==EfiRuntimeServicesCode||runtime->Type==EfiRuntimeServicesData))
+    {
+        UINTN bl=runtime->PhysicalStart;
+        UINTN br=runtime->PhysicalStart+EFI_PAGES_TO_SIZE(runtime->NumberOfPages)-1;
+        UINTN amount=0;
+
+        for(UINTN i=0;i<mat->NumberOfEntries;i++)
+        {
+            EFI_MEMORY_DESCRIPTOR* a=(EFI_MEMORY_DESCRIPTOR*)((UINTN)runtime_map+i*mat->DescriptorSize);
+            UINTN al=a->PhysicalStart;
+            UINTN ar=a->PhysicalStart+EFI_PAGES_TO_SIZE(a->NumberOfPages)-1;
+            
+            if(bl<=al&&br>=ar)
+            {
+                amount+=a->NumberOfPages;
+            }
+        }
+
+        if(amount==runtime->NumberOfPages)
+        {
+            /*使用UEFI MAT*/
+            DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Use UEFI MAT.\n"));
+            runtime->VirtualStart=vbase+runtime->PhysicalStart;
+            for(UINTN i=0;i<mat->NumberOfEntries;i++)
+            {
+                EFI_MEMORY_DESCRIPTOR* a=(EFI_MEMORY_DESCRIPTOR*)((UINTN)runtime_map+i*mat->DescriptorSize);
+                UINTN al=a->PhysicalStart;
+                UINTN ar=a->PhysicalStart+EFI_PAGES_TO_SIZE(a->NumberOfPages)-1;
+
+                if(bl<=al&&br>=ar)
+                {
+                    flags=pvm_get_vma_flags(a->Attribute);
+                    status=add_kernel_vma(a->PhysicalStart+vbase,a->PhysicalStart,a->NumberOfPages,
+                        flags);
+                    if(EFI_ERROR(status))
+                    {
+                        /*添加内核线性区失败*/
+                        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to add kernel VMA.\n"));
+                        return status;
+                    }
+                }
+            }
+            return EFI_SUCCESS;
+        }
+    }
+
+    runtime->VirtualStart=vbase+runtime->PhysicalStart;
+    flags=pvm_get_vma_flags(runtime->Attribute);
+    status=add_kernel_vma(runtime->VirtualStart,runtime->PhysicalStart,runtime->NumberOfPages,
+        flags);
+    if(EFI_ERROR(status))
+    {
+        /*添加内核线性区失败*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.pvm] Failed to add kernel VMA.\n"));
+        return status;
+    }
+    return EFI_SUCCESS;
+}
+
+/**
+ * 获取内存映射。应该在准备结束启动服务时调用。
+ * 
+ * @param params  启动参数。
+ * @param map_key 映射键。关闭启动服务时使用。
+ * @param version 描述符版本。修改映射时使用。
+ * 
+ * @return 一般返回成功。出问题建议调整内存池参数。
+ */
+EFI_STATUS EFIAPI get_memory_map(IN OUT aos_boot_params* params,OUT UINTN* map_key,OUT UINT32* version)
+{
+    vbase=params->minfo.vbase;
+    pvm_check_mat();
+
+    EFI_MEMORY_DESCRIPTOR* memmap=NULL;
+    UINTN map_size=0;
+    UINTN entry_size;
+    EFI_STATUS status=gBS->GetMemoryMap(&map_size,memmap,map_key,&entry_size,version);
+
+    if(status==EFI_BUFFER_TOO_SMALL)
+    {
+        ASSERT(map_size>0);
+        /*预留4个空位，避免越界*/
+        map_size+=sizeof(EFI_MEMORY_DESCRIPTOR)*4;
+        memmap=(EFI_MEMORY_DESCRIPTOR*)umalloc(map_size);
+        if(memmap==NULL)
+        {
+            /*获取内存图失败*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to get the memory map.\n"));
+            return EFI_OUT_OF_RESOURCES;
+        }
+
+        status=gBS->GetMemoryMap(&map_size,memmap,map_key,&entry_size,version);
+        ASSERT(status==EFI_SUCCESS);
+        ASSERT(*version==EFI_MEMORY_DESCRIPTOR_VERSION);
+
+        params->minfo.map_length=map_size;
+        params->minfo.memory_map=(aos_efi_memory_descriptor*)memmap;
+        params->minfo.map_entry_size=entry_size;
+
+        
+        EFI_MEMORY_DESCRIPTOR* dsc=memmap;
+        UINTN end=map_size+(UINTN)dsc;
+        while((UINTN)dsc<end)
+        {
+            if(dsc->Attribute&EFI_MEMORY_RUNTIME)
+            {
+                status=pvm_set_runtime_vma(dsc);
+                if(EFI_ERROR(status))
+                {
+                    return status;
+                }
+            }
+            dsc=(EFI_MEMORY_DESCRIPTOR*)((UINTN)dsc+entry_size);
+        }
+
+        return EFI_SUCCESS;
+    }
+    else
+    {
+        /*获取内存图失败*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to get the memory map.\n"));
+        return EFI_UNSUPPORTED;
+    }
+}
+
+/**
+ * 更新页表为内核页表。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI use_kernel_page_table(IN aos_boot_params* params)
+{
+    AsmWriteCr3(params->page_table);
+
+    IA32_DESCRIPTOR gdtr;
+    gdtr.Base=params->kinfo.gbase;
+    gdtr.Limit=EFI_PAGES_TO_SIZE(params->minfo.fblock_pages[3])-1;
+    AsmWriteGdtr(&gdtr);
+    
+    set_cs(PVM_CODE_SEL);
+    set_ds(PVM_DATA_SEL);
 }

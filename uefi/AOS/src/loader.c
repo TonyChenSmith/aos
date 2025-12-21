@@ -123,25 +123,19 @@ STATIC EFI_STATUS EFIAPI loader_map(IN EFI_FILE_HANDLE kernel,IN OUT aos_boot_pa
     /*正常来说，单个内核不应该要求占2GB内存空间。出现这种问题在调试时必须断言*/
     ASSERT(range>0&&range<SIZE_2GB);
 
-    UINTN base=-SIZE_512GB;
-    UINTN offset=0;
+    UINTN base=LOADER_KERNEL_BASE;
+    UINTN offset=(SIZE_512GB-SIZE_8GB-range)>>21;
 
     #ifdef AOS_NDEBUG
     UINT32 value1=LOADER_ADDR_MAGIC,value2=AOS_UEFI_VESION_0_0_1,value3=AOS_UEFI_VESION_0_0_2;
-    offset=(random32(&value1,&value2,&value3)&0x3FFFF)<<21;
-    UINTN try=0;
-    while(SIZE_512GB-offset<range+SIZE_4GB)
+    if(CONFIG_RANDOMIZE_BASE)
     {
-        offset=(random32(&value1,&value2,&value3)&0x3FFFF)<<21;
-        try++;
-        if(try>5)
-        {
-            break;
-        }
+        offset=(random32(&value1,&value2,&value3)%offset)<<21;
+        offset+=SIZE_4GB;
     }
-    if(!CONFIG_RANDOMIZE_BASE||try>5)
+    else
     {
-        offset=0;
+        offset=SIZE_4GB;
     }
     #else
     offset=SIZE_4GB;
@@ -155,7 +149,10 @@ STATIC EFI_STATUS EFIAPI loader_map(IN EFI_FILE_HANDLE kernel,IN OUT aos_boot_pa
     params->kinfo.start=umalloc(load_count*sizeof(UINTN));
     params->kinfo.size=umalloc(load_count*sizeof(UINTN));
     params->kinfo.flags=umalloc(load_count*sizeof(UINT64));
-    if(params->kinfo.size==NULL||params->kinfo.start==NULL||params->kinfo.flags==NULL)
+    params->minfo.vblock_paddr=umalloc(load_count*sizeof(UINTN));
+    params->minfo.vblock_pages=umalloc(load_count*sizeof(UINTN));
+    if(params->kinfo.size==NULL||params->kinfo.start==NULL||params->kinfo.flags==NULL||
+        params->minfo.vblock_paddr==NULL||params->minfo.vblock_pages==NULL)
     {
         /*数组空间申请失败*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Array space allocation failed.\n"));
@@ -188,11 +185,12 @@ STATIC EFI_STATUS EFIAPI loader_map(IN EFI_FILE_HANDLE kernel,IN OUT aos_boot_pa
         status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,pages,&block);
         if(EFI_ERROR(status))
         {
-            /*申请页面失败。*/
+            /*申请页面失败*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to allocate pages.\n"));
             return status;
         }
-
+        params->minfo.vblock_paddr[loadi]=block;
+        params->minfo.vblock_pages[loadi]=pages;
         if(params->kinfo.flags[loadi]&AOS_BOOT_VMA_EXECUTE)
         {
             SetMem((VOID*)block,EFI_PAGES_TO_SIZE(pages),0xCC);
@@ -245,13 +243,14 @@ STATIC EFI_STATUS EFIAPI loader_map(IN EFI_FILE_HANDLE kernel,IN OUT aos_boot_pa
         return status;
     }
 
-    params->kinfo.spages=CONFIG_KERNEL_STACK;
+    params->minfo.fblock_paddr[4]=stack;
+    params->minfo.fblock_pages[4]=CONFIG_KERNEL_STACK;
 
     /*内核区域会将最后512GB切割成两块。设计时打算在较大的一块内进行随机化。记住随机地址包含两边的标准2MB页*/
-    UINTN a=EFI_SIZE_TO_PAGES(offset);
+    UINTN a=EFI_SIZE_TO_PAGES(offset-SIZE_4GB);
     UINTN b=EFI_SIZE_TO_PAGES(SIZE_512GB-offset-range-SIZE_4GB);
     UINTN choice=a;
-    UINTN choice_base=-SIZE_512GB;
+    UINTN choice_base=LOADER_KERNEL_BASE;
     if(b>a)
     {
         choice=b;
@@ -279,6 +278,35 @@ STATIC EFI_STATUS EFIAPI loader_map(IN EFI_FILE_HANDLE kernel,IN OUT aos_boot_pa
     {
         /*添加内核线性区失败*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to add kernel VMA.\n"));
+        return status;
+    }
+
+    params->minfo.vbase=LOADER_HARDWARE_BASE;
+    offset=(SIZE_512GB-SIZE_8GB-SIZE_4GB)>>21;
+
+    #ifdef AOS_NDEBUG
+    if(CONFIG_RANDOMIZE_BASE)
+    {
+        offset=(random32(&value1,&value2,&value3)%offset)<<21;
+        offset+=SIZE_4GB;
+    }
+    else
+    {
+        offset=SIZE_4GB;
+    }
+    #else
+    offset=SIZE_4GB;
+    #endif /*AOS_NDEBUG*/
+    params->minfo.vbase+=offset;
+    params->kinfo.gbase=LOADER_SHARED_BASE;
+
+    status=add_kernel_vma(params->kinfo.gbase,params->minfo.fblock_paddr[3],
+        params->minfo.fblock_pages[3],AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_GLOBAL|
+        AOS_BOOT_VMA_USER|AOS_BOOT_VMA_TYPE_WB);
+    if(EFI_ERROR(status))
+    {
+        /*添加GDT线性区失败*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to add the GDT VMA.\n"));
         return status;
     }
 

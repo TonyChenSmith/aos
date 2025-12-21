@@ -19,6 +19,32 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 
 /**
+ * 输出系统表信息。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI dump_system_table();
+
+/**
+ * 输出启动参数信息。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI dump_boot_params(IN aos_boot_params* params);
+
+/**
+ * 内核蹦床函数，在换栈后进入内核入口函数不再返回。
+ * 
+ * @param params 启动参数。
+ * @param stack  栈底。
+ * 
+ * @return 不再返回。
+ */
+typedef VOID NORETURN EFIAPI (*aos_kernel_trampoline)(IN aos_boot_params* params,IN UINTN stack);
+
+/**
  * 模块“aos.uefi”入口。
  * 
  * @param image_handle 模块句柄。

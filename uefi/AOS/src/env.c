@@ -550,10 +550,9 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
  */
 STATIC EFI_STATUS EFIAPI env_set_gdt(IN OUT aos_boot_params* params)
 {
-    params->gdt_size=sizeof(ENV_GDT)+(params->cpus_length<<4);
+    params->minfo.fblock_pages[3]=EFI_SIZE_TO_PAGES(sizeof(ENV_GDT)+(params->cpus_length<<4));
     EFI_PHYSICAL_ADDRESS base=SIZE_1MB-SIZE_8KB;
-    EFI_STATUS status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,EFI_SIZE_TO_PAGES(params->gdt_size),
-        &base);
+    EFI_STATUS status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,params->minfo.fblock_pages[3],&base);
     if(EFI_ERROR(status))
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] "
@@ -565,7 +564,7 @@ STATIC EFI_STATUS EFIAPI env_set_gdt(IN OUT aos_boot_params* params)
     {
         gdt[index]=ENV_GDT[index];
     }
-    params->gdt_base=(UINT32)base;
+    params->minfo.fblock_paddr[3]=base;
     return EFI_SUCCESS;
 }
 
@@ -682,71 +681,6 @@ STATIC EFI_STATUS EFIAPI env_get_edid_info(IN EFI_HANDLE gop,OUT UINT32* hres,OU
     *vres=edid->detailed_timings[0].vertical_active_low|
         (((UINT32)(edid->detailed_timings[0].vertical_active_low&0xF0))<<4);
     return EFI_SUCCESS;
-}
-
-/**
- * 对标准色彩值按像素格式要求缩放。
- * 
- * @param value 单色色值。
- * @param width 目标位宽。
- * 
- * @return 缩放后的色彩值。
- */
-STATIC UINT32 EFIAPI env_scale_color(IN UINT8 value,IN UINT8 width)
-{
-    if(width==8)
-    {
-        return value;
-    }
-    else
-    {
-        UINT64 max=(1ULL<<width)-1;
-        return (UINT32)(((value*max+127)/255)&max);
-    }
-}
-
-/**
- * 在指定区域内填充颜色。调用者有责任保证参数合理。
- * 
- * @param pixel     像素颜色。
- * @param size      像素大小。
- * @param scan_line 扫面线像素数。
- * @param fb_base   帧缓冲基址。
- * @param x         起点横坐标。
- * @param y         起点纵坐标。
- * @param w         区域宽度。
- * @param h         区域高度。
- * 
- * @return 无返回值。
- */
-STATIC VOID EFIAPI env_fill_color(IN env_graphics_pixel pixel,IN UINT8 size,IN UINT32 scan_line,IN UINTN fb_base,
-    IN UINT32 x,IN UINT32 y,IN UINT32 w,IN UINT32 h)
-{
-    if(size==4)
-    {
-        UINT32* line=(UINT32*)(fb_base+((y*scan_line+x)<<2));
-        for(UINTN j=0;j<h;j++)
-        {
-            SetMem32(line,w<<2,pixel.pixel);
-            line=(UINT32*)((UINTN)line+(scan_line<<2));
-        }
-    }
-    else if(size<4&&size>0)
-    {
-        UINT8* line=(UINT8*)(fb_base+((y*scan_line+x)*size));
-        for(UINTN j=0;j<h;j++)
-        {
-            for(UINTN i=0;i<w;i++)
-            {
-                UINTN base=i*size;
-                for(UINT8 k=0;k<size;k++)
-                {
-                    line[base+k]=pixel.data[k];
-                }
-            }
-            line=(UINT8*)((UINTN)line+scan_line*size);
-        }
-    }
 }
 
 /**
@@ -979,26 +913,6 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
         params->graphics.reserved=0xFF000000;
     }
 
-    /* 
-     * 绘制初始背景色。
-     */
-    if(CONFIG_FORCE_FILL_GRAPHICS_BACKGROUND)
-    {
-        UINT8 red_shift,red_width,green_shift,green_width,blue_shift,blue_width,color_size;
-        env_mask_to_shift_width(params->graphics.red|params->graphics.green|params->graphics.blue|
-            params->graphics.reserved,&red_shift,&red_width);
-        ASSERT(red_width>0&&red_width<=32&&red_width%8==0);
-        color_size=red_width>>3;
-        env_mask_to_shift_width(params->graphics.red,&red_shift,&red_width);
-        env_mask_to_shift_width(params->graphics.green,&green_shift,&green_width);
-        env_mask_to_shift_width(params->graphics.blue,&blue_shift,&blue_width);
-        env_graphics_pixel pixel={.pixel=0};
-        pixel.pixel|=(env_scale_color(ENV_BACKGROUND_RED,red_width)<<red_shift);
-        pixel.pixel|=(env_scale_color(ENV_BACKGROUND_GREEN,green_width)<<green_shift);
-        pixel.pixel|=(env_scale_color(ENV_BACKGROUND_BLUE,blue_width)<<blue_shift);
-        env_fill_color(pixel,color_size,params->graphics.scan_line,params->graphics.fb_base,
-            0,0,params->graphics.hres,params->graphics.vres);
-    }
     return EFI_SUCCESS;
 }
 
@@ -1051,8 +965,8 @@ EFI_STATUS EFIAPI env_init(IN OUT aos_boot_params* params)
             "of %llu pages.\n",(UINT64)CONFIG_KERNEL_POOL));
         return status;
     }
-    params->kpool_base=base;
-    params->kpool_pages=CONFIG_KERNEL_POOL;
+    params->minfo.fblock_paddr[2]=base;
+    params->minfo.fblock_pages[2]=CONFIG_KERNEL_POOL;
 
     base=SIZE_2GB;
     status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,CONFIG_PAGE_TABLE_POOL,&base);
@@ -1062,8 +976,8 @@ EFI_STATUS EFIAPI env_init(IN OUT aos_boot_params* params)
             "of %llu pages.\n",(UINT64)CONFIG_PAGE_TABLE_POOL));
         return status;
     }
-    params->ppool_base=base;
-    params->ppool_pages=CONFIG_PAGE_TABLE_POOL;
+    params->minfo.fblock_paddr[1]=base;
+    params->minfo.fblock_pages[1]=CONFIG_PAGE_TABLE_POOL;
     params->bitmap_length=CONFIG_PAGE_TABLE_POOL/8+(CONFIG_PAGE_TABLE_POOL%8?1:0);
     params->bitmap=(UINT8*)umalloc(params->bitmap_length);
     if(params->bitmap==NULL)
