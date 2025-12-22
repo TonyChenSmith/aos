@@ -1,4 +1,4 @@
-#include <klibc.h>
+#include <base.h>
 
 static char8 buffer_a[512];
 static char8 buffer_b[512];

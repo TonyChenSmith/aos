@@ -54,6 +54,7 @@ add_compile_options(
     -fgnuc-version=0
 )
 
+# --gc-sections 负责回收未使用代码。
 add_link_options(
     --lto=full
     -pie

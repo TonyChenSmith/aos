@@ -1,5 +1,5 @@
 # 
-# 初始化模块脚本。
+# 内核初始化模块脚本。
 # @date 2025-12-02
 # 
 # Copyright (c) 2025 Tony Chen Smith

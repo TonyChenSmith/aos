@@ -17,7 +17,7 @@ set(AOS_KERNEL aos.kernel)
 
 # 模块列表
 add_subdirectory(init)
-add_subdirectory(klibc)
+add_subdirectory(lib)
 
 add_executable(${AOS_KERNEL}
     entry/main.c
@@ -37,6 +37,6 @@ else()
 endif()
 
 target_link_libraries(${AOS_KERNEL} PRIVATE aos.kernel.init)
-target_link_libraries(${AOS_KERNEL} PRIVATE aos.kernel.klibc)
+target_link_libraries(${AOS_KERNEL} PRIVATE aos.kernel.lib)
 
 add_aos_target(${AOS_KERNEL})

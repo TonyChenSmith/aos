@@ -38,7 +38,6 @@ VOID EFIAPI dump_system_table()
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] BootServices:0x%016lX\n",gST->BootServices));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] NumberOfTableEntries:0x%016lX\n",gST->NumberOfTableEntries));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] ConfigurationTable:0x%016lX\n",gST->ConfigurationTable));
-    DEBUG((DEBUG_INFO,"[aos.uefi.flow] ==================================================\n"));
     DEBUG_CODE_END();
 }
 
@@ -56,15 +55,129 @@ VOID EFIAPI dump_boot_params(IN aos_boot_params* params)
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] AOS Boot Params Info\n"));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] --------------------------------------------------\n"));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] Address:0x%016lX\n",params));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] Size:0x%lX\n",sizeof(aos_boot_params)));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] --------------------------------------------------\n"));
-    DEBUG((DEBUG_INFO,"[aos.uefi.flow] page_table:0x%016lX\n",params->page_table));
-    DEBUG((DEBUG_INFO,"[aos.uefi.flow] gbase:0x%016lX\n",params->kinfo.gbase));
-    DEBUG((DEBUG_INFO,"[aos.uefi.flow] GDT base:0x%016lX\n",params->minfo.fblock_paddr[3]));
-    DEBUG((DEBUG_INFO,"[aos.uefi.flow] ==================================================\n"));
-    dump_vma();
-    dump_pool_info((VOID*)params->minfo.fblock_paddr[0]);
-    dump_bitmap();
-    dump_page_table();
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]bitmap:0x%016lX\n",OFFSET_OF(aos_boot_params,bitmap)
+        ,params->bitmap));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]bitmap_length:0x%016lX\n",
+        OFFSET_OF(aos_boot_params,bitmap_length),params->bitmap_length));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]acpi:0x%016lX\n",OFFSET_OF(aos_boot_params,acpi),
+        params->acpi));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]smbios:0x%016lX\n",OFFSET_OF(aos_boot_params,smbios),
+        params->smbios));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]cpus_length:%lu\n",
+        OFFSET_OF(aos_boot_params,cpus_length),params->cpus_length));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]cpus:0x%016lX\n",OFFSET_OF(aos_boot_params,cpus),
+        params->cpus));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]graphics_device:0x%016lX\n",
+        OFFSET_OF(aos_boot_params,graphics_device),params->graphics_device));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]esp:0x%016lX\n",OFFSET_OF(aos_boot_params,esp),
+        params->esp));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]page_table:0x%016lX\n",
+        OFFSET_OF(aos_boot_params,page_table),params->esp));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]vma_head:0x%016lX\n",
+        OFFSET_OF(aos_boot_params,vma_head),params->vma_head));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]vma_tail:0x%016lX\n",
+        OFFSET_OF(aos_boot_params,vma_tail),params->vma_tail));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]system_table:0x%016lX\n",
+        OFFSET_OF(aos_boot_params,system_table),params->system_table));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] --------------------------------------------------\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]features\n",OFFSET_OF(aos_boot_params,features)));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] Size:0x%lX\n",sizeof(aos_cpu_features)));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]magic:0x%02lX\n",OFFSET_OF(aos_cpu_features,magic),
+        params->features.magic));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]baseline:0x%02lX\n",
+        OFFSET_OF(aos_cpu_features,baseline),params->features.baseline));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]vendor:0x%02lX\n",OFFSET_OF(aos_cpu_features,vendor),
+        params->features.vendor));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]features:0x%02lX\n",
+        OFFSET_OF(aos_cpu_features,features),params->features.features));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] --------------------------------------------------\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]state\n",OFFSET_OF(aos_boot_params,state)));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] Size:0x%lX\n",sizeof(aos_cpu_state)));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]magic:0x%02lX\n",OFFSET_OF(aos_cpu_state,magic),
+        params->state.magic));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]state:0x%02lX\n",OFFSET_OF(aos_cpu_state,state),
+        params->state.state));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]vmtrr:0x%02lX\n",OFFSET_OF(aos_cpu_state,vmtrr),
+        params->state.vmtrr));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]apic:0x%02lX\n",OFFSET_OF(aos_cpu_state,apic),
+        params->state.apic));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] --------------------------------------------------\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]graphics\n",OFFSET_OF(aos_boot_params,graphics)));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] Size:0x%lX\n",sizeof(aos_graphics_info)));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]hres:%u\n",OFFSET_OF(aos_graphics_info,hres),
+        params->graphics.hres));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]vres:%u\n",OFFSET_OF(aos_graphics_info,vres),
+        params->graphics.vres));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fb_base:0x%016lX\n",
+        OFFSET_OF(aos_graphics_info,fb_base),params->graphics.fb_base));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fb_size:0x%016lX\n",
+        OFFSET_OF(aos_graphics_info,fb_size),params->graphics.fb_size));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]red:0x%08X\n",OFFSET_OF(aos_graphics_info,red),
+        params->graphics.red));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]green:0x%08X\n",OFFSET_OF(aos_graphics_info,green),
+        params->graphics.green));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]blue:0x%08X\n",OFFSET_OF(aos_graphics_info,blue),
+        params->graphics.blue));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]reserved:0x%08X\n",
+        OFFSET_OF(aos_graphics_info,reserved),params->graphics.reserved));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]scan_line:%u\n",
+        OFFSET_OF(aos_graphics_info,scan_line),params->graphics.scan_line));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] --------------------------------------------------\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]kinfo\n",OFFSET_OF(aos_boot_params,kinfo)));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] Size:0x%lX\n",sizeof(aos_kernel_info)));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]kbase:0x%016lX\n",OFFSET_OF(aos_kernel_info,kbase),
+        params->kinfo.kbase));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]sbase:0x%016lX\n",OFFSET_OF(aos_kernel_info,sbase),
+        params->kinfo.sbase));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]gbase:0x%016lX\n",OFFSET_OF(aos_kernel_info,gbase),
+        params->kinfo.gbase));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]entry:0x%016lX\n",OFFSET_OF(aos_kernel_info,entry),
+        params->kinfo.entry));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]load:%lu\n",OFFSET_OF(aos_kernel_info,load),
+        params->kinfo.load));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]start:0x%016lX\n",OFFSET_OF(aos_kernel_info,start),
+        params->kinfo.start));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]size:0x%016lX\n",OFFSET_OF(aos_kernel_info,size),
+        params->kinfo.size));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]flags:0x%016lX\n",OFFSET_OF(aos_kernel_info,flags),
+        params->kinfo.flags));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] --------------------------------------------------\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]minfo\n",OFFSET_OF(aos_boot_params,minfo)));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] Size:0x%lX\n",sizeof(aos_memory_info)));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]memory_map:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,memory_map),params->minfo.memory_map));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]map_length:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,map_length),params->minfo.map_length));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]map_entry_size:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,map_entry_size),params->minfo.map_entry_size));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]vbase:0x%016lX\n",OFFSET_OF(aos_memory_info,vbase),
+        params->minfo.vbase));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fblock_paddr[0]:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,fblock_paddr[0]),params->minfo.fblock_paddr[0]));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fblock_pages[0]:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,fblock_pages[0]),params->minfo.fblock_pages[0]));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fblock_paddr[1]:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,fblock_paddr[1]),params->minfo.fblock_paddr[1]));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fblock_pages[1]:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,fblock_pages[1]),params->minfo.fblock_pages[1]));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fblock_paddr[2]:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,fblock_paddr[2]),params->minfo.fblock_paddr[2]));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fblock_pages[2]:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,fblock_pages[2]),params->minfo.fblock_pages[2]));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fblock_paddr[3]:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,fblock_paddr[3]),params->minfo.fblock_paddr[3]));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fblock_pages[3]:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,fblock_pages[3]),params->minfo.fblock_pages[3]));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fblock_paddr[4]:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,fblock_paddr[4]),params->minfo.fblock_paddr[4]));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]fblock_pages[4]:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,fblock_pages[4]),params->minfo.fblock_pages[4]));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]vblock_paddr:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,vblock_paddr),params->minfo.vblock_paddr));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]vblock_pages:0x%016lX\n",
+        OFFSET_OF(aos_memory_info,vblock_pages),params->minfo.vblock_pages));
     DEBUG_CODE_END();
 }
 
@@ -192,6 +305,9 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
         gRT->ResetSystem(EfiResetShutdown,status,0,NULL);
         return status;
     }
+    params->system_table=(aos_efi_system_table*)((UINTN)gST+params->minfo.vbase);
+
+    dump_boot_params(params);
 
     /*进入内核*/
     aos_kernel_trampoline trampoline=(aos_kernel_trampoline)params->kinfo.entry;

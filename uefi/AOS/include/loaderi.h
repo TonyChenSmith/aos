@@ -29,12 +29,12 @@ CONST UINT8 LOADER_SIGNATURE_RSA_KEY_E[]={
 #include "../../../test/sig/Release/signature_keye.txt"
 };
 
-CONST UINT8 LOADER_RSA_KEY_N[]={
-#include "../../../test/sig/Release/keyn.txt"
+CONST UINT8 LOADER_KERNEL_RSA_KEY_N[]={
+#include "../../../test/sig/Release/kernel_keyn.txt"
 };
 
-CONST UINT8 LOADER_RSA_KEY_E[]={
-#include "../../../test/sig/Release/keye.txt"
+CONST UINT8 LOADER_KERNEL_RSA_KEY_E[]={
+#include "../../../test/sig/Release/kernel_keye.txt"
 };
 #else
 CONST UINT8 LOADER_SIGNATURE_RSA_KEY_N[]={

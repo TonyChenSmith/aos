@@ -1382,8 +1382,9 @@ STATIC UINTN vbase;
 STATIC EFI_STATUS EFIAPI pvm_set_runtime_vma(IN EFI_MEMORY_DESCRIPTOR* runtime)
 {
     ASSERT(runtime->Attribute&EFI_MEMORY_UC);
-    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Runtime base:0x%016lX,type:%u.\n",runtime->PhysicalStart,
-        runtime->Type));
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] ==================================================\n"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Runtime base:0x%016lX,type:%u,pages:%u.\n",
+        runtime->PhysicalStart,runtime->Type,runtime->NumberOfPages));
     UINT64 flags;
     EFI_STATUS status;
 
@@ -1418,6 +1419,8 @@ STATIC EFI_STATUS EFIAPI pvm_set_runtime_vma(IN EFI_MEMORY_DESCRIPTOR* runtime)
 
                 if(bl<=al&&br>=ar)
                 {
+                    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] MAT base:0x%016lX,type:%u,pages:%u.\n",
+                        a->PhysicalStart,a->Type,a->NumberOfPages));
                     flags=pvm_get_vma_flags(a->Attribute);
                     status=add_kernel_vma(a->PhysicalStart+vbase,a->PhysicalStart,a->NumberOfPages,
                         flags);
@@ -1433,6 +1436,8 @@ STATIC EFI_STATUS EFIAPI pvm_set_runtime_vma(IN EFI_MEMORY_DESCRIPTOR* runtime)
         }
     }
 
+    /*使用运行时描述符*/
+    DEBUG((DEBUG_INFO,"[aos.uefi.pvm] Use runtime.\n"));
     runtime->VirtualStart=vbase+runtime->PhysicalStart;
     flags=pvm_get_vma_flags(runtime->Attribute);
     status=add_kernel_vma(runtime->VirtualStart,runtime->PhysicalStart,runtime->NumberOfPages,
