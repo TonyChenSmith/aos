@@ -17,6 +17,7 @@
  * @return 不再返回。
  */
 .extern aos_kernel_entry
+.text
 
 /**
  * 内核蹦床函数，在换栈后进入内核入口函数不再返回。
@@ -26,7 +27,6 @@
  * 
  * @return 不再返回。
  */
-.text
 .globl aos_kernel_trampoline
 .p2align 4
 .type aos_kernel_trampoline,@function
@@ -34,5 +34,6 @@
 aos_kernel_trampoline:
     movq %rcx,%rdi
     movq %rdx,%rsp
+    cld
     jmp aos_kernel_entry
 .size aos_kernel_trampoline,.-aos_kernel_trampoline

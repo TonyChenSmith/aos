@@ -9,7 +9,8 @@
 #ifndef __AOS_KERNEL_BASE_H__
 #define __AOS_KERNEL_BASE_H__
 
-#include "lib/kdefs.h"
-#include "lib/ktypes.h"
+#include "lib/kdef.h"
+#include "lib/ktype.h"
+#include "lib/util.h"
 
 #endif /*__AOS_KERNEL_BASE_H__*/

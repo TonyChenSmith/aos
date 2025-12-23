@@ -23,12 +23,9 @@
 .type memory_copy,@function
 
 memory_copy:
-    pushfq
     mov %rdx,%rcx
     mov %rdi,%rax
-    cld
     rep movsb
-    popfq
     ret
 .size memory_copy,.-memory_copy
 
@@ -46,7 +43,6 @@ memory_copy:
 .type memory_move,@function
 
 memory_move:
-    pushfq
     mov %rdi,%rax
     test %rdx,%rdx
     jz .Lmemory_move_done
@@ -54,7 +50,7 @@ memory_move:
     je .Lmemory_move_done
     cmp %rsi,%rdi
     jb .Lmemory_move_fcopy # dest<src，前向复制。
-    add %rdx,%rsi # dsct>src，后向复制。
+    add %rdx,%rsi # dsst>src，后向复制。
     add %rdx,%rdi
     dec %rsi
     dec %rdi
@@ -64,11 +60,9 @@ memory_move:
     cld
     jmp .Lmemory_move_done
 .Lmemory_move_fcopy:
-    cld
     mov %rdx,%rcx
     rep movsb
 .Lmemory_move_done:
-    popfq
     ret
 .size memory_move,.-memory_move
 
@@ -86,14 +80,11 @@ memory_move:
 .type memory_set,@function
 
 memory_set:
-    pushfq
-    cld
     mov %sil,%al
     mov %rdi,%r8
     mov %rdx,%rcx
     rep stosb
     mov %r8,%rax
-    popfq
     ret
 .size memory_set,.-memory_set
 
@@ -111,17 +102,13 @@ memory_set:
 .type memory_compare,@function
 
 memory_compare:
-    pushfq
-    cld
     xor %rax,%rax
+    mov $1,%r8
     test %rdx,%rdx
     jz .Lmemory_compare_equal
     mov %rdx,%rcx
-    rep cmpsb
-    jne .Lmemory_compare_end
+    repe cmpsb
 .Lmemory_compare_equal:
-    mov $1,%rax
-.Lmemory_compare_end:
-    popfq
+    cmove %r8,%rax
     ret
 .size memory_compare,.-memory_compare

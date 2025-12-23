@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_LIB_KTYPES_H__
-#define __AOS_KERNEL_LIB_KTYPES_H__
+#ifndef __AOS_KERNEL_LIB_KTYPE_H__
+#define __AOS_KERNEL_LIB_KTYPE_H__
 
 /**
  * 有符号8位整型。
@@ -79,4 +79,4 @@ typedef int16 char16;
  */
 typedef int32 char32;
 
-#endif /*__AOS_KERNEL_LIB_KTYPES_H__*/
+#endif /*__AOS_KERNEL_LIB_KTYPE_H__*/

@@ -6,10 +6,10 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_LIB_KDEFS_H__
-#define __AOS_KERNEL_LIB_KDEFS_H__
+#ifndef __AOS_KERNEL_LIB_KDEF_H__
+#define __AOS_KERNEL_LIB_KDEF_H__
 
-#include "ktypes.h"
+#include "ktype.h"
 
 /**
  * 不返回。
@@ -229,5 +229,4 @@
 #define BIT62 __UINT64_C(0x4000000000000000)
 #define BIT63 __UINT64_C(0x8000000000000000)
 
-
-#endif /*__AOS_KERNEL_LIB_KDEFS_H__*/
+#endif /*__AOS_KERNEL_LIB_KDEF_H__*/

@@ -34,6 +34,7 @@ add_compile_options(
     -flto
     -funified-lto
 
+    -fexec-charset=utf-8
     -ffreestanding
     -mno-implicit-float
     -nostdinc

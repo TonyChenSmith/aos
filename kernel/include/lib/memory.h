@@ -9,7 +9,7 @@
 #ifndef __AOS_KERNEL_LIB_MEMORY_H__
 #define __AOS_KERNEL_LIB_MEMORY_H__
 
-#include "ktypes.h"
+#include "ktype.h"
 
 /**
  * 将源内存复制前n个字节到目的内存。源内存与目的内在前n字节内有重叠时复制结果不保证正确。
