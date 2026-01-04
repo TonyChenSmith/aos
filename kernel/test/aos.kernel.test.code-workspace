@@ -6,7 +6,7 @@
     ],
     "settings": {
         "clangd.arguments": [
-            "--compile-commands-dir=${workspaceFolder}/out/",
+            "--compile-commands-dir=${workspaceFolder}/../out/test/",
             "--header-insertion=never"
         ],
         "clangd.checkUpdates": false,
@@ -17,7 +17,7 @@
             },
             "launch": {
                 "statusBarVisibility": "inherit",
-                "inheritDefault": "hidden"
+                "inheritDefault": "visible"
             },
             "configure": {
                 "statusBarVisibility": "inherit",
@@ -29,10 +29,10 @@
             },
             "ctest": {
                 "statusBarVisibility": "inherit",
-                "inheritDefault": "visible"
+                "inheritDefault": "hidden"
             }
         },
-        "cmake.copyCompileCommands": "${workspaceFolder}/out/compile_commands.json",
+        "cmake.copyCompileCommands": "${workspaceFolder}/../out/test/compile_commands.json",
         "cmake.ctestDefaultArgs": [
             "--output-on-failure"
         ],

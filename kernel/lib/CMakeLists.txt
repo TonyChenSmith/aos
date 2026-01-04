@@ -10,5 +10,6 @@ cmake_minimum_required(VERSION 4.0)
 project(aos.kernel.lib VERSION 0.0.1 LANGUAGES C ASM)
 
 add_library(aos.kernel.lib OBJECT
-    memory.S
+    memory.c
+    util.c
 )

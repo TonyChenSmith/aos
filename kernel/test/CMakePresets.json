@@ -1,0 +1,29 @@
+{
+    "version": 8,
+    "configurePresets": [
+        {
+            "name": "Debug",
+            "displayName": "Debug",
+            "description": "AOS内核测试调试版本。",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/../out/test/${presetName}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/../script/toolchain-windows-clang-x86_64-test.cmake",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/../out/test/${presetName}/install"
+            }
+        },
+        {
+            "name": "Release",
+            "displayName": "Release",
+            "description": "AOS内核测试发行版本。",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/../out/test/${presetName}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/../script/toolchain-windows-clang-x86_64-test.cmake",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/../out/test/${presetName}/install"
+            }
+        }
+    ]
+}

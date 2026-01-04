@@ -55,4 +55,28 @@ void* memory_set(void* m,uint8 value,uintn n);
  */
 bool memory_compare(const void* a,const void* b,uintn n);
 
+/**
+ * 在内存m的前n个字节寻找输入字节第一次出现的位置。
+ * 
+ * @param m    内存m。
+ * @param byte 被比较字节。
+ * @param n    操作字节数。
+ * 
+ * @return 找到返回所在地址，未找到返回空指针。
+ */
+void* memory_find(const void* m,uint8 byte,uintn n);
+
+/**
+ * 将内存m前n个字节设置成0。
+ * 
+ * @param m     内存m。
+ * @param n     操作字节数。
+ * 
+ * @return 返回内存m的起始地址，便于进行链式处理。
+ */
+static inline void* memory_zero(void* m,uintn n)
+{
+    return memory_set(m,0,n);
+}
+
 #endif /*__AOS_KERNEL_LIB_MEMORY_H__*/

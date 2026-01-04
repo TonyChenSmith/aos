@@ -50,16 +50,6 @@ typedef __UINT32_TYPE__ uint32;
 typedef __UINT64_TYPE__ uint64;
 
 /**
- * 有符号指针整型。
- */
-typedef __INTPTR_TYPE__ intn;
-
-/**
- * 无符号指针整型。
- */
-typedef __UINTPTR_TYPE__ uintn;
-
-/**
  * 布尔类型。
  */
 typedef uint8 bool;
@@ -78,5 +68,31 @@ typedef int16 char16;
  * 32位字符类型。
  */
 typedef int32 char32;
+
+#ifdef __x86_64__
+
+/**
+ * 有符号指针整型。
+ */
+typedef int64 intn;
+
+/**
+ * 无符号指针整型。
+ */
+typedef uint64 uintn;
+
+#else
+
+/**
+ * 有符号指针整型。
+ */
+typedef int32 intn;
+
+/**
+ * 无符号指针整型。
+ */
+typedef uint32 uintn;
+
+#endif /*__x86_64__*/
 
 #endif /*__AOS_KERNEL_LIB_KTYPE_H__*/

@@ -12,9 +12,24 @@
 #include "ktype.h"
 
 /**
+ * 查询对齐要求。
+ */
+#define alignof _Alignof
+
+/**
+ * 指定对齐方式。
+ */
+#define alignas _Alignas
+
+/**
+ * 泛型。
+ */
+#define generic _Generic
+
+/**
  * 不返回。
  */
-#define noreturn __attribute__((noreturn))
+#define noreturn _Noreturn
 
 /**
  * 逻辑真。
@@ -29,7 +44,7 @@
 /**
  * 空指针。
  */
-#define NULL ((void*)0)
+#define null ((void*)0)
 
 /**
  * 有符号8位整型最大值。
@@ -72,16 +87,6 @@
 #define UINT64_MAX __UINT64_MAX__
 
 /**
- * 有符号指针整型最大值。
- */
-#define INTN_MAX __INTPTR_MAX__
-
-/**
- * 无符号指针整型最大值。
- */
-#define UINTN_MAX __UINTPTR_MAX__
-
-/**
  * 有符号8位整型最小值。
  */
 #define INT8_MIN (-INT8_MAX-1)
@@ -122,16 +127,6 @@
 #define UINT64_MIN ((uint64)0)
 
 /**
- * 有符号指针整型最小值。
- */
-#define INTN_MIN (-INTN_MAX-1)
-
-/**
- * 无符号指针整型最小值。
- */
-#define UINTN_MIN ((uintn)0)
-
-/**
  * 8位字符类型最大值。
  */
 #define CHAR8_MAX ((char8)INT8_MAX)
@@ -160,6 +155,52 @@
  * 32位字符类型最小值。
  */
 #define CHAR32_MIN ((char32)INT32_MIN)
+
+#ifdef __x86_64__
+
+/**
+ * 有符号指针整型最大值。
+ */
+#define INTN_MAX INT64_MAX
+
+/**
+ * 无符号指针整型最大值。
+ */
+#define UINTN_MAX UINT64_MAX
+
+/**
+ * 有符号指针整型最小值。
+ */
+#define INTN_MIN INT64_MIN
+
+/**
+ * 无符号指针整型最小值。
+ */
+#define UINTN_MIN UINT64_MIN
+
+#else
+
+/**
+ * 有符号指针整型最大值。
+ */
+#define INTN_MAX INT32_MAX
+
+/**
+ * 无符号指针整型最大值。
+ */
+#define UINTN_MAX UINT32_MAX
+
+/**
+ * 有符号指针整型最小值。
+ */
+#define INTN_MIN INT32_MIN
+
+/**
+ * 无符号指针整型最小值。
+ */
+#define UINTN_MIN UINT32_MIN
+
+#endif /*__x86_64__*/
 
 /**
  * 位常量，覆盖0-63位。
