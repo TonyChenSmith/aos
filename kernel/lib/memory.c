@@ -24,7 +24,7 @@ void* memory_copy(void* dest,const void* src,uintn n)
         "rep movsb"
         :"+D"(dest),"+S"(src),"+c"(n)
         :
-        :"memory"
+        :"memory","cc"
     );
     return result;   
 }
@@ -56,7 +56,7 @@ void* memory_move(void* dest,const void* src,uintn n)
             "cld"
             :"+D"(dest),"+S"(src),"+c"(n)
             :
-            :"memory"
+            :"memory","cc"
         );
         return result;
     }
@@ -66,7 +66,7 @@ void* memory_move(void* dest,const void* src,uintn n)
             "rep movsb"
             :"+D"(dest),"+S"(src),"+c"(n)
             :
-            :"memory"
+            :"memory","cc"
         );
         return result;
     }
@@ -84,11 +84,11 @@ void* memory_move(void* dest,const void* src,uintn n)
 void* memory_set(void* m,uint8 value,uintn n)
 {
     void* result=m;
-    __asm__ volatile (
+    __asm__ volatile(
         "rep stosb"
         :"+D"(m),"+c"(n)
         :"a"(value)
-        :"memory"
+        :"memory","cc"
     );
     return result;
 }
@@ -111,7 +111,7 @@ bool memory_compare(const void* a,const void* b,uintn n)
     else
     {
         bool result=false;
-        __asm__ volatile (
+        __asm__ volatile(
             "repe cmpsb\n\t"
             "sete %%al"
             :"=a"(result),"+D"(a),"+S"(b),"+c"(n)
@@ -140,7 +140,7 @@ void* memory_find(const void* m,uint8 byte,uintn n)
     else
     {
         void* result=null;
-        __asm__ volatile (
+        __asm__ volatile(
             "repne scasb\n\t"
             "jne 1f\n\t"
             "dec %%rdi\n\t"

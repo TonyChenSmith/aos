@@ -2,7 +2,7 @@
  * 内核实用函数集合。
  * @date 2025-12-23
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -15,20 +15,19 @@
 /**
  * 取绝对值。
  */
-#define abs(value) generic((value),int8:abs_int8(value),int16:abs_int16(value),int32:abs_int32(value),\
-    int64:abs_int64(value),uint8:(value),uint16:(value),uint32:(value),uint64:(value))
+#define abs(value) (generic((value),int8:abs_int8,int16:abs_int16,int32:abs_int32,int64:abs_int64)(value))
 
 /**
  * 取最大值。
  */
-#define max(a,b) generic((a+b),int8:max_int8(a,b),int16:max_int16(a,b),int32:max_int32(a,b),int64:max_int64(a,b),\
-    uint8:max_uint8(a,b),uint16:max_uint16(a,b),uint32:max_uint32(a,b),uint64:max_uint64(a,b))
+#define max(a,b) (generic((a+b),int8:max_int8,int16:max_int16,int32:max_int32,int64:max_int64,uint8:max_uint8,\
+    uint16:max_uint16,uint32:max_uint32,uint64:max_uint64)(a,b))
 
 /**
  * 取最小值。
  */
-#define min(a,b) generic((a+b),int8:min_int8(a,b),int16:min_int16(a,b),int32:min_int32(a,b),int64:min_int64(a,b),\
-    uint8:min_uint8(a,b),uint16:min_uint16(a,b),uint32:min_uint32(a,b),uint64:min_uint64(a,b))
+#define min(a,b) (generic((a+b),int8:min_int8,int16:min_int16,int32:min_int32,int64:min_int64,uint8:min_uint8,\
+    uint16:min_uint16,uint32:min_uint32,uint64:min_uint64)(a,b))
 
 /**
  * 获取结构体字段在结构体内的偏移。
@@ -38,47 +37,44 @@
 /**
  * 位反向。
  */
-#define bit_reverse(value) generic((value),uint8:bit_reverse_uint8(value),uint16:bit_reverse_uint16(value),\
-    uint32:bit_reverse_uint32(value),uint64:bit_reverse_uint64(value))
+#define bit_reverse(value) (generic((value),uint8:bit_reverse_uint8,uint16:bit_reverse_uint16,uint32:bit_reverse_uint32,\
+    uint64:bit_reverse_uint64)(value))
 
 /**
  * 循环左移。
  */
-#define rotate_left(value,bits) generic((value),uint8:rotate_left_uint8(value,bits),\
-    uint16:rotate_left_uint16(value,bits),uint32:rotate_left_uint32(value,bits),uint64:rotate_left_uint64(value,bits))
+#define rotate_left(value,bits) (generic((value),uint8:rotate_left_uint8,uint16:rotate_left_uint16,\
+    uint32:rotate_left_uint32,uint64:rotate_left_uint64)(value,bits))
 
 /**
  * 循环右移。
  */
-#define rotate_right(value,bits) generic((value),uint8:rotate_right_uint8(value,bits),\
-    uint16:rotate_right_uint16(value,bits),uint32:rotate_right_uint32(value,bits),\
-    uint64:rotate_right_uint64(value,bits))
+#define rotate_right(value,bits) (generic((value),uint8:rotate_right_uint8,uint16:rotate_right_uint16,\
+    uint32:rotate_right_uint32,uint64:rotate_right_uint64)(value,bits))
 
 /**
  * 计算数值中1的数目。
  */
-#define population_count(value) generic((value),uint8:population_count_uint8(value),\
-    uint16:population_count_uint16(value),uint32:population_count_uint32(value),uint64:population_count_uint64(value))
+#define population_count(value) (generic((value),uint8:population_count_uint8,uint16:population_count_uint16,\
+    uint32:population_count_uint32,uint64:population_count_uint64)(value))
 
 /**
  * 计算数值从最高有效位开始的连续0个数。如果值为0，返回位数大小的0数目。
  */
-#define count_leading_zeros(value) generic((value),uint8:count_leading_zeros_uint8(value),\
-    uint16:count_leading_zeros_uint16(value),uint32:count_leading_zeros_uint32(value),\
-    uint64:count_leading_zeros_uint64(value))
+#define count_leading_zeros(value) (generic((value),uint8:count_leading_zeros_uint8,uint16:count_leading_zeros_uint16,\
+    uint32:count_leading_zeros_uint32,uint64:count_leading_zeros_uint64)(value))
 
 /**
  * 计算数值从最低有效位开始的连续0个数。如果值为0，返回位数大小的0数目。
  */
-#define count_trailing_zeros(value) generic((value),uint8:count_trailing_zeros_uint8(value),\
-    uint16:count_trailing_zeros_uint16(value),uint32:count_trailing_zeros_uint32(value),\
-    uint64:count_trailing_zeros_uint64(value))
+#define count_trailing_zeros(value) (generic((value),uint8:count_trailing_zeros_uint8,\
+    uint16:count_trailing_zeros_uint16,uint32:count_trailing_zeros_uint32,uint64:count_trailing_zeros_uint64)(value))
 
 /**
  * 计算数值从最低有效位开始第一个1的索引。如果值为0，返回位数大小的索引。
  */
-#define find_first_set(value) generic((value),uint8:find_first_set_uint8(value),uint16:find_first_set_uint16(value),\
-    uint32:find_first_set_uint32(value),uint64:find_first_set_uint64(value))
+#define find_first_set(value) (generic((value),uint8:find_first_set_uint8,uint16:find_first_set_uint16,\
+    uint32:find_first_set_uint32,uint64:find_first_set_uint64)(value))
 
 /**
  * 取有符号8位整型的绝对值。

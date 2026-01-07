@@ -3,7 +3,7 @@
 # 在该环境下，仅默认系统也处于x86-64架构下。
 # @date 2025-12-02
 # 
-# Copyright (c) 2025 Tony Chen Smith
+# Copyright (c) 2025-2026 Tony Chen Smith
 # 
 # SPDX-License-Identifier: MIT
 # 
@@ -43,7 +43,7 @@ add_compile_options(
     -fno-common
     -fno-omit-frame-pointer
     -fno-builtin
-    -funsigned-char
+    -fno-signed-char
     -fshort-wchar
     -mno-stack-arg-probe
     -fno-unwind-tables

@@ -2,7 +2,7 @@
  * 内核使用的基础数据类型。
  * @date 2025-12-22
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -62,12 +62,12 @@ typedef char char8;
 /**
  * 16位字符类型。
  */
-typedef int16 char16;
+typedef __CHAR16_TYPE__ char16;
 
 /**
  * 32位字符类型。
  */
-typedef int32 char32;
+typedef __CHAR32_TYPE__ char32;
 
 #ifdef __x86_64__
 

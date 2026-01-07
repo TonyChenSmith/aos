@@ -1,5 +1,5 @@
 #include <base.h>
-#include <lib/memory.h>
+#include <lib/string.h>
 
 static char8 buffer_a[512];
 static char8 buffer_b[512];
@@ -51,7 +51,9 @@ noreturn void aos_kernel_entry(void)
     line("[aos.kernel.entry] 你好.");
     while(true)
     {
-        print_num((uintn)&memory_find);
+        print_num((uintn)&string_length16);
+        uintn a=string_length("A");
+        print_num(a);
         sleep();
     }
 }

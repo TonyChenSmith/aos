@@ -2,7 +2,7 @@
  * 内核使用的基础宏。
  * @date 2025-12-22
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -126,36 +126,6 @@
  */
 #define UINT64_MIN ((uint64)0)
 
-/**
- * 8位字符类型最大值。
- */
-#define CHAR8_MAX ((char8)INT8_MAX)
-
-/**
- * 16位字符类型最大值。
- */
-#define CHAR16_MAX ((char16)INT16_MAX)
-
-/**
- * 32位字符类型最大值。
- */
-#define CHAR32_MAX ((char32)INT32_MAX)
-
-/**
- * 8位字符类型最小值。
- */
-#define CHAR8_MIN ((char8)INT8_MIN)
-
-/**
- * 16位字符类型最小值。
- */
-#define CHAR16_MIN ((char16)INT16_MIN)
-
-/**
- * 32位字符类型最小值。
- */
-#define CHAR32_MIN ((char32)INT32_MIN)
-
 #ifdef __x86_64__
 
 /**
@@ -205,16 +175,16 @@
 /**
  * 位常量，覆盖0-63位。
  */
-#define BIT0 0x1
-#define BIT1 0x2
-#define BIT2 0x4
-#define BIT3 0x8
-#define BIT4 0x10
-#define BIT5 0x20
-#define BIT6 0x40
-#define BIT7 0x80
-#define BIT8 0x100
-#define BIT9 0x200
+#define BIT0  0x1
+#define BIT1  0x2
+#define BIT2  0x4
+#define BIT3  0x8
+#define BIT4  0x10
+#define BIT5  0x20
+#define BIT6  0x40
+#define BIT7  0x80
+#define BIT8  0x100
+#define BIT9  0x200
 #define BIT10 0x400
 #define BIT11 0x800
 #define BIT12 0x1000
@@ -269,5 +239,63 @@
 #define BIT61 __UINT64_C(0x2000000000000000)
 #define BIT62 __UINT64_C(0x4000000000000000)
 #define BIT63 __UINT64_C(0x8000000000000000)
+
+/**
+ * 大小常量。
+ */
+#define SIZE_1KB   0x400
+#define SIZE_2KB   0x800
+#define SIZE_4KB   0x1000
+#define SIZE_8KB   0x2000
+#define SIZE_16KB  0x4000
+#define SIZE_32KB  0x8000
+#define SIZE_64KB  0x10000
+#define SIZE_128KB 0x20000
+#define SIZE_256KB 0x40000
+#define SIZE_512KB 0x80000
+#define SIZE_1MB   0x100000
+#define SIZE_2MB   0x200000
+#define SIZE_4MB   0x400000
+#define SIZE_8MB   0x800000
+#define SIZE_16MB  0x1000000
+#define SIZE_32MB  0x2000000
+#define SIZE_64MB  0x4000000
+#define SIZE_128MB 0x8000000
+#define SIZE_256MB 0x10000000
+#define SIZE_512MB 0x20000000
+#define SIZE_1GB   0x40000000
+#define SIZE_2GB   0x80000000
+#define SIZE_4GB   __UINT64_C(100000000)
+#define SIZE_8GB   __UINT64_C(200000000)
+#define SIZE_16GB  __UINT64_C(400000000)
+#define SIZE_32GB  __UINT64_C(800000000)
+#define SIZE_64GB  __UINT64_C(1000000000)
+#define SIZE_128GB __UINT64_C(2000000000)
+#define SIZE_256GB __UINT64_C(4000000000)
+#define SIZE_512GB __UINT64_C(8000000000)
+#define SIZE_1TB   __UINT64_C(10000000000)
+#define SIZE_2TB   __UINT64_C(20000000000)
+#define SIZE_4TB   __UINT64_C(40000000000)
+#define SIZE_8TB   __UINT64_C(80000000000)
+#define SIZE_16TB  __UINT64_C(100000000000)
+#define SIZE_32TB  __UINT64_C(200000000000)
+#define SIZE_64TB  __UINT64_C(400000000000)
+#define SIZE_128TB __UINT64_C(800000000000)
+#define SIZE_256TB __UINT64_C(1000000000000)
+#define SIZE_512TB __UINT64_C(2000000000000)
+#define SIZE_1PB   __UINT64_C(4000000000000)
+#define SIZE_2PB   __UINT64_C(8000000000000)
+#define SIZE_4PB   __UINT64_C(10000000000000)
+#define SIZE_8PB   __UINT64_C(20000000000000)
+#define SIZE_16PB  __UINT64_C(40000000000000)
+#define SIZE_32PB  __UINT64_C(80000000000000)
+#define SIZE_64PB  __UINT64_C(100000000000000)
+#define SIZE_128PB __UINT64_C(200000000000000)
+#define SIZE_256PB __UINT64_C(400000000000000)
+#define SIZE_512PB __UINT64_C(800000000000000)
+#define SIZE_1EB   __UINT64_C(1000000000000000)
+#define SIZE_2EB   __UINT64_C(2000000000000000)
+#define SIZE_4EB   __UINT64_C(4000000000000000)
+#define SIZE_8EB   __UINT64_C(8000000000000000)
 
 #endif /*__AOS_KERNEL_LIB_KDEF_H__*/

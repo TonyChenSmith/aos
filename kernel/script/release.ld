@@ -2,7 +2,7 @@
  * AOS内核发行版本链接脚本。
  * @date 2025-12-14
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -56,7 +56,9 @@ SECTIONS
         *(.dynstr)
         *(.hash)
         *(.gnu.hash)
+        /*
         *(.symtab)
         *(.strtab)
+        */
     }
 }

@@ -32,7 +32,7 @@ static int32 utest_total=0;
 /**
  * 测试套具。
  */
-#define UTEST_SUITE(name) printf("\n\x1b[36m========= %s =========\x1b[0m\n",name)
+#define UTEST_SUITE(name) printf("\n\x1b[36m========= %s =========\x1b[0m",name)
 
 /**
  * 测试用例。
@@ -41,7 +41,7 @@ static int32 utest_total=0;
     static void utest_##name(void);\
     void utest_run_##name(void)\
     {\
-        printf("\x1b[33m[TEST]\x1b[0m %s\n",#name);\
+        printf("\n\x1b[33m[TEST]\x1b[0m %s",#name);\
         utest_##name();\
     }\
     static void utest_##name(void)
@@ -60,7 +60,7 @@ static int32 utest_total=0;
         else\
         {\
             utest_failed++; \
-            printf("\n  \x1b[31mFAILED\x1b[0m: %s:%d: %s\n",__FILE__,__LINE__,#cond); \
+            printf("\n  \x1b[31mFAILED\x1b[0m: %s:%d: [%s] %s\n",__FILE__,__LINE__,__func__,#cond); \
         }\
     } while(0)
 
