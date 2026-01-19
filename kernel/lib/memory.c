@@ -19,14 +19,30 @@
  */
 void* memory_copy(void* dest,const void* src,uintn n)
 {
+    if(n==0||src==null||dest==null||src==dest)
+    {
+        return dest;
+    }
     void* result=dest;
-    __asm__ volatile(
-        "rep movsb"
-        :"+D"(dest),"+S"(src),"+c"(n)
-        :
-        :"memory","cc"
-    );
-    return result;   
+    if(n<64)
+    {
+        uint8* d=(uint8*)dest;
+        const uint8* s=(uint8*)src;
+        for(uintn index=0;index<n;index++)
+        {
+            d[index]=s[index];
+        }
+    }
+    else
+    {
+        __asm__ volatile(
+            "rep movsb"
+            :"+D"(dest),"+S"(src),"+c"(n)
+            :
+            :"memory","cc"
+        );
+    }
+    return result;
 }
 
 /**
@@ -40,34 +56,57 @@ void* memory_copy(void* dest,const void* src,uintn n)
  */
 void* memory_move(void* dest,const void* src,uintn n)
 {
-    void* result=dest;
-    if(n==0||src==dest)
+    if(n==0||src==null||dest==null||src==dest)
     {
-        return result;
+        return dest;
     }
-    else if(dest>=src)
+    void* result=dest;
+    if(dest>=src)
     {
-        dest=(void*)((uintn)dest+n-1);
-        src=(void*)((uintn)src+n-1);
-
-        __asm__ volatile(
-            "std\n\t"
-            "rep movsb\n\t"
-            "cld"
-            :"+D"(dest),"+S"(src),"+c"(n)
-            :
-            :"memory","cc"
-        );
+        if(n<64)
+        {
+            uint8* d=(uint8*)dest;
+            const uint8* s=(uint8*)src;
+            for(uintn index=n;index>0;index--)
+            {
+                d[index-1]=s[index-1];
+            }
+        }
+        else
+        {
+            dest=(void*)((uintn)dest+n-1);
+            src=(void*)((uintn)src+n-1);
+            __asm__ volatile(
+                "std\n\t"
+                "rep movsb\n\t"
+                "cld"
+                :"+D"(dest),"+S"(src),"+c"(n)
+                :
+                :"memory","cc"
+            );
+        }
         return result;
     }
     else
     {
-        __asm__ volatile(
-            "rep movsb"
-            :"+D"(dest),"+S"(src),"+c"(n)
-            :
-            :"memory","cc"
-        );
+        if(n<64)
+        {
+            uint8* d=(uint8*)dest;
+            const uint8* s=(uint8*)src;
+            for(uintn index=0;index<n;index++)
+            {
+                d[index]=s[index];
+            }
+        }
+        else
+        {
+            __asm__ volatile(
+                "rep movsb"
+                :"+D"(dest),"+S"(src),"+c"(n)
+                :
+                :"memory","cc"
+            );
+        }
         return result;
     }
 }
@@ -83,13 +122,28 @@ void* memory_move(void* dest,const void* src,uintn n)
  */
 void* memory_set(void* m,uint8 value,uintn n)
 {
+    if(n==0||m==null)
+    {
+        return m;
+    }
     void* result=m;
-    __asm__ volatile(
-        "rep stosb"
-        :"+D"(m),"+c"(n)
-        :"a"(value)
-        :"memory","cc"
-    );
+    if(n<64)
+    {
+        uint8* d=(uint8*)m;
+        for(uintn index=0;index<n;index++)
+        {
+            d[index]=value;
+        }
+    }
+    else
+    {
+        __asm__ volatile(
+            "rep stosb"
+            :"+D"(m),"+c"(n)
+            :"a"(value)
+            :"memory","cc"
+        );
+    }
     return result;
 }
 
@@ -100,25 +154,28 @@ void* memory_set(void* m,uint8 value,uintn n)
  * @param b 内存b。
  * @param n 比较字节数。
  * 
- * @return 相等返回真，不相等返回假。
+ * @return 相等返回0，a<b返回负数，a>b返回正数。
  */
-bool memory_compare(const void* a,const void* b,uintn n)
+int8 memory_compare(const void* a,const void* b,uintn n)
 {
     if(n==0||a==b)
     {
-        return true;
+        return 0;
+    }
+    else if(a==null||b==null)
+    {
+        return a!=null?1:-1;
     }
     else
     {
-        bool result=false;
-        __asm__ volatile(
-            "repe cmpsb\n\t"
-            "sete %%al"
-            :"=a"(result),"+D"(a),"+S"(b),"+c"(n)
-            :
-            :"memory","cc"
-        );
-        return result;
+        for(uintn index=0;index<n;index++)
+        {
+            if(((uint8*)a)[index]!=((uint8*)b)[index])
+            {
+                return ((uint8*)a)[index]>((uint8*)b)[index]?1:-1;
+            }
+        }
+        return 0;
     }
 }
 
@@ -131,27 +188,21 @@ bool memory_compare(const void* a,const void* b,uintn n)
  * 
  * @return 找到返回所在地址，未找到返回空指针。
  */
-void* memory_find(const void* m,uint8 byte,uintn n)
+const void* memory_find(const void* m,uint8 byte,uintn n)
 {
-    if(n==0)
+    if(n==0||m==null)
     {
         return null;
     }
     else
     {
-        void* result=null;
-        __asm__ volatile(
-            "repne scasb\n\t"
-            "jne 1f\n\t"
-            "dec %%rdi\n\t"
-            "mov %%rdi,%%rax\n\t"
-            "jmp 2f\n\t"
-            "1:xor %%rax,%%rax\n\t"
-            "2:"
-            :"=A"(result),"+D"(m),"+c"(n)
-            :"a"(byte)
-            :"memory","cc"
-        );
-        return result;
+        for(uintn index=0;index<n;index++)
+        {
+            if(((uint8*)m)[index]==byte)
+            {
+                return &((uint8*)m)[index];
+            }
+        }
+        return null;
     }
 }

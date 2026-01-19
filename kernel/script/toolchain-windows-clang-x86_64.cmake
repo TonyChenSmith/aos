@@ -65,6 +65,7 @@ add_link_options(
 
 if(CMAKE_BUILD_TYPE MATCHES "Release")
     add_link_options(-O3)
+    add_compile_options(-g)
 else()
     add_link_options(-O0)
 endif()

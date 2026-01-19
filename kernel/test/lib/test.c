@@ -9,13 +9,33 @@
 #include <test/lib/test.h>
 
 /**
+ * 测试字符操作库函数。
+ * 
+ * @return 无返回值。
+ */
+UTEST_CASE(char_test)
+{
+    UTEST_ASSERT_EQUAL(char_test(),0);
+}
+
+/**
  * 测试内存库函数。
  * 
  * @return 无返回值。
  */
-UTEST_CASE(memory)
+UTEST_CASE(memory_test)
 {
     UTEST_ASSERT_EQUAL(memory_test(),0);
+}
+
+/**
+ * 测试字符串操作库函数。
+ * 
+ * @return 无返回值。
+ */
+UTEST_CASE(string_test)
+{
+    UTEST_ASSERT_EQUAL(string_test(),0);
 }
 
 /**
@@ -27,7 +47,9 @@ int32 main()
 {
     UTEST_SUITE("aos.kernel.test.lib");
     
-    UTEST_RUN(memory);
+    UTEST_RUN(char_test);
+    UTEST_RUN(memory_test);
+    UTEST_RUN(string_test);
 
-    UTEST_SUMMARY("aos.kernel.test.lib");
+    UTEST_END("aos.kernel.test.lib");
 }

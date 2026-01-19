@@ -32,7 +32,7 @@ static int32 utest_total=0;
 /**
  * 测试套具。
  */
-#define UTEST_SUITE(name) printf("\n\x1b[36m========= %s =========\x1b[0m",name)
+#define UTEST_SUITE(name) printf("\x1b[36m========= %s =========\x1b[0m\n",name)
 
 /**
  * 测试用例。
@@ -41,7 +41,7 @@ static int32 utest_total=0;
     static void utest_##name(void);\
     void utest_run_##name(void)\
     {\
-        printf("\n\x1b[33m[TEST]\x1b[0m %s",#name);\
+        printf("\x1b[33m[TEST]\x1b[0m %s\n",#name);\
         utest_##name();\
     }\
     static void utest_##name(void)
@@ -60,7 +60,7 @@ static int32 utest_total=0;
         else\
         {\
             utest_failed++; \
-            printf("\n  \x1b[31mFAILED\x1b[0m: %s:%d: [%s] %s\n",__FILE__,__LINE__,__func__,#cond); \
+            printf("\n  \x1b[31mFAILED\x1b[0m: %s:%d: [%s] %s\n\n",__FILE__,__LINE__,__func__,#cond); \
         }\
     } while(0)
 
@@ -115,11 +115,25 @@ static int32 utest_total=0;
 #define UTEST_SUMMARY(name)\
     do\
     {\
-        printf("\n\x1b[36m========= %s =========\x1b[0m\n",name);\
+        printf("\x1b[36m========= %s =========\x1b[0m\n",name);\
         printf("Total:  %d\n",utest_total);\
         printf("\x1b[32mPassed: %d\x1b[0m\n",utest_passed);\
         printf("\x1b[31mFailed: %d\x1b[0m\n",utest_failed);\
         printf("\x1b[36m========= %s =========\x1b[0m\n",name);\
+        return utest_failed;\
+    } while(0)
+
+/**
+ * 测试结果汇总并结束。
+ */
+#define UTEST_END(name)\
+    do\
+    {\
+        printf("\x1b[36m========= %s =========\x1b[0m\n",name);\
+        printf("Total:  %d\n",utest_total);\
+        printf("\x1b[32mPassed: %d\x1b[0m\n",utest_passed);\
+        printf("\x1b[31mFailed: %d\x1b[0m\n",utest_failed);\
+        printf("\x1b[36m========= %s =========\x1b[0m",name);\
         return utest_failed;\
     } while(0)
 

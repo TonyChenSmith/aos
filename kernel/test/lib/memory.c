@@ -6,9 +6,9 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#include <lib/memory.h>
 #include <test/utest.h>
 
+#include <lib/memory.h>
 #include <stdlib.h>
 
 /**
@@ -222,8 +222,8 @@ UTEST_CASE(memory_compare_equal)
     uint8 a[5]={1,2,3,4,5};
     uint8 b[5]={1,2,3,4,5};
     
-    bool result=memory_compare(a,b,5);
-    UTEST_ASSERT_TRUE(result);
+    int8 result=memory_compare(a,b,5);
+    UTEST_ASSERT_TRUE(result==0);
 }
 
 /**
@@ -236,8 +236,8 @@ UTEST_CASE(memory_compare_not_equal)
     uint8 a[5]={1,2,3,4,5};
     uint8 b[5]={1,2,3,4,6};
     
-    bool result=memory_compare(a,b,5);
-    UTEST_ASSERT_FALSE(result);
+    int8 result=memory_compare(a,b,5);
+    UTEST_ASSERT_NOT_EQUAL(result,0);
 }
 
 /**
@@ -249,11 +249,11 @@ UTEST_CASE(memory_compare_partial) {
     uint8 a[5]={1,2,3,4,5};
     uint8 b[5]={1,2,3,9,9};
     
-    bool result=memory_compare(a,b,3);
-    UTEST_ASSERT_TRUE(result);
+    int8 result=memory_compare(a,b,3);
+    UTEST_ASSERT_EQUAL(result,0);
     
     result=memory_compare(a,b,4);
-    UTEST_ASSERT_FALSE(result);
+    UTEST_ASSERT_NOT_EQUAL(result,0);
 }
 
 /**
@@ -266,8 +266,8 @@ UTEST_CASE(memory_compare_zero)
     uint8 a[3]={1,2,3};
     uint8 b[3]={4,5,6};
     
-    bool result=memory_compare(a,b,0);
-    UTEST_ASSERT_TRUE(result);
+    int8 result=memory_compare(a,b,0);
+    UTEST_ASSERT_EQUAL(result,0);
 }
 
 /**
@@ -279,8 +279,8 @@ UTEST_CASE(memory_compare_same)
 {
     uint8 buffer[4]={1,2,3,4};
     
-    bool result=memory_compare(buffer,buffer,4);
-    UTEST_ASSERT_TRUE(result);
+    int8 result=memory_compare(buffer,buffer,4);
+    UTEST_ASSERT_EQUAL(result,0);
 }
 
 /**
@@ -292,7 +292,7 @@ UTEST_CASE(memory_find_present)
 {
     uint8 buffer[10]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xAA};
     
-    void* result=memory_find(buffer,0x55,10);
+    const void* result=memory_find(buffer,0x55,10);
     UTEST_ASSERT_NOT_NULL(result);
     UTEST_ASSERT_EQUAL(result,buffer+4);
     
@@ -309,7 +309,7 @@ UTEST_CASE(memory_find_not_present)
 {
     uint8 buffer[10]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xAA};
     
-    void* result=memory_find(buffer,0xFF,10);
+    const void* result=memory_find(buffer,0xFF,10);
     UTEST_ASSERT_NULL(result);
 }
 
@@ -322,7 +322,7 @@ UTEST_CASE(memory_find_partial)
 {
     uint8 buffer[10]={0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xAA};
     
-    void* result=memory_find(buffer,0x55,5);
+    const void* result=memory_find(buffer,0x55,5);
     UTEST_ASSERT_NOT_NULL(result);
     UTEST_ASSERT_EQUAL(result,buffer+4);
     
@@ -339,7 +339,7 @@ UTEST_CASE(memory_find_zero)
 {
     uint8 buffer[5]={1,2,3,4,5};
     
-    void* result=memory_find(buffer,1,0);
+    const void* result=memory_find(buffer,1,0);
     UTEST_ASSERT_NULL(result);
 }
 
@@ -352,7 +352,7 @@ UTEST_CASE(memory_find_end)
 {
     uint8 buffer[5]={1,2,3,4,5};
     
-    void* result=memory_find(buffer,5,5);
+    const void* result=memory_find(buffer,5,5);
     UTEST_ASSERT_EQUAL(result,buffer+4);
 }
 
@@ -449,9 +449,9 @@ UTEST_CASE(memory_integration)
     
     memory_copy(buffer2,buffer1,20);
     
-    UTEST_ASSERT_TRUE(memory_compare(buffer1,buffer2,20));
+    UTEST_ASSERT_EQUAL(memory_compare(buffer1,buffer2,20),0);
     
-    void* found = memory_find(buffer2,0xAB,20);
+    const void* found=memory_find(buffer2,0xAB,20);
     UTEST_ASSERT_NOT_NULL(found);
     
     memory_set(buffer1 + 5,0xCD,5);

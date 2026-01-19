@@ -51,9 +51,9 @@ void* memory_set(void* m,uint8 value,uintn n);
  * @param b 内存b。
  * @param n 比较字节数。
  * 
- * @return 相等返回真，不相等返回假。
+ * @return 相等返回0，a<b返回负数，a>b返回正数。
  */
-bool memory_compare(const void* a,const void* b,uintn n);
+int8 memory_compare(const void* a,const void* b,uintn n);
 
 /**
  * 在内存m的前n个字节寻找输入字节第一次出现的位置。
@@ -64,7 +64,7 @@ bool memory_compare(const void* a,const void* b,uintn n);
  * 
  * @return 找到返回所在地址，未找到返回空指针。
  */
-void* memory_find(const void* m,uint8 byte,uintn n);
+const void* memory_find(const void* m,uint8 byte,uintn n);
 
 /**
  * 将内存m前n个字节设置成0。

@@ -12,10 +12,24 @@
 #include <test/utest.h>
 
 /**
+ * 字符库函数测试。
+ * 
+ * @return 失败测试数。
+ */
+int32 char_test();
+
+/**
  * 内存库函数测试。
  * 
  * @return 失败测试数。
  */
 int32 memory_test();
+
+/**
+ * 字符串库函数测试。
+ * 
+ * @return 失败测试数。
+ */
+int32 string_test();
 
 #endif /*__AOS_KERNEL_TEST_LIB_TEST_H__*/

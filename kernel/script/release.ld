@@ -47,6 +47,7 @@ SECTIONS
 
     /DISCARD/ :
     {
+        /*
         *(.note*)
         *(.eh_frame*)
         *(.eh_frame_hdr)
@@ -56,7 +57,6 @@ SECTIONS
         *(.dynstr)
         *(.hash)
         *(.gnu.hash)
-        /*
         *(.symtab)
         *(.strtab)
         */

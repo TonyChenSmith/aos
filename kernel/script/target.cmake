@@ -12,7 +12,7 @@ function(add_aos_target TARGET TARGET_FILE)
     add_custom_target(
         ${TARGET}.d
         ALL
-        COMMAND llvm-objdump --all-headers --full-contents -l -d ${TARGET_FILE} ">" ${TARGET_FILE}.d.txt
+        COMMAND llvm-objdump -l -d ${TARGET_FILE} ">" ${TARGET_FILE}.d.txt
         DEPENDS ${TARGET_FILE}
         COMMENT "Disassemble ${TARGET}."
     )
@@ -20,9 +20,9 @@ function(add_aos_target TARGET TARGET_FILE)
     add_custom_target(
         ${TARGET}.h
         ALL
-        COMMAND llvm-readobj --all --program-headers -g --gnu-hash-table -d ${TARGET_FILE} ">" ${TARGET_FILE}.h.txt
+        COMMAND llvm-objdump --all-headers --full-contents ${TARGET_FILE} ">" ${TARGET_FILE}.h.txt
         DEPENDS ${TARGET_FILE}
-        COMMENT "Read the ELF heads of ${TARGET}."
+        COMMENT "Read the heads of ${TARGET}."
     )
 endfunction()
 
