@@ -11,10 +11,13 @@ project(aos.kernel.test.lib VERSION 0.0.1 LANGUAGES C ASM)
 
 add_executable(aos.kernel.test.lib
     char.c
+    convert.c
     memory.c
     string.c
     test.c
+
     ../../lib/char.c
+    ../../lib/convert.c
     ../../lib/memory.c
     ../../lib/string.c
 )

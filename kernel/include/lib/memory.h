@@ -2,7 +2,7 @@
  * 内核内存操作库函数。
  * @date 2025-12-22
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */

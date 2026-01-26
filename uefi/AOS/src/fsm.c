@@ -2,7 +2,7 @@
  * 模块文件管理。
  * @date 2025-12-12
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -51,7 +51,7 @@ EFI_STATUS EFIAPI fsm_init(IN OUT aos_boot_params* params)
 }
 
 /**
- * 挂载ESP分区。
+ * 挂载EFI系统分区。
  * 
  * @return 无返回值。
  */
@@ -75,7 +75,7 @@ VOID EFIAPI mount()
 }
 
 /**
- * 卸载ESP分区。
+ * 卸载EFI系统分区。
  * 
  * @return 无返回值。
  */

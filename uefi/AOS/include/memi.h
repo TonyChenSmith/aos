@@ -2,7 +2,7 @@
  * 模块内存池管理所需的不公开内容。
  * @date 2025-06-05
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -43,31 +43,6 @@ typedef struct _mem_tlsf_meta
     mem_tlsf_block* free[32][8][2]; /*空闲块链表。*/
     mem_tlsf_block* alloc[2];       /*已分配块链表。*/
 } mem_tlsf_meta;
-
-/**
- * TLSF空闲块状态。
- */
-#define MEM_TLSF_BLOCK_FREE 1
-
-/**
- * TLSF已分配块状态。
- */
-#define MEM_TLSF_BLOCK_ALLOC 0
-
-/**
- * TLSF元数据魔数。
- */
-#define MEM_TLSF_MAGIC_META SIGNATURE_32('T','L','S','F')
-
-/**
- * TLSF空闲魔数。
- */
-#define MEM_TLSF_MAGIC_FREE SIGNATURE_64('T','L','S','F','F','R','E','E')
-
-/**
- * TLSF已分配魔数。
- */
-#define MEM_TLSF_MAGIC_ALLOC SIGNATURE_64('T','L','S','F','A','L','L','O')
 
 /**
  * 设置TLSF块数据状态。
@@ -118,6 +93,31 @@ typedef struct _mem_tlsf_meta
  * 对内存大小进行对齐。
  */
 #define mem_align_size(size) (size<24?24:ALIGN_VALUE(size,8))
+
+/**
+ * TLSF空闲块状态。
+ */
+#define MEM_TLSF_BLOCK_FREE 1
+
+/**
+ * TLSF已分配块状态。
+ */
+#define MEM_TLSF_BLOCK_ALLOC 0
+
+/**
+ * TLSF元数据魔数。
+ */
+#define MEM_TLSF_MAGIC_META SIGNATURE_32('T','L','S','F')
+
+/**
+ * TLSF空闲魔数。
+ */
+#define MEM_TLSF_MAGIC_FREE SIGNATURE_64('T','L','S','F','F','R','E','E')
+
+/**
+ * TLSF已分配魔数。
+ */
+#define MEM_TLSF_MAGIC_ALLOC SIGNATURE_64('T','L','S','F','A','L','L','O')
 
 /**
  * 第二轮检查。

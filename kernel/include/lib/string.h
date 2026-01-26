@@ -9,8 +9,8 @@
 #ifndef __AOS_KERNEL_LIB_STRING_H__
 #define __AOS_KERNEL_LIB_STRING_H__
 
-#include <lib/kdef.h>
-#include <lib/ktype.h>
+#include "kdef.h"
+#include "ktype.h"
 
 /**
  * 获取字符串长度。

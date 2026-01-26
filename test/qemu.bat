@@ -2,7 +2,7 @@
 @rem QEMU虚拟机启动命令。
 @rem @date 2024-06-02
 @rem 
-@rem Copyright (c) 2024-2025 Tony Chen Smith
+@rem Copyright (c) 2024-2026 Tony Chen Smith
 @rem
 @rem SPDX-License-Identifier: MIT
 @rem

@@ -18,7 +18,7 @@ add_subdirectory(init)
 add_subdirectory(lib)
 
 add_executable(aos.kernel
-    entry/main.c
+    entry/entry.c
     entry/trampoline.S
 
     entry/temp.S

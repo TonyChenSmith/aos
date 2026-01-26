@@ -1,6 +1,7 @@
 #include <base.h>
 #include <lib/memory.h>
 #include <lib/string.h>
+#include <lib/varargs.h>
 
 static char8 buffer_a[512];
 static char8 buffer_b[512];
@@ -47,7 +48,9 @@ void line(const char8* str)
     print_bytes((char8*)"\n",1);
 }
 
-noreturn void aos_kernel_entry(void)
+#include <init/params.h>
+
+noreturn void aos_kernel_entry(aos_boot_params* params)
 {
     line("[aos.kernel.entry] 你好.");
     while(true)

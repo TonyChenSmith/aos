@@ -19,6 +19,13 @@
 int32 char_test();
 
 /**
+ * 转换库函数测试。
+ * 
+ * @return 失败测试数。
+ */
+int32 convert_test();
+
+/**
  * 内存库函数测试。
  * 
  * @return 失败测试数。

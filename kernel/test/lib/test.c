@@ -19,6 +19,16 @@ UTEST_CASE(char_test)
 }
 
 /**
+ * 测试转换库函数。
+ * 
+ * @return 无返回值。
+ */
+UTEST_CASE(convert_test)
+{
+    UTEST_ASSERT_EQUAL(convert_test(),0);
+}
+
+/**
  * 测试内存库函数。
  * 
  * @return 无返回值。
@@ -48,6 +58,7 @@ int32 main()
     UTEST_SUITE("aos.kernel.test.lib");
     
     UTEST_RUN(char_test);
+    UTEST_RUN(convert_test);
     UTEST_RUN(memory_test);
     UTEST_RUN(string_test);
 
