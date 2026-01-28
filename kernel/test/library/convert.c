@@ -8,8 +8,8 @@
  */
 #include <test/utest.h>
 
-#include <lib/convert.h>
-#include <lib/string.h>
+#include <library/convert.h>
+#include <library/string.h>
 
 /**
  * 测试8位字符串转有符号整型基本功能。
@@ -856,7 +856,7 @@ UTEST_CASE(convert_error_cases)
  */
 int32 convert_test()
 {
-    UTEST_SUITE("aos.kernel.test.lib.convert");
+    UTEST_SUITE("aos.kernel.test.library.convert");
     
     UTEST_RUN(string_to_int8_basic);
     UTEST_RUN(string_to_int16_basic);
@@ -887,5 +887,5 @@ int32 convert_test()
     UTEST_RUN(convert_integration_test);
     UTEST_RUN(convert_error_cases);
     
-    UTEST_SUMMARY("aos.kernel.test.lib.convert");
+    UTEST_SUMMARY("aos.kernel.test.library.convert");
 }

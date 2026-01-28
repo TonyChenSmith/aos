@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_LIB_VARARGS_H__
-#define __AOS_KERNEL_LIB_VARARGS_H__
+#ifndef __AOS_KERNEL_LIBRARY_VARARGS_H__
+#define __AOS_KERNEL_LIBRARY_VARARGS_H__
 
 /**
  * 可变参数列表。
@@ -34,4 +34,4 @@ typedef __builtin_va_list va_list;
  */
 #define va_copy(dest,src) __builtin_va_copy(dest,src)
 
-#endif /*__AOS_KERNEL_LIB_VARARGS_H__*/
+#endif /*__AOS_KERNEL_LIBRARY_VARARGS_H__*/

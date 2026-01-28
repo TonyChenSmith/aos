@@ -3,7 +3,7 @@
  * 模块入口，负责从模块“aos.uefi”跳转到模块“aos.kernel”。
  * @date 2025-12-04
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -34,6 +34,7 @@
 aos_kernel_trampoline:
     movq %rcx,%rdi
     movq %rdx,%rsp
+    cli
     cld
     jmp aos_kernel_entry
 .size aos_kernel_trampoline,.-aos_kernel_trampoline

@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_LIB_MEMORY_H__
-#define __AOS_KERNEL_LIB_MEMORY_H__
+#ifndef __AOS_KERNEL_LIBRARY_MEMORY_H__
+#define __AOS_KERNEL_LIBRARY_MEMORY_H__
 
 #include "ktype.h"
 
@@ -79,4 +79,4 @@ static inline void* memory_zero(void* m,uintn n)
     return memory_set(m,0,n);
 }
 
-#endif /*__AOS_KERNEL_LIB_MEMORY_H__*/
+#endif /*__AOS_KERNEL_LIBRARY_MEMORY_H__*/

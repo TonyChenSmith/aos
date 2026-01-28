@@ -6,7 +6,7 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#include <test/lib/test.h>
+#include <test/library/test.h>
 
 /**
  * 测试字符操作库函数。
@@ -55,12 +55,12 @@ UTEST_CASE(string_test)
  */
 int32 main()
 {
-    UTEST_SUITE("aos.kernel.test.lib");
+    UTEST_SUITE("aos.kernel.test.library");
     
     UTEST_RUN(char_test);
     UTEST_RUN(convert_test);
     UTEST_RUN(memory_test);
     UTEST_RUN(string_test);
 
-    UTEST_END("aos.kernel.test.lib");
+    UTEST_END("aos.kernel.test.library");
 }

@@ -29,7 +29,7 @@ void line(const char8* str)
  * 
  * @return 读取的寄存器值。
  */
-static inline uint64 entry_rdmsr(uint32 msr) {
+static inline uint64 init_rdmsr(uint32 msr) {
     uint32 low,high;
     __asm__ volatile("rdmsr":"=a"(low),"=d"(high):"c"(msr));
     return ((uint64)high<<32)|low;
@@ -43,7 +43,7 @@ static inline uint64 entry_rdmsr(uint32 msr) {
  * 
  * @return 无返回值。
  */
-static inline void entry_wrmsr(uint32 msr,uint64 value) {
+static inline void init_wrmsr(uint32 msr,uint64 value) {
     __asm__ volatile("wrmsr"::"a"(value&0xFFFFFFFF),"d"(value>>32),"c"(msr));
 }
 
@@ -54,7 +54,7 @@ static inline void entry_wrmsr(uint32 msr,uint64 value) {
  * 
  * @return 无返回值。
  */
-static void entry_reset_all_aps(aos_boot_params* params)
+static void init_reset_all_aps(aos_boot_params* params)
 {
     if(params->state.apic==AOS_APIC_NO_APIC)
     {
@@ -62,7 +62,7 @@ static void entry_reset_all_aps(aos_boot_params* params)
     }
     else if(params->state.apic==AOS_APIC_XAPIC)
     {
-        uint64 apic_base=entry_rdmsr(0x1B)&0xFFFFF000;
+        uint64 apic_base=init_rdmsr(0x1B)&0xFFFFF000;
         uint32* icr_low=(uint32*)(apic_base+0x300);
         uint32* icr_high=(uint32*)(apic_base+0x310);
 
@@ -73,7 +73,7 @@ static void entry_reset_all_aps(aos_boot_params* params)
     }
     else
     {
-        entry_wrmsr(0x830,(5<<8)|BIT14|(3<<18));
+        init_wrmsr(0x830,(5<<8)|BIT14|(3<<18));
     }
 }
 
@@ -86,7 +86,7 @@ static void entry_reset_all_aps(aos_boot_params* params)
  */
 noreturn void aos_kernel_entry(aos_boot_params* params)
 {
-    entry_reset_all_aps(params);
+    init_reset_all_aps(params);
     line("[aos.kernel.entry] 你好.");
     while(true)
     {

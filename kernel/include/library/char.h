@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_LIB_CHAR_H__
-#define __AOS_KERNEL_LIB_CHAR_H__
+#ifndef __AOS_KERNEL_LIBRARY_CHAR_H__
+#define __AOS_KERNEL_LIBRARY_CHAR_H__
 
 #include "ktype.h"
 
@@ -92,4 +92,4 @@ char32 to_lowercase(char32 c);
  */
 char32 to_uppercase(char32 c);
 
-#endif /*__AOS_KERNEL_LIB_CHAR_H__*/
+#endif /*__AOS_KERNEL_LIBRARY_CHAR_H__*/

@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_LIB_STRING_H__
-#define __AOS_KERNEL_LIB_STRING_H__
+#ifndef __AOS_KERNEL_LIBRARY_STRING_H__
+#define __AOS_KERNEL_LIBRARY_STRING_H__
 
 #include "kdef.h"
 #include "ktype.h"
@@ -548,4 +548,4 @@ uintn string_substring16(char16* dest,const char16* src,uintn start,uintn length
  */
 uintn string_substring32(char32* dest,const char32* src,uintn start,uintn length,uintn size);
 
-#endif /*__AOS_KERNEL_LIB_STRING_H__*/
+#endif /*__AOS_KERNEL_LIBRARY_STRING_H__*/

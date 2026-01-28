@@ -1,7 +1,7 @@
 #include <base.h>
-#include <lib/memory.h>
-#include <lib/string.h>
-#include <lib/varargs.h>
+#include <library/memory.h>
+#include <library/string.h>
+#include <library/varargs.h>
 
 static char8 buffer_a[512];
 static char8 buffer_b[512];

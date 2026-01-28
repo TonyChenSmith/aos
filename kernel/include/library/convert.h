@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_LIB_CONVERT_H__
-#define __AOS_KERNEL_LIB_CONVERT_H__
+#ifndef __AOS_KERNEL_LIBRARY_CONVERT_H__
+#define __AOS_KERNEL_LIBRARY_CONVERT_H__
 
 #include "kdef.h"
 #include "ktype.h"
@@ -189,4 +189,4 @@ uintn int_buffer_size(int64 number);
  */
 uintn uint_buffer_size(uint64 number,uint8 scale);
 
-#endif /*__AOS_KERNEL_LIB_CONVERT_H__*/
+#endif /*__AOS_KERNEL_LIBRARY_CONVERT_H__*/

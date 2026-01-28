@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_TEST_LIB_TEST_H__
-#define __AOS_KERNEL_TEST_LIB_TEST_H__
+#ifndef __AOS_KERNEL_TEST_LIBRARY_TEST_H__
+#define __AOS_KERNEL_TEST_LIBRARY_TEST_H__
 
 #include <test/utest.h>
 
@@ -39,4 +39,4 @@ int32 memory_test();
  */
 int32 string_test();
 
-#endif /*__AOS_KERNEL_TEST_LIB_TEST_H__*/
+#endif /*__AOS_KERNEL_TEST_LIBRARY_TEST_H__*/

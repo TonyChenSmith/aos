@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_LIB_KDEF_H__
-#define __AOS_KERNEL_LIB_KDEF_H__
+#ifndef __AOS_KERNEL_LIBRARY_KDEF_H__
+#define __AOS_KERNEL_LIBRARY_KDEF_H__
 
 #include "ktype.h"
 
@@ -298,4 +298,4 @@
 #define SIZE_4EB   __UINT64_C(4000000000000000)
 #define SIZE_8EB   __UINT64_C(8000000000000000)
 
-#endif /*__AOS_KERNEL_LIB_KDEF_H__*/
+#endif /*__AOS_KERNEL_LIBRARY_KDEF_H__*/

@@ -15,4 +15,4 @@ file(REAL_PATH ../include INCLUD_ABS_PATH)
 include_directories(${INCLUD_ABS_PATH})
 
 add_subdirectory(hello)
-add_subdirectory(lib)
+add_subdirectory(library)

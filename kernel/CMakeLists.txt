@@ -14,14 +14,13 @@ include(script/target.cmake)
 include_directories(include)
 
 # 模块列表
-add_subdirectory(init)
-add_subdirectory(lib)
+add_subdirectory(library)
 
 add_executable(aos.kernel
-    entry/entry.c
-    entry/trampoline.S
+    init/entry.c
+    init/trampoline.S
 
-    entry/temp.S
+    init/temp.S
 )
 
 # 模块链接
@@ -33,8 +32,7 @@ else()
     set_target_properties(aos.kernel PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/script/debug.ld)
 endif()
 
-target_link_libraries(aos.kernel PRIVATE aos.kernel.init)
-target_link_libraries(aos.kernel PRIVATE aos.kernel.lib)
+target_link_libraries(aos.kernel PRIVATE aos.kernel.library)
 
 add_aos_target(aos.kernel $<TARGET_FILE:aos.kernel>)
 

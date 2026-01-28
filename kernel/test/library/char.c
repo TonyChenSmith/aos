@@ -8,7 +8,7 @@
  */
 #include <test/utest.h>
 
-#include <lib/char.h>
+#include <library/char.h>
 
 /**
  * 测试ASCII字母判断函数。
@@ -566,7 +566,7 @@ UTEST_CASE(ascii_case_conversion_comprehensive)
  */
 int32 char_test()
 {
-    UTEST_SUITE("aos.kernel.test.lib.char");
+    UTEST_SUITE("aos.kernel.test.library.char");
     
     UTEST_RUN(ascii_is_alphabetic_basic);
     UTEST_RUN(ascii_is_digit_basic);
@@ -585,5 +585,5 @@ int32 char_test()
     UTEST_RUN(ascii_case_conversion_consistency);
     UTEST_RUN(ascii_case_conversion_comprehensive);
     
-    UTEST_SUMMARY("aos.kernel.test.lib.char");
+    UTEST_SUMMARY("aos.kernel.test.library.char");
 }

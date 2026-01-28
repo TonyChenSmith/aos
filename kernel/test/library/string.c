@@ -8,7 +8,7 @@
  */
 #include <test/utest.h>
 
-#include <lib/string.h>
+#include <library/string.h>
 
 /**
  * 测试8位字符串长度函数。
@@ -577,7 +577,7 @@ UTEST_CASE(string_integration_test)
  */
 int32 string_test()
 {
-    UTEST_SUITE("aos.kernel.test.lib.string");
+    UTEST_SUITE("aos.kernel.test.library.string");
     
     UTEST_RUN(string_length8_basic);
     UTEST_RUN(string_length16_basic);
@@ -602,5 +602,5 @@ int32 string_test()
     UTEST_RUN(string_performance_basic);
     UTEST_RUN(string_integration_test);
     
-    UTEST_SUMMARY("aos.kernel.test.lib.string");
+    UTEST_SUMMARY("aos.kernel.test.library.string");
 }

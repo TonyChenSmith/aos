@@ -7,8 +7,8 @@
  * SPDX-License-Identifier: MIT
  */
 #include <base.h>
-#include <lib/char.h>
-#include <lib//string.h>
+#include <library/char.h>
+#include <library//string.h>
 
 /**
  * 将8位十进制字符串转换为有符号整型数值。

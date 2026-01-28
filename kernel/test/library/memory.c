@@ -8,7 +8,7 @@
  */
 #include <test/utest.h>
 
-#include <lib/memory.h>
+#include <library/memory.h>
 #include <stdlib.h>
 
 /**
@@ -467,7 +467,7 @@ UTEST_CASE(memory_integration)
  */
 int32 memory_test()
 {
-    UTEST_SUITE("aos.kernel.test.lib.memory");
+    UTEST_SUITE("aos.kernel.test.library.memory");
     
     UTEST_RUN(memory_copy_basic);
     UTEST_RUN(memory_copy_zero);

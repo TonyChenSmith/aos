@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_LIB_UTIL_H__
-#define __AOS_KERNEL_LIB_UTIL_H__
+#ifndef __AOS_KERNEL_LIBRARY_UTIL_H__
+#define __AOS_KERNEL_LIBRARY_UTIL_H__
 
 #include "kdef.h"
 #include "ktype.h"
@@ -703,4 +703,4 @@ static inline bool align_up(uintn value,uintn align)
     return (value/align)*align+(value%align==0?0:align);
 }
 
-#endif /*__AOS_KERNEL_LIB_UTIL_H__*/
+#endif /*__AOS_KERNEL_LIBRARY_UTIL_H__*/

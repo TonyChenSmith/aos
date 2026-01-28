@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_LIB_IO_H__
-#define __AOS_KERNEL_LIB_IO_H__
+#ifndef __AOS_KERNEL_LIBRARY_IO_H__
+#define __AOS_KERNEL_LIBRARY_IO_H__
 
 #include "ktype.h"
 
@@ -162,4 +162,4 @@ struct _io_handle
  */
 #define IO_STATUS_NOT_SUPPORTED 3
 
-#endif /*__AOS_KERNEL_LIB_IO_H__*/
+#endif /*__AOS_KERNEL_LIBRARY_IO_H__*/
