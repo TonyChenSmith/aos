@@ -2,7 +2,7 @@
 # Declaration of the module "aos.uefi".
 # @date 2025-01-24
 # 
-# Copyright (c) 2025 Tony Chen Smith
+# Copyright (c) 2025-2026 Tony Chen Smith
 # 
 # SPDX-License-Identifier: MIT
 # 
@@ -13,7 +13,7 @@
     # UUID.nameUUIDFromBytes("aos.uefi.declaration".getBytes("UTF-8"))
     PACKAGE_GUID                   = 15277882-97AB-3EF7-B05A-1DEBEB8EE801
     # Major.Minor.Patch Before the official launch, do not increment the major version number.
-    PACKAGE_VERSION                = 0.0.2
+    PACKAGE_VERSION                = 0.1.0
 
 [Includes]
     include

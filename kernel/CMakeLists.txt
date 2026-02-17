@@ -14,7 +14,7 @@ include(script/target.cmake)
 include_directories(include)
 
 # 模块列表
-add_subdirectory(library)
+add_subdirectory(support)
 
 add_executable(aos.kernel
     init/entry.c
@@ -32,7 +32,7 @@ else()
     set_target_properties(aos.kernel PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/script/debug.ld)
 endif()
 
-target_link_libraries(aos.kernel PRIVATE aos.kernel.library)
+target_link_libraries(aos.kernel PRIVATE aos.kernel.support)
 
 add_aos_target(aos.kernel $<TARGET_FILE:aos.kernel>)
 

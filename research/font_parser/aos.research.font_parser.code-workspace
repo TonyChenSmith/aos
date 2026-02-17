@@ -1,0 +1,47 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "clangd.arguments": [
+            "--compile-commands-dir=${workspaceFolder}/out/",
+            "--header-insertion=never"
+        ],
+        "clangd.checkUpdates": false,
+        "cmake.options.advanced": {
+            "configurePreset": {
+                "statusBarVisibility": "inherit",
+                "inheritDefault": "visible"
+            },
+            "launch": {
+                "statusBarVisibility": "inherit",
+                "inheritDefault": "visible"
+            },
+            "configure": {
+                "statusBarVisibility": "inherit",
+                "inheritDefault": "visible"
+            },
+            "build": {
+                "statusBarVisibility": "inherit",
+                "inheritDefault": "visible"
+            },
+            "ctest": {
+                "statusBarVisibility": "inherit",
+                "inheritDefault": "visible"
+            }
+        },
+        "cmake.copyCompileCommands": "${workspaceFolder}/out/compile_commands.json",
+        "cmake.ctestDefaultArgs": [
+            "--output-on-failure"
+        ],
+        "cmake.ctest.testExplorerIntegrationEnabled": false,
+        "cmake.pinnedCommands": [],
+        "cmake.useCMakePresets": "always",
+        "editor.renderWhitespace": "all",
+        "editor.rulers": [
+            120
+        ]
+    }
+}

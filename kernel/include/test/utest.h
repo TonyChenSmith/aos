@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <library/ktype.h>
+#include <support/ktype.h>
 
 /**
  * 测试通过。

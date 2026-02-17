@@ -9,14 +9,14 @@
 #include "fsmi.h"
 
 /**
- * ESP设备句柄。
+ * EFI系统分区设备句柄。
  */
 STATIC EFI_HANDLE esp=NULL;
 
 /**
- * ESP根路径。
+ * EFI系统分区根路径。
  */
-STATIC EFI_FILE_HANDLE root=NULL;
+STATIC EFI_FILE_HANDLE esp_root=NULL;
 
 /**
  * 初始化文件系统管理功能。
@@ -55,9 +55,9 @@ EFI_STATUS EFIAPI fsm_init(IN OUT aos_boot_params* params)
  * 
  * @return 无返回值。
  */
-VOID EFIAPI mount()
+VOID EFIAPI esp_mount()
 {
-    if(root!=NULL)
+    if(esp_root!=NULL)
     {
         return;
     }
@@ -66,7 +66,7 @@ VOID EFIAPI mount()
     EFI_STATUS state=gBS->OpenProtocol(esp,&gEfiSimpleFileSystemProtocolGuid,(VOID**)&fs,gImageHandle,NULL,
         EFI_OPEN_PROTOCOL_GET_PROTOCOL);
     ASSERT(state==EFI_SUCCESS);
-    state=fs->OpenVolume(fs,&root);
+    state=fs->OpenVolume(fs,&esp_root);
     if(EFI_ERROR(state))
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.fsm] "
@@ -79,19 +79,19 @@ VOID EFIAPI mount()
  * 
  * @return 无返回值。
  */
-VOID EFIAPI umount()
+VOID EFIAPI esp_umount()
 {
-    if(root==NULL)
+    if(esp_root==NULL)
     {
         return;
     }
 
-    root->Close(root);
-    root=NULL;
+    esp_root->Close(esp_root);
+    esp_root=NULL;
 }
 
 /**
- * 打开ESP内文件或目录。
+ * 打开EFI系统分区内文件或目录。
  * 
  * @param path  文件路径。
  * @param mode  打开模式。
@@ -99,18 +99,18 @@ VOID EFIAPI umount()
  * 
  * @return 打开成功返回句柄，文件找不到和其它错误返回空。其它错误会打印调试输出。
  */
-EFI_FILE_HANDLE EFIAPI ufopen(IN CHAR16* path,IN UINT64 mode,IN UINT64 attrs)
+EFI_FILE_HANDLE EFIAPI esp_fopen(IN CHAR16* path,IN UINT64 mode,IN UINT64 attrs)
 {
     ASSERT(path!=NULL&&*path!=0);
 
-    if(root==NULL)
+    if(esp_root==NULL)
     {
         DEBUG((DEBUG_ERROR,"[aos.uefi.fsm] The ESP is not mounted.\n"));
         return NULL;
     }
 
     EFI_FILE_HANDLE result=NULL;
-    EFI_STATUS state=root->Open(root,&result,path,mode,attrs);
+    EFI_STATUS state=esp_root->Open(esp_root,&result,path,mode,attrs);
 
     if(state==EFI_NOT_FOUND)
     {
@@ -126,13 +126,13 @@ EFI_FILE_HANDLE EFIAPI ufopen(IN CHAR16* path,IN UINT64 mode,IN UINT64 attrs)
 }
 
 /**
- * 快速获取文件的大小。调用者有义务保证参数为文件而非目录。
+ * 快速获取EFI系统分区内文件的大小。调用者有义务保证参数为文件而非目录。
  * 
  * @param file 句柄。
  * 
  * @return 文件大小。出现问题返回最大值。
  */
-UINT64 EFIAPI ufsize(IN EFI_FILE_HANDLE file)
+UINT64 EFIAPI esp_fsize(IN EFI_FILE_HANDLE file)
 {
     ASSERT(file!=NULL);
 

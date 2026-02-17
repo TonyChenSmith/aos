@@ -2,7 +2,7 @@
 # 将所有文件打包到虚拟机硬盘。要求硬盘文件存在且格式化为FAT32，盘符有序。
 # @date 2025-12-03
 # 
-# Copyright (c) 2025 Tony Chen Smith
+# Copyright (c) 2025-2026 Tony Chen Smith
 # 
 # SPDX-License-Identifier: MIT
 # 
@@ -42,14 +42,19 @@ def mount_vhd(vhd_path):
     挂载VHD文件并返回第一个盘符。
     """
 
-    script=f'Mount-VHD -Path "{vhd_path}" -PassThru | Get-Disk | Get-Partition | Get-Volume | ForEach-Object {{ $_.DriveLetter }} | Where-Object {{ $_ -ne $null }}'
+    script=f'Mount-VHD -Path "{vhd_path}" -PassThru|Get-Disk|Get-Partition|Where-Object {{$_.DriveLetter}}|Select-Object PartitionNumber,Guid,DriveLetter|Sort-Object PartitionNumber|ConvertTo-Json -Compress'
     result=run_ps_command(script)
     
     if result and result.returncode==0:
-        if result.stdout!=None:
-            disk=sorted(result.stdout.strip().split("\n"))
-            if len(disk)>0:
-                return disk[0]
+        output=json.loads(result.stdout)
+        result=[]
+        index=1
+        for partition in output:
+            result.append({'partition':f'hd{index}/','drive':f'{partition['DriveLetter']}:/','guid':partition['Guid'][1:-1].upper()})
+            index=index+1
+        if len(result)>0:
+            return result
+
     return None
 
 def unmount_vhd(vhd_path):
@@ -77,7 +82,7 @@ if __name__=="__main__":
         sign.sign_kernel(True)
 
     project_base=os.path.normpath(os.path.abspath('../'))
-    disk_base=None
+    partitions=None
     manifest=None
     if os.path.exists(manifest_path):
         with open(manifest_path,'r') as jsonfile:
@@ -90,20 +95,35 @@ if __name__=="__main__":
     vhd=os.path.normpath(os.path.join(project_base,manifest['disk']))
     if os.path.exists(vhd):
         unmount_vhd(vhd)
-        disk_base=mount_vhd(vhd)
+        partitions=mount_vhd(vhd)
     
-    if disk_base!=None:
-        disk_base=disk_base+':/'
-        disk_base=os.path.normpath(disk_base)
+    if partitions!=None:
+        system_partiton=None
+        for partition in partitions:
+            if manifest['system']==partition['partition']:
+                system_partiton=partition['guid']
+                break
+        if system_partiton!=None:
+            data='HD,GPT,'+system_partiton
+            location_path=os.path.normpath(os.path.join(project_base,'test/','aos.system.location'))
+            with open(location_path,'w') as f:
+                f.write(data)
 
         for info in manifest['manifest']:
-            dpath=os.path.normpath(os.path.join(disk_base,info['disk']))
-            os.makedirs(dpath,exist_ok=True)
-            dpath=os.path.join(dpath,info['file'])
-            ppath=os.path.normpath(os.path.join(project_base,info['project'],info['file']))
-            if os.path.exists(ppath):
-                shutil.copy2(ppath,dpath)
-
+            for partition in partitions:
+                if info['disk'].startswith(partition['partition']):
+                    dpath=os.path.normpath(partition['drive']+info['disk'][len(partition['partition']):])
+                    os.makedirs(dpath,exist_ok=True)
+                    dpath=os.path.join(dpath,info['file'])
+                    ppath=os.path.normpath(os.path.join(project_base,info['project'],info['file']))
+                    if os.path.exists(ppath):
+                        shutil.copy2(ppath,dpath)
+                    break
+                else:
+                    continue
+        
+        unmount_vhd(vhd)
+    else:
         unmount_vhd(vhd)
     
     if args.mode=='Release':

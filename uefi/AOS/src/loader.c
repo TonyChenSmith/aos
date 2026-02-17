@@ -2,7 +2,7 @@
  * 模块内核程序文件加载。
  * @date 2025-12-09
  *
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  *
  * SPDX-License-Identifier: MIT
  */
@@ -614,6 +614,10 @@ STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel
  */
 EFI_STATUS EFIAPI load_kernel(IN OUT aos_boot_params* params)
 {
+    esp_mount();
+    
+    esp_umount();
+
     mount();
 
     EFI_FILE_HANDLE sig=ufopen(LOADER_SIG_PATH,EFI_FILE_MODE_READ,0);

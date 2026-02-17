@@ -2,7 +2,7 @@
  * 模块版本信息。
  * @date 2025-12-01
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -20,8 +20,13 @@
 #define AOS_UEFI_VESION_0_0_2 0x20250601
 
 /**
+ * 模块0.1.0版本。
+ */
+#define AOS_UEFI_VESION_0_1_0 0x20260215
+
+/**
  * 模块“aos.uefi”版本。
  */
-#define AOS_UEFI_VERSION AOS_UEFI_VESION_0_0_2
+#define AOS_UEFI_VERSION AOS_UEFI_VESION_0_1_0
 
 #endif /*__AOS_UEFI_VERSION_H__*/
