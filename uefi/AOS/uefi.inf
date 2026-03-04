@@ -41,12 +41,12 @@
     DebugLib
     DebugPrintErrorLevelLib
     FileHandleLib
-    RngLib
     UefiApplicationEntryPoint
     UefiBootServicesTableLib
     UefiLib
 
 [Protocols]
+    gEfiBlockIoProtocolGuid
     gEfiDevicePathProtocolGuid
     gEfiEdidActiveProtocolGuid
     gEfiEdidDiscoveredProtocolGuid

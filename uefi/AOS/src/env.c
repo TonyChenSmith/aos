@@ -2,7 +2,7 @@
  * 模块启动环境管理。
  * @date 2025-06-11
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -54,6 +54,7 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
     /*检测我们检测所需最大页数*/
     if(main_max<CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS)
     {
+        /*CPUID页面0x7不支持*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] "
             "The CPUID leaf 0x%X is not supported. (Max basic leaf: 0x%X)\n",
             CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS,main_max));
@@ -61,6 +62,7 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
     }
     if(extended_max<CPUID_EXTENDED_CPU_SIG)
     {
+        /*CPUID页面0x1不支持*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] "
             "The CPUID leaf 0x%X is not supported. (Max basic leaf: 0x%X)\n",
             CPUID_EXTENDED_CPU_SIG,extended_max));
@@ -80,17 +82,26 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
 
     if(!ml1edx.Bits.MTRR)
     {
+        /*CPU不支持MTRR*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The CPU does not support MTRR.\n"));
         return EFI_UNSUPPORTED;
     }
     else if(!ml1edx.Bits.PAT)
     {
+        /*CPU不支持PAT*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The CPU does not support PAT.\n"));
         return EFI_UNSUPPORTED;
     }
     else if(!(ml1edx.Bits.APIC||ml1ecx.Bits.x2APIC))
     {
+        /*CPU不支持APIC*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The CPU does not support APIC.\n"));
+        return EFI_UNSUPPORTED;
+    }
+    else if(!ml1edx.Bits.TSC)
+    {
+        /*CPU不支持时间戳计数器*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] The CPU does not support time stamp count.\n"));
         return EFI_UNSUPPORTED;
     }
     if(ml1edx.Bits.APIC)
@@ -119,6 +130,7 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
     {
         /*当前没能力打开xAPIC*/
         params->state.apic=AOS_APIC_NO_APIC;
+        /*xAPIC未开启*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The xAPIC is not enabled.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -127,6 +139,7 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
     if(!(ml1edx.Bits.CMOV&&ml1edx.Bits.CX8&&ml1edx.Bits.FPU&&ml1edx.Bits.FXSR&&ml1edx.Bits.MMX&&
         ml1edx.Bits.SSE&&ml1edx.Bits.SSE2&&el1edx.Bits.SYSCALL_SYSRET))
     {
+        /*不支持CPU基线x86-64-v1*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The CPU baseline x86-64-v1 is not supported.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -172,6 +185,7 @@ STATIC EFI_STATUS EFIAPI env_set_cpu(IN OUT aos_boot_params* params)
     MSR_IA32_MTRRCAP_REGISTER mtrrcap={.Uint64=AsmReadMsr64(MSR_IA32_MTRRCAP)};
     if(mtrrcap.Bits.VCNT==0&&mtrrcap.Bits.FIX==0)
     {
+        /*CPU不支持MTRR*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The CPU does not support MTRR.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -303,12 +317,14 @@ STATIC EFI_STATUS EFIAPI env_set_table(IN OUT aos_boot_params* params)
         if(types[0]==EfiConventionalMemory||types[0]==EfiBootServicesCode||types[0]==EfiBootServicesData||
             types[0]==EfiLoaderCode||types[0]==EfiLoaderData)
         {
+            /*ACPI表在不期待的内存内*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.env] ACPI tables are in unexpected memory.\n"));
             return EFI_UNSUPPORTED;
         }
         if(types[1]==EfiConventionalMemory||types[1]==EfiBootServicesCode||types[1]==EfiLoaderCode||
             types[1]==EfiLoaderData||types[1]==EfiBootServicesData)
         {
+            /*SMBIOS表在不期待的内存内*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.env] SMBIOS table is in unexpected memory.\n"));
             return EFI_UNSUPPORTED;
         }
@@ -331,6 +347,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
     if(rsdp->Revision<EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER_REVISION)
     {
         /*ACPI结构不正常*/
+        /*不是期望的ACPI版本*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The ACPI version is unexpected.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -368,6 +385,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
     if(madt==NULL)
     {
         /*找不到MADT属于意外*/
+        /*MADT未找到*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The MADT is not found.\n"));
         return EFI_DEVICE_ERROR;
     }
@@ -459,6 +477,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
 
         if(list==NULL)
         {
+            /*本地APIC未找到*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.env] The Local APIC is not found.\n"));
             return EFI_DEVICE_ERROR;
         }
@@ -531,6 +550,7 @@ STATIC EFI_STATUS EFIAPI env_get_cpu_core_info(IN OUT aos_boot_params* params)
         }
         else
         {
+            /*APIC未启用*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.env] The APIC is not enabled.\n"));
             return EFI_DEVICE_ERROR;
         }
@@ -555,8 +575,9 @@ STATIC EFI_STATUS EFIAPI env_set_gdt(IN OUT aos_boot_params* params)
     EFI_STATUS status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,params->minfo.fblock_pages[3],&base);
     if(EFI_ERROR(status))
     {
-        DEBUG((DEBUG_ERROR,"[aos.uefi.env] "
-            "The system unexpectedly lacks sufficient memory for the GDT.\n"));
+        /*系统意外地缺乏足够内存用于GDT*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] The system unexpectedly lacks sufficient memory "
+            "for the GDT.\n"));
         return EFI_DEVICE_ERROR;
     }
     UINT64* gdt=(UINT64*)base;
@@ -709,12 +730,14 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
         status=gBS->LocateHandle(ByProtocol,&gEfiGraphicsOutputProtocolGuid,NULL,&count,gops);
         if(EFI_ERROR(status))
         {
+            ufree(gops);
             return status;
         }
         count/=sizeof(EFI_HANDLE);
     }
     else
     {
+        /*未找到图像输出协议*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The Graphics Output Protocol is not found.\n"));
         return EFI_NOT_FOUND;
     }
@@ -750,6 +773,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     ufree(gops);
     if(gop==NULL)
     {
+        /*未找到受支持的图像输出协议*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.env] The supported Graphics Output Protocol is not found.\n"));
         return EFI_UNSUPPORTED;
     }
@@ -758,8 +782,9 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
         EFI_OPEN_PROTOCOL_GET_PROTOCOL);
     if(EFI_ERROR(status))
     {
-        DEBUG((DEBUG_ERROR,"[aos.uefi.env] "
-            "The Device Path Protocol is not found within the handle corresponding to the Graphics Output Protocol\n"));
+        /*在图形输出协议对应的句柄中未找到设备路径协议*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] The Device Path Protocol is not found within "
+            "the handle corresponding to the Graphics Output Protocol\n"));
         return EFI_UNSUPPORTED;
     }
     else
@@ -796,8 +821,9 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
             status=gop->QueryMode(gop,0,&size,&info);
             if(EFI_ERROR(status))
             {
-                DEBUG((DEBUG_WARN,"[aos.uefi.env] "
-                    "A device error occurred while querying the graphics mode. (Mode 0)\n"));
+                /*在查询图形模式时发生设备错误*/
+                DEBUG((DEBUG_WARN,"[aos.uefi.env] A device error occurred while querying "
+                    "the graphics mode. (Mode 0)\n"));
             }
             else
             {
@@ -826,8 +852,9 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
         status=gop->QueryMode(gop,index,&size,&info);
         if(EFI_ERROR(status))
         {
-            DEBUG((DEBUG_WARN,"[aos.uefi.env] "
-                "A device error occurred while querying the graphics mode. (Mode %u)\n",index));
+            /*在查询图形模式时发生设备错误*/
+            DEBUG((DEBUG_WARN,"[aos.uefi.env] A device error occurred while querying "
+                "the graphics mode. (Mode %u)\n",index));
             continue;
         }
         if(info->HorizontalResolution>hlim||info->VerticalResolution>vlim||info->PixelFormat==PixelBltOnly)
@@ -870,8 +897,9 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
     if(mode==max)
     {
         mode=gop->Mode->Mode;
-        DEBUG((DEBUG_WARN,
-            "[aos.uefi.env] No valid mode found, using current mode. (Mode %u)\n",mode));
+        /*未找到可用模式，使用当前模式*/
+        DEBUG((DEBUG_WARN,"[aos.uefi.env] No valid mode found, using current mode. (Mode %u)\n",
+            mode));
     }
 
     /*设置模式与输出信息*/
@@ -880,6 +908,7 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
         status=gop->SetMode(gop,mode);
         if(EFI_ERROR(status))
         {
+            /*设置图形模式失败*/
             DEBUG((DEBUG_WARN,"[aos.uefi.env] Failed to set graphics mode. (Mode %u)\n",mode));
         }
     }
@@ -915,6 +944,11 @@ STATIC EFI_STATUS EFIAPI env_get_graphics_info(IN OUT aos_boot_params* params)
 
     return EFI_SUCCESS;
 }
+
+/**
+ * 随机种子字符串。
+ */
+STATIC CHAR8 seed[512];
 
 /**
  * 初始化启动环境。
@@ -961,8 +995,9 @@ EFI_STATUS EFIAPI env_init(IN OUT aos_boot_params* params)
     status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,CONFIG_KERNEL_POOL,&base);
     if(EFI_ERROR(status))
     {
-        DEBUG((DEBUG_ERROR,"[aos.uefi.env] Failed to allocate kernel memory pool "
-            "of %llu pages.\n",(UINT64)CONFIG_KERNEL_POOL));
+        /*申请内核内存池失败*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] Failed to allocate kernel memory pool of %llu pages.\n",
+            (UINT64)CONFIG_KERNEL_POOL));
         return status;
     }
     params->minfo.fblock_paddr[2]=base;
@@ -972,8 +1007,9 @@ EFI_STATUS EFIAPI env_init(IN OUT aos_boot_params* params)
     status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,CONFIG_PAGE_TABLE_POOL,&base);
     if(EFI_ERROR(status))
     {
-        DEBUG((DEBUG_ERROR,"[aos.uefi.env] Failed to allocate page table memory pool "
-            "of %llu pages.\n",(UINT64)CONFIG_PAGE_TABLE_POOL));
+        /*申请页表内存池失败*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] Failed to allocate page table memory pool of %llu "
+            "pages.\n",(UINT64)CONFIG_PAGE_TABLE_POOL));
         return status;
     }
     params->minfo.fblock_paddr[1]=base;
@@ -982,15 +1018,19 @@ EFI_STATUS EFIAPI env_init(IN OUT aos_boot_params* params)
     params->bitmap=(UINT8*)umalloc(params->bitmap_length);
     if(params->bitmap==NULL)
     {
-        DEBUG((DEBUG_ERROR,"[aos.uefi.env] Failed to allocate page table memory pool bitmap "
-            "of %llu pages.\n",(UINT64)CONFIG_PAGE_TABLE_POOL));
+        /*申请页表内存池位图失败*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.env] Failed to allocate page table memory pool bitmap of "
+            "%llu pages.\n",(UINT64)CONFIG_PAGE_TABLE_POOL));
         return EFI_OUT_OF_RESOURCES;
     }
     ZeroMem(params->bitmap,params->bitmap_length);
     params->bitmap[params->bitmap_length-1]=ENV_BITMAP_MASK[CONFIG_PAGE_TABLE_POOL%8];
 
-    UINT64 seed=AOS_UEFI_VERSION;
-    GetRandomNumber64(&seed);
-    RandomSeed((UINT8*)&seed,sizeof(UINT64));
+    UINT64 seed_value=AOS_UEFI_VERSION;
+    GetRandomNumber64(&seed_value);
+    AsciiSPrint(seed,sizeof(seed),"Module \"aos.uefi\" seed: "
+        "The version of the module \"aos.uefi\" is %06lX. The time stamp counter is %016lX. The random seed value "
+        "is %016lX",(UINT64)AOS_UEFI_VERSION,AsmReadTsc(),seed_value);
+    RandomSeed((UINT8*)seed,sizeof(seed));
     return EFI_SUCCESS;
 }

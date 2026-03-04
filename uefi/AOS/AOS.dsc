@@ -42,17 +42,16 @@
     PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
     PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
     RegisterFilterLib|MdePkg/Library/RegisterFilterLibNull/RegisterFilterLibNull.inf
-    RngLib|MdeModulePkg/Library/BaseRngLibTimerLib/BaseRngLibTimerLib.inf
+    RngLib|AOS/lib/random/random.inf
     StackCheckFailureHookLib|MdePkg/Library/StackCheckFailureHookLibNull/StackCheckFailureHookLibNull.inf
     StackCheckLib|MdePkg/Library/StackCheckLib/StackCheckLib.inf
     SynchronizationLib|MdePkg/Library/BaseSynchronizationLib/BaseSynchronizationLib.inf
-    TimerLib|AOS/lib/timer/timer.inf
+    TimerLib|MdePkg/Library/BaseTimerLibNullTemplate/BaseTimerLibNullTemplate.inf
     UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
     UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
     UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
     UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
     
-    # Debug Library
 !if $(TARGET) == RELEASE
     DebugLib|MdePkg/Library/BaseDebugLibNull/BaseDebugLibNull.inf
 !else
@@ -62,7 +61,6 @@
 [LibraryClasses.common.UEFI_APPLICATION]
 
 [Components.X64]
-    AOS/lib/timer/timer.inf
     AOS/uefi.inf
 
 [PcdsFixedAtBuild]

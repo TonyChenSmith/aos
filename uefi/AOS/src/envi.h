@@ -17,9 +17,10 @@
 #include <Guid/SmBios.h>
 #include <IndustryStandard/Acpi.h>
 #include <Library/BaseCryptLib.h>
-#include <Library/CpuLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DevicePathLib.h>
+#include <Library/CpuLib.h>
+#include <Library/PrintLib.h>
 #include <Library/RngLib.h>
 #include <Protocol/EdidActive.h>
 #include <Protocol/EdidDiscovered.h>

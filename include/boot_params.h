@@ -2,7 +2,7 @@
  * 系统启动参数结构。在模块“aos.uefi”与模块“aos.kernel”间共享。
  * @date 2025-12-20
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -425,7 +425,7 @@ typedef struct _aos_boot_params
     uint32*               cpus;            /*处理器数组。*/
     aos_graphics_info     graphics;        /*图形信息。*/
     aos_efi_device_path*  graphics_device; /*图形设备路径。*/
-    aos_efi_device_path*  esp;             /*ESP设备路径。*/
+    aos_efi_device_path*  esp;             /*EFI系统分区设备路径。*/
     uintn                 page_table;      /*内核页表物理地址。*/
     aos_boot_vma*         vma_head;        /*线性区头地址。*/
     aos_boot_vma*         vma_tail;        /*线性区尾地址。*/

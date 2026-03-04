@@ -13,6 +13,20 @@
 
 #include <Library/BaseMemoryLib.h>
 #include <Library/DevicePathLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Protocol/BlockIo.h>
 #include <Protocol/LoadedImage.h>
+
+/**
+ * AOS系统卷文件结构。
+ */
+struct _asv_file
+{
+    union
+    {
+        EFI_FILE_HANDLE simple_file; /*EFI文件句柄。*/
+    } handle;                        /*文件系统根句柄。*/
+    
+};
 
 #endif /*__AOS_UEFI_FSM_INTERNAL_H__*/

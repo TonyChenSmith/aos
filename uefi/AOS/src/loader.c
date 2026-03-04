@@ -48,9 +48,9 @@ STATIC BOOLEAN EFIAPI loader_elf_check(IN loader_elf64_ehdr* header,IN UINTN siz
  *
  * @return 正常完成读写返回成功，任何文件或内存分配问题返回失败。
  */
-STATIC EFI_STATUS EFIAPI loader_map(IN EFI_FILE_HANDLE kernel,IN OUT aos_boot_params* params)
+STATIC EFI_STATUS EFIAPI loader_map(IN asv_file* kernel,IN OUT aos_boot_params* params)
 {
-    EFI_STATUS status=kernel->SetPosition(kernel,0);
+    EFI_STATUS status=asv_reposition(kernel,0,POSITION_START);
     if(EFI_ERROR(status))
     {
         /*内核文件重定位失败*/
@@ -65,13 +65,12 @@ STATIC EFI_STATUS EFIAPI loader_map(IN EFI_FILE_HANDLE kernel,IN OUT aos_boot_pa
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Buffer allocation failed.\n"));
         return EFI_OUT_OF_RESOURCES;
     }
-    UINTN size=sizeof(loader_elf64_ehdr);
-    status=kernel->Read(kernel,&size,header);
-    if(EFI_ERROR(status))
+    UINTN size=asv_read(kernel,header,sizeof(loader_elf64_ehdr));
+    if(size!=sizeof(loader_elf64_ehdr))
     {
         /*在读取内核文件时出现问题*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] An issue occurred while reading the kernel file.\n"));
-        return status;
+        return EFI_DEVICE_ERROR;
     }
     if(!loader_elf_check(header,size))
     {
@@ -88,20 +87,19 @@ STATIC EFI_STATUS EFIAPI loader_map(IN EFI_FILE_HANDLE kernel,IN OUT aos_boot_pa
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Buffer allocation failed.\n"));
         return EFI_OUT_OF_RESOURCES;
     }
-    status=kernel->SetPosition(kernel,header->e_phoff);
+    status=asv_reposition(kernel,header->e_phoff,POSITION_START);
     if(EFI_ERROR(status))
     {
         /*内核文件重定位失败*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Kernel file relocation failed.\n"));
         return status;
     }
-    size=count*sizeof(loader_elf64_phdr);
-    status=kernel->Read(kernel,&size,phdrs);
-    if(EFI_ERROR(status))
+    size=asv_read(kernel,phdrs,count*sizeof(loader_elf64_phdr));
+    if(size!=count*sizeof(loader_elf64_phdr))
     {
         /*在读取内核文件时出现问题*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] An issue occurred while reading the kernel file.\n"));
-        return status;
+        return EFI_DEVICE_ERROR;
     }
     UINTN load_count=0,max=0,range;
     UINTN index=0;
@@ -200,18 +198,17 @@ STATIC EFI_STATUS EFIAPI loader_map(IN EFI_FILE_HANDLE kernel,IN OUT aos_boot_pa
             SetMem((VOID*)block,EFI_PAGES_TO_SIZE(pages),0);
         }
 
-        size=phdrs[index].p_filesz;
-        if(size>0)
+        if(phdrs[index].p_filesz>0)
         {
-            status=kernel->SetPosition(kernel,phdrs[index].p_offset);
+            status=asv_reposition(kernel,phdrs[index].p_offset,POSITION_START);;
             if(EFI_ERROR(status))
             {
                 /*内核文件重定位失败*/
                 DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Kernel file relocation failed.\n"));
                 return status;
             }
-            status=kernel->Read(kernel,&size,(VOID*)(block+(phdrs[index].p_vaddr&0xFFF)));
-            if(EFI_ERROR(status)||size!=phdrs[index].p_filesz)
+            size=asv_read(kernel,(VOID*)(block+(phdrs[index].p_vaddr&0xFFF)),phdrs[index].p_filesz);
+            if(size!=phdrs[index].p_filesz)
             {
                 /*在读取内核文件时出现问题*/
                 DEBUG((DEBUG_ERROR,"[aos.uefi.loader] "
@@ -321,16 +318,16 @@ STATIC EFI_STATUS EFIAPI loader_map(IN EFI_FILE_HANDLE kernel,IN OUT aos_boot_pa
  *
  * @return 正常返回成功。出错或验证失败都返回非成功的状态。
  */
-STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel)
+STATIC EFI_STATUS loader_verify(IN asv_file* sig,IN asv_file* kernel)
 {
-    EFI_STATUS status=sig->SetPosition(sig,0);
+    EFI_STATUS status=asv_reposition(sig,0,POSITION_START);
     if(EFI_ERROR(status))
     {
         /*内核文件重定位失败*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Kernel signature file relocation failed.\n"));
         return status;
     }
-    status=kernel->SetPosition(kernel,0);
+    status=asv_reposition(kernel,0,POSITION_START);
     if(EFI_ERROR(status))
     {
         /*内核文件重定位失败*/
@@ -338,12 +335,13 @@ STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel
         return status;
     }
 
-    UINT64 size=ufsize(sig);
-    if(size==MAX_UINT64||size<2*sizeof(loader_signature_node)||size%sizeof(loader_signature_node)!=0)
+    UINT64 size=0;
+    status=asv_get_size(sig,&size);
+    if(EFI_ERROR(status)||size<2*sizeof(loader_signature_node)||size%sizeof(loader_signature_node)!=0)
     {
         /*内核签名文件大小不合法*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] The kernel signature file size is invalid.\n"));
-        return status;
+        return EFI_UNSUPPORTED;
     }
 
     UINT8* sha256=AllocatePool(SHA256_DIGEST_SIZE);
@@ -357,9 +355,8 @@ STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel
         return EFI_OUT_OF_RESOURCES;
     }
 
-    UINTN bsize=sizeof(loader_signature_node);
-    status=FileHandleRead(sig,&bsize,node);
-    if(EFI_ERROR(status)||bsize!=sizeof(loader_signature_node))
+    UINT64 bsize=asv_read(sig,node,sizeof(loader_signature_node));
+    if(bsize!=sizeof(loader_signature_node))
     {
         /*内核签名文件读取失败*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to read the kernel signature file.\n"));
@@ -405,13 +402,12 @@ STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel
     UINT64 index=sizeof(loader_signature_node);
     while(index<size)
     {
-        bsize=EFI_PAGE_SIZE;
-        status=FileHandleRead(sig,&bsize,buffer);
-        if(EFI_ERROR(status))
+        bsize=asv_read(sig,buffer,EFI_PAGE_SIZE);
+        if(bsize!=EFI_PAGE_SIZE&&index+bsize<size)
         {
             /*内核签名文件读取失败*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to read the kernel signature file.\n"));
-            return EFI_UNSUPPORTED;
+            return EFI_DEVICE_ERROR;
         }
         if(!Sha512Update(sha512c,buffer,bsize))
         {
@@ -441,13 +437,13 @@ STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel
     }
 
     DEBUG_CODE_BEGIN();
-    DEBUG((DEBUG_INFO,"[aos.uefi.loader] Signature SHA-512:"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.loader] KSignature SHA-512: "));
     for(UINTN i=0;i<SHA512_DIGEST_SIZE;i++)
     {
         DEBUG((DEBUG_INFO,"%02X",sha512[i]));
     }
     DEBUG((DEBUG_INFO,"\n"));
-    DEBUG((DEBUG_INFO,"[aos.uefi.loader] Signature SHA-256:"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.loader] KSignature SHA-256: "));
     for(UINTN i=0;i<SHA256_DIGEST_SIZE;i++)
     {
         DEBUG((DEBUG_INFO,"%02X",sha256[i]));
@@ -502,22 +498,27 @@ STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel
 
     UINTN entry=size/sizeof(loader_signature_node)-1;
     ASSERT(entry>=1);
-    status=sig->SetPosition(sig,sizeof(loader_signature_node));
+    status=asv_reposition(sig,sizeof(loader_signature_node),POSITION_START);
     if(EFI_ERROR(status))
     {
         /*内核文件重定位失败*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Kernel signature file relocation failed.\n"));
         return status;
     }
-    size=ufsize(kernel);
+    status=asv_get_size(kernel,&size);
+    if(EFI_ERROR(status))
+    {
+        /*内核文件大小不合法*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.loader] The kernel file size is invalid.\n"));
+        return EFI_UNSUPPORTED;
+    }
     index=0;
     while(index<size)
     {
-        bsize=EFI_PAGE_SIZE;
-        status=FileHandleRead(kernel,&bsize,buffer);
-        if(EFI_ERROR(status))
+        bsize=asv_read(kernel,buffer,EFI_PAGE_SIZE);
+        if(bsize!=EFI_PAGE_SIZE&&index+bsize<size)
         {
-            /*内核签名文件读取失败*/
+            /*内核文件读取失败*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to read the kernel file.\n"));
             return EFI_UNSUPPORTED;
         }
@@ -549,13 +550,13 @@ STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel
     }
 
     DEBUG_CODE_BEGIN();
-    DEBUG((DEBUG_INFO,"[aos.uefi.loader] Kernel SHA-512:"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.loader] AOS Kernel SHA-512: "));
     for(UINTN i=0;i<SHA512_DIGEST_SIZE;i++)
     {
         DEBUG((DEBUG_INFO,"%02X",sha512[i]));
     }
     DEBUG((DEBUG_INFO,"\n"));
-    DEBUG((DEBUG_INFO,"[aos.uefi.loader] Kernel SHA-256:"));
+    DEBUG((DEBUG_INFO,"[aos.uefi.loader] AOS Kernel SHA-256: "));
     for(UINTN i=0;i<SHA256_DIGEST_SIZE;i++)
     {
         DEBUG((DEBUG_INFO,"%02X",sha256[i]));
@@ -566,10 +567,8 @@ STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel
     index=0;
     while(index<entry)
     {
-        bsize=sizeof(loader_signature_node);
-        status=FileHandleRead(sig,&bsize,node);
-
-        if(EFI_ERROR(status)||bsize!=sizeof(loader_signature_node))
+        bsize=asv_read(sig,node,sizeof(loader_signature_node));
+        if(bsize!=sizeof(loader_signature_node))
         {
             /*内核签名文件读取失败*/
             DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to read the kernel signature file.\n"));
@@ -606,6 +605,108 @@ STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel
 }
 
 /**
+ * 寻找AOS系统卷设备，获取设备的识别符数据。
+ * 
+ * @param location   AOS系统卷位置文件句柄。由该函数负责关闭。
+ * @param identifier 识别符指针。
+ * 
+ * @return 将要加载的AOS系统卷类型。
+ */
+STATIC asv_type loader_find_asv(IN EFI_FILE_HANDLE location,OUT VOID** identifier)
+{
+    if(location==NULL||identifier==NULL)
+    {
+        if(location!=NULL)
+        {
+            location->Close(location);
+        }
+        return ASV_ESP;
+    }
+
+    *identifier=NULL;
+    UINTN size=esp_get_size(location);
+    if(size==MAX_UINT64)
+    {
+        location->Close(location);
+        return ASV_ESP;
+    }
+
+    UINTN buffer=size+1;
+    CHAR8* content=(CHAR8*)umalloc(buffer);
+    if(content==NULL)
+    {
+        location->Close(location);
+        return ASV_ESP;
+    }
+
+    EFI_STATUS status=location->Read(location,&buffer,content);
+    location->Close(location);
+    if(EFI_ERROR(status)||buffer!=size)
+    {
+        ufree(content);
+        return ASV_ESP;
+    }
+    content[buffer]=0;
+
+    CHAR8* node=content;
+    CHAR8* sep=AsciiStrStr(node,",");
+    if(sep==NULL)
+    {
+        /*无论是否为ESP字符串，都会设置成ESP，无所谓判断了*/
+        ufree(content);
+        return ASV_ESP;
+    }
+    *sep=0;
+
+    if(AsciiStrCmp(node,"HD")==0)
+    {
+        node=sep+1;
+        sep=AsciiStrStr(node,",");
+        if(sep==NULL)
+        {
+            ufree(content);
+            return ASV_ESP;
+        }
+        *sep=0;
+
+        if(AsciiStrCmp(node,"GPT")==0)
+        {
+            node=sep+1;
+            if(AsciiStrSize(node)!=37)
+            {
+                ufree(content);
+                return ASV_ESP;
+            }
+            
+            EFI_GUID* guid=umalloc(sizeof(EFI_GUID));
+            if(guid==NULL)
+            {
+                ufree(content);
+                return ASV_ESP;
+            }
+
+            status=AsciiStrToGuid(node,guid);
+            if(EFI_ERROR(status))
+            {
+                ufree(guid);
+                ufree(content);
+                return ASV_ESP;
+            }
+            
+            ufree(content);
+            *identifier=guid;
+            return ASV_HARD_DRIVE_GPT;
+        }
+
+        ufree(content);
+        return ASV_ESP;
+    }
+
+    ufree(content);
+    return ASV_ESP;
+}
+
+/**
  * 将内核文件加载到目标区域。
  *
  * @param params 启动参数。
@@ -615,12 +716,42 @@ STATIC EFI_STATUS loader_verify(IN EFI_FILE_HANDLE sig,IN EFI_FILE_HANDLE kernel
 EFI_STATUS EFIAPI load_kernel(IN OUT aos_boot_params* params)
 {
     esp_mount();
-    
-    esp_umount();
+    VOID* id;
+    asv_type type=loader_find_asv(esp_open(LOADER_LOCATION_PATH,EFI_FILE_MODE_READ,0),
+        &id);
+    esp_unmount();
 
-    mount();
+    switch(type)
+    {
+        case ASV_ESP:
+            /*AOS系统卷设为EFI系统分区*/
+            DEBUG((DEBUG_INFO,"[aos.uefi.loader] The AOS System Volume is set as "
+                "the EFI System Partition.\n"));
+            break;
+        case ASV_HARD_DRIVE_GPT:
+            /*AOS系统卷设为EFI系统分区*/
+            DEBUG((DEBUG_INFO,"[aos.uefi.loader] The AOS System Volume is set as "
+                "a partition on the hard drive. The partition GUID is: %g.\n",id));
+            break;
+        default:
+            /*到达不可达位置*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Reached an unreachable location.\n"));
+            UNREACHABLE();
+            return EFI_DEVICE_ERROR;
+    }
 
-    EFI_FILE_HANDLE sig=ufopen(LOADER_SIG_PATH,EFI_FILE_MODE_READ,0);
+    EFI_STATUS status=asv_init(type,id);
+    if(EFI_ERROR(status))
+    {
+        /*初始化AOS系统卷文件系统管理失败*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to initialize file system management for "
+            "the AOS System Volume.\n"));
+        return status;
+    }
+
+    asv_mount();
+
+    asv_file* sig=asv_open(LOADER_KERNEL_SIG_PATH,ASV_OPEN_MODE_READ);
     if(sig==NULL)
     {
         /*未发现或无法打开内核签名文件*/
@@ -629,7 +760,7 @@ EFI_STATUS EFIAPI load_kernel(IN OUT aos_boot_params* params)
         return EFI_NOT_FOUND;
     }
 
-    EFI_FILE_HANDLE kernel=ufopen(LOADER_KERNEL_PATH,EFI_FILE_MODE_READ,0);
+    asv_file* kernel=asv_open(LOADER_KERNEL_PATH,ASV_OPEN_MODE_READ);
     if(kernel==NULL)
     {
         /*未发现或无法打开内核文件*/
@@ -637,8 +768,6 @@ EFI_STATUS EFIAPI load_kernel(IN OUT aos_boot_params* params)
             "The kernel file was not found or could not be opened.\n"));
         return EFI_NOT_FOUND;
     }
-
-    EFI_STATUS status;
 
     /*校验*/
     status=loader_verify(sig,kernel);
@@ -648,7 +777,7 @@ EFI_STATUS EFIAPI load_kernel(IN OUT aos_boot_params* params)
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to verify the kernel signature.\n"));
         return status;
     }
-    sig->Close(sig);
+    asv_close(sig);
 
     status=loader_map(kernel,params);
     if(EFI_ERROR(status))
@@ -657,9 +786,9 @@ EFI_STATUS EFIAPI load_kernel(IN OUT aos_boot_params* params)
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to map the kernel.\n"));
         return status;
     }
-    kernel->Close(kernel);
+    asv_close(kernel);
 
-    umount();
+    asv_unmount();
 
     return EFI_SUCCESS;
 }

@@ -2,7 +2,7 @@
  * 模块内存池管理。
  * @date 2025-06-06
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -467,6 +467,7 @@ VOID EFIAPI dump_pool_info(IN VOID* pool)
     mem_tlsf_meta* meta=(mem_tlsf_meta*)pool;
     if(meta==NULL||meta->magic!=MEM_TLSF_MAGIC_META)
     {
+        /*该地址不是内存池*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.mem] The address is not a memory pool.\n"));
     }
     DEBUG((DEBUG_INFO,"[aos.uefi.mem] ==================================================\n"));
@@ -564,8 +565,9 @@ EFI_STATUS EFIAPI get_memory_type(IN UINTN* addrs,IN UINTN length,OUT EFI_MEMORY
     status=gBS->GetMemoryMap(&map_size,memmap,&map_key,&desc_size,&desc_ver);
     if(status!=EFI_BUFFER_TOO_SMALL)
     {
-        DEBUG((DEBUG_ERROR,"[aos.uefi.mem] Incorrect parameters were set "
-            "when checking the memory map size.\n"));
+        /*在检查内存映射大小时设置了不正确的参数*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.mem] Incorrect parameters were set when checking the "
+            "memory map size.\n"));
         return status;
     }
     else
@@ -574,15 +576,17 @@ EFI_STATUS EFIAPI get_memory_type(IN UINTN* addrs,IN UINTN length,OUT EFI_MEMORY
         memmap=umalloc(map_size);
         if(memmap==NULL)
         {
-            DEBUG((DEBUG_ERROR,"[aos.uefi.mem] The configured memory pool space "
-                "is insufficient.\n"));
+            /*配置的内存池空间不足*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.mem] The configured memory pool space is insufficient."
+                "\n"));
             return EFI_OUT_OF_RESOURCES;
         }
         status=gBS->GetMemoryMap(&map_size,memmap,&map_key,&desc_size,&desc_ver);
         if(status!=EFI_SUCCESS||desc_ver!=EFI_MEMORY_DESCRIPTOR_VERSION)
         {
-            DEBUG((DEBUG_ERROR,"[aos.uefi.mem] An unexpected condition occurred "
-                "while obtaining the memory map.\n"));
+            /*在获取内存映射时发生意外状况*/
+            DEBUG((DEBUG_ERROR,"[aos.uefi.mem] An unexpected condition occurred while obtaining "
+                "the memory map.\n"));
             return EFI_UNSUPPORTED;
         }
 

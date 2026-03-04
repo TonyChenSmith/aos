@@ -333,14 +333,19 @@ typedef struct _loader_elf64_dyn
 #define LOADER_ADDR_MAGIC 0x20251226
 
 /**
- * 内核签名文件路径。
+ * 系统卷位置文件路径。
  */
-#define LOADER_KERNEL_SIG_PATH L"aos\\aos.kernel.sig"
+#define LOADER_LOCATION_PATH L"\\aos\\aos.system.location"
 
 /**
- * 内核文件路径。
+ * 内核签名文件。
  */
-#define LOADER_KERNEL_PATH L"aos\\aos.kernel"
+#define LOADER_KERNEL_SIG_PATH "/aos/aos.kernel.sig"
+
+/**
+ * 内核文件。
+ */
+#define LOADER_KERNEL_PATH "/aos/aos.kernel"
 
 /**
  * 共享数据区域基址。
