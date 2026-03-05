@@ -426,6 +426,7 @@ typedef struct _aos_boot_params
     aos_graphics_info     graphics;        /*图形信息。*/
     aos_efi_device_path*  graphics_device; /*图形设备路径。*/
     aos_efi_device_path*  esp;             /*EFI系统分区设备路径。*/
+    aos_efi_device_path*  asv;             /*AOS系统卷设备路径。*/
     uintn                 page_table;      /*内核页表物理地址。*/
     aos_boot_vma*         vma_head;        /*线性区头地址。*/
     aos_boot_vma*         vma_tail;        /*线性区尾地址。*/

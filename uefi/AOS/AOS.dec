@@ -13,7 +13,7 @@
     # UUID.nameUUIDFromBytes("aos.uefi.declaration".getBytes("UTF-8"))
     PACKAGE_GUID                   = 15277882-97AB-3EF7-B05A-1DEBEB8EE801
     # Major.Minor.Patch Before the official launch, do not increment the major version number.
-    PACKAGE_VERSION                = 0.1.0
+    PACKAGE_VERSION                = 0.1.1
 
 [Includes]
     include

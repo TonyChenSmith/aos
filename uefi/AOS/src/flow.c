@@ -73,6 +73,8 @@ VOID EFIAPI dump_boot_params(IN aos_boot_params* params)
         OFFSET_OF(aos_boot_params,graphics_device),params->graphics_device));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]esp:0x%016lX\n",OFFSET_OF(aos_boot_params,esp),
         params->esp));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]asv:0x%016lX\n",OFFSET_OF(aos_boot_params,esp),
+        params->asv));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]page_table:0x%016lX\n",
         OFFSET_OF(aos_boot_params,page_table),params->esp));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]vma_head:0x%016lX\n",

@@ -816,10 +816,11 @@ STATIC EFI_STATUS EFIAPI fsm_simple_file_get_size(IN asv_file* file,OUT UINT64* 
  * 
  * @param type       AOS系统卷类型。
  * @param identifier 识别符，用于找到唯一对应的设备。
+ * @param params     启动参数。
  * 
  * @return 设备检测状态。
  */
-EFI_STATUS EFIAPI asv_init(IN asv_type type,IN VOID* identifier)
+EFI_STATUS EFIAPI asv_init(IN asv_type type,IN VOID* identifier,OUT aos_boot_params* params)
 {
     if(type>=ASV_TYPE_MAX||(type>ASV_ESP&&identifier==NULL))
     {
@@ -832,6 +833,7 @@ EFI_STATUS EFIAPI asv_init(IN asv_type type,IN VOID* identifier)
     if(type==ASV_ESP)
     {
         EFI_HANDLE asvd=esp;
+        params->asv=params->esp;
 
         CHAR16* str=ConvertDevicePathToText(DevicePathFromHandle(esp),FALSE,
             FALSE);
@@ -897,7 +899,7 @@ EFI_STATUS EFIAPI asv_init(IN asv_type type,IN VOID* identifier)
             {
                 /*引导内存池空间不足*/
                 DEBUG((DEBUG_ERROR,"[aos.uefi.fsm] Insufficient space in the boot memory pool.\n"));
-                return EFI_DEVICE_ERROR;
+                return EFI_OUT_OF_RESOURCES;
             }
             status=gBS->LocateHandle(ByProtocol,&gEfiDevicePathProtocolGuid,NULL,&count,device_paths);
             if(EFI_ERROR(status))
@@ -935,6 +937,19 @@ EFI_STATUS EFIAPI asv_init(IN asv_type type,IN VOID* identifier)
                     if(CompareGuid(guid,(EFI_GUID*)&hd->Signature))
                     {
                         asvd=device_paths[index];
+
+                        UINTN asvdp_size=GetDevicePathSize(device_path);
+                        VOID* asvdp=umalloc(asvdp_size);
+                        if(asvdp==NULL)
+                        {
+                            /*引导内存池空间不足*/
+                            DEBUG((DEBUG_ERROR,"[aos.uefi.fsm] Insufficient space in the boot "
+                                "memory pool.\n"));
+                            return EFI_OUT_OF_RESOURCES;
+                        }
+                        CopyMem(asvdp,device_path,asvdp_size);
+                        params->asv=(aos_efi_device_path*)asvdp;
+
                         break;
                     }
                 }
@@ -944,6 +959,7 @@ EFI_STATUS EFIAPI asv_init(IN asv_type type,IN VOID* identifier)
         if(asvd==NULL)
         {
             asvd=esp;
+            params->asv=params->esp;
         }
 
         CHAR16* str=ConvertDevicePathToText(DevicePathFromHandle(esp),FALSE,

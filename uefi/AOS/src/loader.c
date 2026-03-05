@@ -740,7 +740,7 @@ EFI_STATUS EFIAPI load_kernel(IN OUT aos_boot_params* params)
             return EFI_DEVICE_ERROR;
     }
 
-    EFI_STATUS status=asv_init(type,id);
+    EFI_STATUS status=asv_init(type,id,params);
     if(EFI_ERROR(status))
     {
         /*初始化AOS系统卷文件系统管理失败*/

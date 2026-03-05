@@ -102,10 +102,11 @@ UINT64 EFIAPI esp_get_size(IN EFI_FILE_HANDLE file);
  * 
  * @param type       AOS系统卷类型。
  * @param identifier 识别符，用于找到唯一对应的设备。
+ * @param params     启动参数。
  * 
  * @return 设备检测状态。
  */
-EFI_STATUS EFIAPI asv_init(IN asv_type type,IN VOID* identifier);
+EFI_STATUS EFIAPI asv_init(IN asv_type type,IN VOID* identifier,OUT aos_boot_params* params);
 
 /**
  * 挂载AOS系统卷。
