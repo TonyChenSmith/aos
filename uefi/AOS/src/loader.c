@@ -121,8 +121,9 @@ STATIC EFI_STATUS EFIAPI loader_map(IN asv_file* kernel,IN OUT aos_boot_params* 
     /*正常来说，单个内核不应该要求占2GB内存空间。出现这种问题在调试时必须断言*/
     ASSERT(range>0&&range<SIZE_2GB);
 
+    UINTN range_2mb=(range%SIZE_2MB?(range>>21)+1:range>>21)<<21;
     UINTN base=LOADER_KERNEL_BASE;
-    UINTN offset=(SIZE_512GB-SIZE_8GB-range)>>21;
+    UINTN offset=(SIZE_512GB-SIZE_8GB-range_2mb)>>21;
 
     #ifdef AOS_NDEBUG
     UINT32 value1=LOADER_ADDR_MAGIC,value2=AOS_UEFI_VESION_0_0_1,value3=AOS_UEFI_VESION_0_0_2;
@@ -211,8 +212,8 @@ STATIC EFI_STATUS EFIAPI loader_map(IN asv_file* kernel,IN OUT aos_boot_params* 
             if(size!=phdrs[index].p_filesz)
             {
                 /*在读取内核文件时出现问题*/
-                DEBUG((DEBUG_ERROR,"[aos.uefi.loader] "
-                    "An issue occurred while reading the kernel file.\n"));
+                DEBUG((DEBUG_ERROR,"[aos.uefi.loader] An issue occurred while reading the "
+                    "kernel file.\n"));
                 return status;
             }
         }
@@ -231,6 +232,9 @@ STATIC EFI_STATUS EFIAPI loader_map(IN asv_file* kernel,IN OUT aos_boot_params* 
     FreePool(header);
     FreePool(phdrs);
 
+    /*内核栈不应该大于128MB*/
+    ASSERT(EFI_SIZE_TO_PAGES(CONFIG_KERNEL_STACK)<=SIZE_128MB);
+
     EFI_PHYSICAL_ADDRESS stack=SIZE_4GB;
     status=gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,CONFIG_KERNEL_STACK,&stack);
     if(EFI_ERROR(status))
@@ -243,31 +247,40 @@ STATIC EFI_STATUS EFIAPI loader_map(IN asv_file* kernel,IN OUT aos_boot_params* 
     params->minfo.fblock_paddr[4]=stack;
     params->minfo.fblock_pages[4]=CONFIG_KERNEL_STACK;
 
-    /*内核区域会将最后512GB切割成两块。设计时打算在较大的一块内进行随机化。记住随机地址包含两边的标准2MB页*/
-    UINTN a=EFI_SIZE_TO_PAGES(offset-SIZE_4GB);
-    UINTN b=EFI_SIZE_TO_PAGES(SIZE_512GB-offset-range-SIZE_4GB);
-    UINTN choice=a;
-    UINTN choice_base=LOADER_KERNEL_BASE;
+    /*内核区域会将倒数第四个512GB切割成两块。设计时打算在较大的一块内进行随机化。记住随机地址包含两边的标准2MB页*/
+    UINTN a=(offset-SIZE_4GB)>>21;
+    UINTN b=(SIZE_512GB-offset-range_2mb-SIZE_4GB)>>21;
+    UINTN choice;
+    UINTN choice_base;
     if(b>a)
     {
         choice=b;
-        choice_base+=offset+range;
+        choice_base=LOADER_KERNEL_BASE+offset+range_2mb;
     }
-    if(choice<=CONFIG_KERNEL_STACK+EFI_SIZE_TO_PAGES(SIZE_4MB))
+    else
+    {
+        choice=a;
+        choice_base=LOADER_KERNEL_BASE+SIZE_4GB;
+    }
+
+    UINTN range_stack_2mb=CONFIG_KERNEL_STACK/EFI_SIZE_TO_PAGES(SIZE_2MB)+
+        (CONFIG_KERNEL_STACK%EFI_SIZE_TO_PAGES(SIZE_2MB)?1:0)+2;
+    if(choice<=range_stack_2mb)
     {
         /*映射栈失败。按道理允许申请的内存资源完全不支持这样做，以防万一我内核写太大的防呆措施*/
         DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to map stack.\n"));
         return status;
     }
-    choice-=CONFIG_KERNEL_STACK+EFI_SIZE_TO_PAGES(SIZE_4MB);
-    params->kinfo.sbase=choice_base+SIZE_2MB;
+    choice-=range_stack_2mb;
+    params->kinfo.sbase=choice_base;
 
     #ifdef AOS_NDEBUG
     if(CONFIG_RANDOMIZE_BASE)
     {
-        params->kinfo.sbase+=EFI_PAGES_TO_SIZE(random32(&value1,&value2,&value3)%choice);
+        params->kinfo.sbase+=(random32(&value1,&value2,&value3)%choice)<<21;
     }
     #endif /*AOS_NDEBUG*/
+    params->kinfo.sbase+=SIZE_2MB;
 
     status=add_kernel_vma(params->kinfo.sbase,stack,CONFIG_KERNEL_STACK,
         AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_TYPE_WB);

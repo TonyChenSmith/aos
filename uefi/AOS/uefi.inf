@@ -14,7 +14,7 @@
     FILE_GUID                      = D95D822A-F6F2-37C7-AF67-C2DEDD7B7901
     MODULE_TYPE                    = UEFI_APPLICATION
     # Major.Minor.Patch Before the official launch, do not increment the major version number.
-    VERSION_STRING                 = 0.1.1
+    VERSION_STRING                 = 0.1.2
     ENTRY_POINT                    = aos_uefi_entry
 
 [Sources]
