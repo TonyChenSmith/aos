@@ -9,7 +9,7 @@
 #ifndef __AOS_KERNEL_SUPPORT_IO_H__
 #define __AOS_KERNEL_SUPPORT_IO_H__
 
-#include "ktype.h"
+#include "type.h"
 
 /**
  * 输入输出句柄。

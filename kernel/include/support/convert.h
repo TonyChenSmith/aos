@@ -9,8 +9,8 @@
 #ifndef __AOS_KERNEL_SUPPORT_CONVERT_H__
 #define __AOS_KERNEL_SUPPORT_CONVERT_H__
 
-#include "kdef.h"
-#include "ktype.h"
+#include "const.h"
+#include "type.h"
 
 /**
  * 将十进制字符串转换为有符号整型数值。

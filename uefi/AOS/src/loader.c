@@ -308,8 +308,35 @@ STATIC EFI_STATUS EFIAPI loader_map(IN asv_file* kernel,IN OUT aos_boot_params* 
     offset=SIZE_4GB;
     #endif /*AOS_NDEBUG*/
     params->minfo.vbase+=offset;
-    params->kinfo.gbase=LOADER_SHARED_BASE;
 
+    params->kinfo.pbase=LOADER_POOL_BASE;
+    offset=((SIZE_512GB-SIZE_8GB)>>21)-(CONFIG_KERNEL_POOL/512+CONFIG_KERNEL_POOL%512?1:0);
+
+    #ifdef AOS_NDEBUG
+    if(CONFIG_RANDOMIZE_BASE)
+    {
+        offset=(random32(&value1,&value2,&value3)%offset)<<21;
+        offset+=SIZE_4GB;
+    }
+    else
+    {
+        offset=SIZE_4GB;
+    }
+    #else
+    offset=SIZE_4GB;
+    #endif /*AOS_NDEBUG*/
+    params->kinfo.pbase+=offset;
+    status=add_kernel_vma(params->kinfo.pbase,params->minfo.fblock_paddr[2],
+        params->minfo.fblock_pages[2],AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_GLOBAL|
+        AOS_BOOT_VMA_TYPE_WB);
+    if(EFI_ERROR(status))
+    {
+        /*添加内核内存池失败失败*/
+        DEBUG((DEBUG_ERROR,"[aos.uefi.loader] Failed to add the kernel memory pool VMA.\n"));
+        return status;
+    }
+
+    params->kinfo.gbase=LOADER_SHARED_BASE;
     status=add_kernel_vma(params->kinfo.gbase,params->minfo.fblock_paddr[3],
         params->minfo.fblock_pages[3],AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_GLOBAL|
         AOS_BOOT_VMA_USER|AOS_BOOT_VMA_TYPE_WB);

@@ -7,8 +7,6 @@
  * SPDX-License-Identifier: MIT
  */
 #include <support/char.h>
-#include <support/kdef.h>
-#include <support/ktype.h>
 #include <support/string.h>
 #include <support/util.h>
 

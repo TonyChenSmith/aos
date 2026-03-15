@@ -9,8 +9,8 @@
 #ifndef __AOS_KERNEL_SUPPORT_UTIL_H__
 #define __AOS_KERNEL_SUPPORT_UTIL_H__
 
-#include "kdef.h"
-#include "ktype.h"
+#include "const.h"
+#include "type.h"
 
 /**
  * 取绝对值。

@@ -362,4 +362,9 @@ typedef struct _loader_elf64_dyn
  */
 #define LOADER_KERNEL_BASE ((UINTN)(-4*SIZE_512GB))
 
+/**
+ * 内核内存池区域基址。
+ */
+#define LOADER_POOL_BASE ((UINTN)(-5*SIZE_512GB))
+
 #endif /*__AOS_UEFI_LOADER_INTERNAL_H__*/

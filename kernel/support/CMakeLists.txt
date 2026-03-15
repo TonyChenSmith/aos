@@ -1,5 +1,5 @@
 # 
-# 内核库模块脚本。
+# 内核支持库模块脚本。
 # @date 2025-12-04
 # 
 # Copyright (c) 2025-2026 Tony Chen Smith

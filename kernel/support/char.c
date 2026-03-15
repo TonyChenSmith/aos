@@ -6,7 +6,7 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#include <support/ktype.h>
+#include <support/type.h>
 
 /**
  * 判断输入字符是否为ASCII字母。

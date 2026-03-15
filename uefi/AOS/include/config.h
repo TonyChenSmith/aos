@@ -2,7 +2,7 @@
  * 模块配置常量定义。
  * @date 2025-06-05
  * 
- * Copyright (c) 2025 Tony Chen Smith
+ * Copyright (c) 2025-2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
@@ -10,12 +10,12 @@
 #define __AOS_UEFI_CONFIG_H__
 
 /**
- * 引导内存池总页数。要求显然大于0。
+ * 引导内存池总页数。要求显然大于16。
  */
 #define CONFIG_BOOTSTRAP_POOL 64
 
 /**
- * 内核内存池总页数。要求显然大于0。
+ * 内核内存池总页数。要求显然大于等于引导内存池页数。
  */
 #define CONFIG_KERNEL_POOL 64
 
@@ -53,8 +53,8 @@
  */
 #ifndef CONFIG_KERNEL_POOL
 #error The macro CONFIG_KERNEL_POOL is undefined.
-#elif CONFIG_KERNEL_POOL<=16
-#error The macro CONFIG_KERNEL_POOL must be greater than 16.
+#elif CONFIG_KERNEL_POOL<CONFIG_BOOTSTRAP_POOL
+#error The macro CONFIG_KERNEL_POOL must be greater than the macro CONFIG_BOOTSTRAP_POOL.
 #endif /*CONFIG_KERNEL_POOL*/
 
 /**

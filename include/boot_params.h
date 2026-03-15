@@ -86,6 +86,7 @@ typedef struct _aos_kernel_info
     uintn   kbase; /*内核程序线性基址。*/
     uintn   sbase; /*栈线性基址。*/
     uintn   gbase; /*GDT基址。*/
+    uintn   pbase; /*内核内存池线性基址。*/
     uintn   entry; /*入口偏移。*/
     uintn   load;  /*加载段数目。*/
     uintn*  start; /*加载段起始数组。*/

@@ -9,19 +9,9 @@
 #ifndef __AOS_KERNEL_INIT_PARAMS_H__
 #define __AOS_KERNEL_INIT_PARAMS_H__
 
-#include <support/kdef.h>
-#include <support/ktype.h>
-
-/**
- * EFI使用MS ABI。
- */
-#define AOS_EFIAPI __attribute__((ms_abi))
+#include <support/const.h>
+#include <support/type.h>
 
 #include "../../../include/boot_params.h"
-
-/**
- * 取消定义。
- */
-#undef AOS_EFIAPI
 
 #endif /*__AOS_KERNEL_INIT_PARAMS_H__*/

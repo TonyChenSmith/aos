@@ -9,7 +9,7 @@
 #ifndef __AOS_KERNEL_SUPPORT_FIXED_H__
 #define __AOS_KERNEL_SUPPORT_FIXED_H__
 
-#include "ktype.h"
+#include "type.h"
 #include "util.h"
 
 /**

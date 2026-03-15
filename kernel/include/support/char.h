@@ -9,7 +9,7 @@
 #ifndef __AOS_KERNEL_SUPPORT_CHAR_H__
 #define __AOS_KERNEL_SUPPORT_CHAR_H__
 
-#include "ktype.h"
+#include "type.h"
 
 /**
  * 判断输入字符是否为ASCII字母。

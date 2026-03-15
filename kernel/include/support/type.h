@@ -6,8 +6,8 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#ifndef __AOS_KERNEL_SUPPORT_KTYPE_H__
-#define __AOS_KERNEL_SUPPORT_KTYPE_H__
+#ifndef __AOS_KERNEL_SUPPORT_TYPE_H__
+#define __AOS_KERNEL_SUPPORT_TYPE_H__
 
 /**
  * 有符号8位整型。
@@ -95,4 +95,4 @@ typedef uint32 uintn;
 
 #endif /*__x86_64__*/
 
-#endif /*__AOS_KERNEL_SUPPORT_KTYPE_H__*/
+#endif /*__AOS_KERNEL_SUPPORT_TYPE_H__*/

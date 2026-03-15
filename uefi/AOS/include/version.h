@@ -35,8 +35,13 @@
 #define AOS_UEFI_VESION_0_1_2 0x20260307
 
 /**
+ * 模块0.1.3版本。
+ */
+#define AOS_UEFI_VESION_0_1_3 0x20260313
+
+/**
  * 模块“aos.uefi”版本。
  */
-#define AOS_UEFI_VERSION AOS_UEFI_VESION_0_1_2
+#define AOS_UEFI_VERSION AOS_UEFI_VESION_0_1_3
 
 #endif /*__AOS_UEFI_VERSION_H__*/

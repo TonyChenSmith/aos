@@ -135,6 +135,8 @@ VOID EFIAPI dump_boot_params(IN aos_boot_params* params)
         params->kinfo.sbase));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]gbase:0x%016lX\n",OFFSET_OF(aos_kernel_info,gbase),
         params->kinfo.gbase));
+    DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]pbase:0x%016lX\n",OFFSET_OF(aos_kernel_info,gbase),
+        params->kinfo.pbase));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]entry:0x%016lX\n",OFFSET_OF(aos_kernel_info,entry),
         params->kinfo.entry));
     DEBUG((DEBUG_INFO,"[aos.uefi.flow] [0x%03lX]load:%lu\n",OFFSET_OF(aos_kernel_info,load),
