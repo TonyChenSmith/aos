@@ -1,6 +1,6 @@
 /**
- * 内核输入输出操作库函数。
- * @date 2026-01-25
+ * 内核CPU输入输出函数。
+ * @date 2026-04-20
  * 
  * Copyright (c) 2026 Tony Chen Smith
  * 
@@ -9,157 +9,227 @@
 #ifndef __AOS_KERNEL_SUPPORT_IO_H__
 #define __AOS_KERNEL_SUPPORT_IO_H__
 
-#include "type.h"
+#include "const.h"
 
 /**
- * 输入输出句柄。
+ * 读取x86平台64位MSR。
+ * 
+ * @param index 寄存器地址。
+ * 
+ * @return 读取寄存器的值。
  */
-typedef struct _io_handle io_handle;
-
-/**
- * 从句柄读取一段数据。
- * 
- * @param handle 输入输出句柄。
- * @param dest   目标数组。
- * @param n      请求读取长度。
- * 
- * @return 返回实际读取长度，当返回0时应获取错误状态码。
- */
-typedef uintn (*io_read)(io_handle* handle,uint8* dest,uintn n);
-
-/**
- * 往句柄写入一段数据。
- * 
- * @param handle 输入输出句柄。
- * @param src    源数组。
- * @param n      请求写入长度。
- * 
- * @return 返回实际写入长度，当返回0时应获取错误状态码。
- */
-typedef uintn (*io_write)(io_handle* handle,const uint8* src,uintn n);
-
-/**
- * 刷新句柄缓冲区。
- * 
- * @param handle 输入输出句柄。
- * 
- * @return 正常刷新返回成功，出现问题返回错误状态码。如果句柄无缓冲区机制返回成功。
- */
-typedef uint64 (*io_flush)(io_handle* handle);
-
-/**
- * 获取句柄读写位置。
- * 
- * @param handle 输入输出句柄。
- * 
- * @return 句柄当前读写位置。
- */
-typedef uint64 (*io_get_position)(io_handle* handle);
-
-/**
- * 设置句柄读写位置。
- * 
- * @param handle   输入输出句柄。
- * @param position 目标位置。
- * 
- * @return 正常返回成功，设置错误返回错误状态码。
- */
-typedef uint64 (*io_set_position)(io_handle* handle,uint64 position);
-
-/**
- * 获取句柄当前可读写区域大小。
- * 
- * @param handle 输入输出句柄。
- * 
- * @return 当前可读写区域边界的大小，按字节计数。
- */
-typedef uint64 (*io_get_size)(io_handle* handle);
-
-/**
- * 获取句柄的能力组合。
- * 
- * @param handle 输入输出句柄。
- * 
- * @return 句柄的能力组合。
- */
-typedef uint64 (*io_get_capabilities)(io_handle* handle);
-
-/**
- * 获取句柄最近一次操作的状态码。
- * 
- * @param handle 输入输出句柄。
- * 
- * @return 一般没报错时返回成功，读写出错时返回它们设置的错误状态码，并将状态码重置为成功。
- */
-typedef uint64 (*io_get_io_status)(io_handle* handle);
-
-/**
- * 关闭句柄并回收资源。关闭时会先进行刷新缓冲区操作。
- * 
- * @param handle 输入输出句柄。
- * 
- * @return 正常执行返回成功，出现问题返回错误状态码。
- */
-typedef uint64 (*io_close)(io_handle* handle);
-
-struct _io_handle
+static inline uint64 read_msr(uint32 index)
 {
-    uint64              magic;            /*魔数。*/
-    io_read             read;             /*读取。*/
-    io_write            write;            /*写入。*/
-    io_flush            flush;            /*刷新。*/
-    io_get_position     get_position;     /*获取位置。*/
-    io_set_position     set_position;     /*设置位置。*/
-    io_get_size         get_size;         /*获取大小。*/
-    io_get_capabilities get_capabilities; /*获取能力组合。*/
-    io_get_io_status    get_io_status;    /*获取状态码。*/
-    io_close            close;            /*关闭。*/
-};
+    uint32 low,high;
+    __asm__ volatile("rdmsr":"=a"(low),"=d"(high):"c"(index));
+    return ((uint64)high<<32)|low;
+}
 
 /**
- * 判断输入输出状态码是否为错误状态码。
+ * 写入x86平台64位MSR。
+ * 
+ * @param index 寄存器地址。
+ * @param value 待写入寄存器的值。
+ * 
+ * @return 无返回值。
  */
-#define io_error(status) ((status)!=IO_STATUS_SUCCESS)
+static inline void write_msr(uint32 index,uint64 value)
+{
+    __asm__ volatile("wrmsr"::"a"(value&UINT32_MAX),"d"(value>>32),"c"(index));
+}
 
 /**
- * 可读能力。设置该标志说明句柄可以读取。
+ * 读取标志寄存器。
+ * 
+ * @return 标志寄存器的值。
  */
-#define IO_CAPABILITY_READABLE BIT0
+static inline uintn read_flags(void)
+{
+    uintn flags;
+    __asm__ volatile("pushfq\n\t"
+                     "pop %0"
+                     :"=r"(flags)
+                     :
+                     :"memory");
+    return flags;
+}
+/**
+ * 写入标志寄存器。
+ * 
+ * @param flags 待写入标志寄存器的值。
+ * 
+ * @return 无返回值。
+ */
+static inline void write_flags(uintn flags)
+{
+    __asm__ volatile("push %0\n\t"
+                     "popfq"
+                     :
+                     :"r"(flags)
+                     :"memory");
+}
 
 /**
- * 可写能力。设置该标志说明句柄可以写入。
+ * 从端口读取一个8位无符号整数。
+ * 
+ * @param port 端口地址。
+ * 
+ * @return 读取的8位无符号整数。
  */
-#define IO_CAPABILITY_WRITABLE BIT1
+static inline uint8 read_port8(uint16 port)
+{
+    uint8 value;
+    __asm__ volatile("inb %w1,%0":"=a"(value):"Nd"(port));
+    return value;
+}
 
 /**
- * 可寻址能力。设置该标志说明句柄的位置是数据区内的字节偏移量，可以前后移动访问数据的不同部分。
- * 如果没有该标志说明位置是寄存器索引，可以选择寄存器的位置进行读写。
+ * 从端口读取一个16位无符号整数。
+ * 
+ * @param port 端口地址。
+ * 
+ * @return 读取的16位无符号整数。
  */
-#define IO_CAPABILITY_SEEKABLE BIT2
+static inline uint16 read_port16(uint16 port)
+{
+    uint16 value;
+    __asm__ volatile("inw %w1,%0":"=a"(value):"Nd"(port));
+    return value;
+}
 
 /**
- * 可调整大小能力。表示数据区大小可变。寄存器数目在句柄创建后原则上就是不可变的，不应该有这个标志。
+ * 从端口读取一个32位无符号整数。
+ * 
+ * @param port 端口地址。
+ * 
+ * @return 读取的32位无符号整数。
  */
-#define IO_CAPABILITY_RESIZABLE BIT3
+static inline uint32 read_port32(uint16 port)
+{
+    uint32 value;
+    __asm__ volatile("inl %w1,%0":"=a"(value):"Nd"(port));
+    return value;
+}
 
 /**
- * 输入输出成功。
+ * 向端口写入一个8位无符号整数。
+ * 
+ * @param port  端口地址。
+ * @param value 8位无符号整数值。
+ * 
+ * @return 无返回值。
  */
-#define IO_STATUS_SUCCESS 0
+static inline void write_port8(uint16 port, uint8 value)
+{
+    __asm__ volatile("outb %0,%w1"::"a"(value),"Nd"(port));
+}
 
 /**
- * 设备问题。
+ * 向端口写入一个16位无符号整数。
+ * 
+ * @param port  端口地址。
+ * @param value 16位无符号整数。
+ * 
+ * @return 无返回值。
  */
-#define IO_STATUS_DEVICE_ERROR 1
+static inline void write_port16(uint16 port,uint16 value)
+{
+    __asm__ volatile("outw %0,%w1"::"a"(value),"Nd"(port));
+}
 
 /**
- * 超出位置操作边界。
+ * 向端口写入一个32位无符号整数。
+ * 
+ * @param port  端口地址。
+ * @param value 32位无符号整数。
+ * 
+ * @return 无返回值。
  */
-#define IO_STATUS_OUT_OF_BOUNDS 2
+static inline void write_port32(uint16 port,uint32 value)
+{
+    __asm__ volatile("outl %0,%w1"::"a"(value),"Nd"(port));
+}
 
 /**
- * 操作不支持。
+ * 从端口连续读取多个8位无符号整数。
+ * 
+ * @param port  端口地址。
+ * @param addr  目标起始地址。
+ * @param count 读取个数。
+ * 
+ * @return 无返回值。
  */
-#define IO_STATUS_NOT_SUPPORTED 3
+static inline void read_port8_repeat(uint16 port,void* addr,uintn count)
+{
+    __asm__ volatile("rep insb":"+D"(addr),"+c"(count):"d"(port):"memory");
+}
+
+/**
+ * 从端口连续读取多个16位无符号整数。
+ * 
+ * @param port  端口地址。
+ * @param addr  目标起始地址。
+ * @param count 读取个数。
+ * 
+ * @return 无返回值。
+ */
+static inline void read_port16_repeat(uint16 port,void* addr,uintn count)
+{
+    __asm__ volatile("rep insw":"+D"(addr),"+c"(count):"d"(port):"memory");
+}
+
+/**
+ * 从端口连续读取多个32位无符号整数。
+ * 
+ * @param port  端口地址。
+ * @param addr  目标起始地址。
+ * @param count 读取个数。
+ * 
+ * @return 无返回值。
+ */
+static inline void read_port32_repeat(uint16 port,void* addr,uintn count)
+{
+    __asm__ volatile("rep insl":"+D"(addr),"+c"(count):"d"(port):"memory");
+}
+
+/**
+ * 向端口连续写入多个8位无符号整数。
+ * 
+ * @param port  端口地址。
+ * @param addr  源起始地址。
+ * @param count 写入个数。
+ * 
+ * @return 无返回值。
+ */
+static inline void write_port8_repeat(uint16 port,const void* addr,uintn count)
+{
+    __asm__ volatile("rep outsb":"+S"(addr),"+c"(count):"d"(port):"memory");
+}
+/**
+ * 向端口连续写入多个16位无符号整数。
+ * 
+ * @param port  端口地址。
+ * @param addr  源起始地址。
+ * @param count 写入个数。
+ * 
+ * @return 无返回值。
+ */
+static inline void write_port16_repeat(uint16 port,const void* addr,uintn count)
+{
+    __asm__ volatile("rep outsw":"+S"(addr),"+c"(count):"d"(port):"memory");
+}
+/**
+ * 向端口连续写入多个32位无符号整数。
+ * 
+ * @param port  端口地址。
+ * @param addr  源起始地址。
+ * @param count 写入个数。
+ * 
+ * @return 无返回值。
+ */
+static inline void write_port32_repeat(uint16 port,const void* addr,uintn count)
+{
+    __asm__ volatile("rep outsl":"+S"(addr),"+c"(count):"d"(port):"memory");
+}
 
 #endif /*__AOS_KERNEL_SUPPORT_IO_H__*/

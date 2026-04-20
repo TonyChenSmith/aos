@@ -16,34 +16,41 @@
  * 
  * @return 失败测试数。
  */
-int32 char_test();
+int32 char_test(void);
 
 /**
  * 转换库函数测试。
  * 
  * @return 失败测试数。
  */
-int32 convert_test();
+int32 convert_test(void);
 
 /**
  * 定点数库函数测试。
  * 
  * @return 失败测试数。
  */
-int32 fixed_test();
+int32 fixed_test(void);
+
+/**
+ * 格式化输出库函数测试。
+ * 
+ * @return 失败测试数。
+ */
+int32 format_test(void);
 
 /**
  * 内存库函数测试。
  * 
  * @return 失败测试数。
  */
-int32 memory_test();
+int32 memory_test(void);
 
 /**
  * 字符串库函数测试。
  * 
  * @return 失败测试数。
  */
-int32 string_test();
+int32 string_test(void);
 
 #endif /*__AOS_KERNEL_TEST_SUPPORT_TEST_H__*/

@@ -852,7 +852,7 @@ UTEST_CASE(fixed_expansion_rounding_comprehensive)
  * 
  * @return 失败测试数。
  */
-int32 fixed_test()
+int32 fixed_test(void)
 {
     UTEST_SUITE("aos.kernel.test.support.fixed");
     

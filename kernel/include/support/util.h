@@ -10,7 +10,6 @@
 #define __AOS_KERNEL_SUPPORT_UTIL_H__
 
 #include "const.h"
-#include "type.h"
 
 /**
  * 取绝对值。
@@ -69,12 +68,6 @@
  */
 #define count_trailing_zeros(value) (generic((value),uint8:count_trailing_zeros_uint8,\
     uint16:count_trailing_zeros_uint16,uint32:count_trailing_zeros_uint32,uint64:count_trailing_zeros_uint64)(value))
-
-/**
- * 计算数值从最低有效位开始第一个1的索引。如果值为0，返回位数大小的索引。
- */
-#define find_first_set(value) (generic((value),uint8:find_first_set_uint8,uint16:find_first_set_uint16,\
-    uint32:find_first_set_uint32,uint64:find_first_set_uint64)(value))
 
 /**
  * 取有符号8位整型的绝对值。
@@ -626,55 +619,6 @@ static inline uintn count_trailing_zeros_uint32(uint32 value)
 static inline uintn count_trailing_zeros_uint64(uint64 value)
 {
     return (uintn)(value==0?64:__builtin_ctzg(value));
-}
-
-/**
- * 计算数值从最低有效位开始第一个1的索引。如果值为0，返回位数大小的索引。
- * 
- * @param value 值。
- * 
- * @return 值中从最低有效位开始第一个1的索引。
- */
-static inline uintn find_first_set_uint8(uint8 value)
-{
-    return (uintn)(value==0?8:count_trailing_zeros_uint8(value)+1);
-}
-
-/**
- * 计算数值从最低有效位开始第一个1的索引。如果值为0，返回位数大小的索引。
- * 
- * @param value 值。
- * 
- * @return 值中从最低有效位开始第一个1的索引。
- */
-static inline uintn find_first_set_uint16(uint16 value)
-{
-    return (uintn)(value==0?16:count_trailing_zeros_uint16(value)+1);
-}
-
-
-/**
- * 计算数值从最低有效位开始第一个1的索引。如果值为0，返回位数大小的索引。
- * 
- * @param value 值。
- * 
- * @return 值中从最低有效位开始第一个1的索引。
- */
-static inline uintn find_first_set_uint32(uint32 value)
-{
-    return (uintn)(value==0?32:count_trailing_zeros_uint32(value)+1);
-}
-
-/**
- * 计算数值从最低有效位开始第一个1的索引。如果值为0，返回位数大小的索引。
- * 
- * @param value 值。
- * 
- * @return 值中从最低有效位开始第一个1的索引。
- */
-static inline uintn find_first_set_uint64(uint64 value)
-{
-    return (uintn)(value==0?64:count_trailing_zeros_uint64(value)+1);
 }
 
 /**

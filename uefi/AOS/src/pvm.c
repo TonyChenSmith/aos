@@ -359,7 +359,7 @@ STATIC EFI_STATUS EFIAPI pvm_pml5e_map(IN VOID* pml5,IN UINTN vaddr,IN UINTN pad
 /**
  * 返回页表是否为空。
  * 
- * @param pt    页表地址。
+ * @param pt 页表地址。
  * 
  * @return 为空返回真。
  */

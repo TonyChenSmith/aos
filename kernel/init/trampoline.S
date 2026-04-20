@@ -36,5 +36,10 @@ aos_kernel_trampoline:
     movq %rdx,%rsp
     cli
     cld
+    movb $0x80,%al
+    outb %al,$0x70
+    xorb %al,%al
+    outb %al,$0x80
+    inb $0x71,%al
     jmp aos_kernel_entry
 .size aos_kernel_trampoline,.-aos_kernel_trampoline

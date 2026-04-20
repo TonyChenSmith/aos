@@ -39,6 +39,16 @@ UTEST_CASE(fixed_test)
 }
 
 /**
+ * 测试格式化输出库函数。
+ * 
+ * @return 无返回值。
+ */
+UTEST_CASE(format_test)
+{
+    UTEST_ASSERT_EQUAL(format_test(),0);
+}
+
+/**
  * 测试内存库函数。
  * 
  * @return 无返回值。
@@ -63,13 +73,14 @@ UTEST_CASE(string_test)
  * 
  * @return 失败测试数。
  */
-int32 main()
+int32 main(void)
 {
     UTEST_SUITE("aos.kernel.test.support");
     
     UTEST_RUN(char_test);
     UTEST_RUN(convert_test);
     UTEST_RUN(fixed_test);
+    UTEST_RUN(format_test);
     UTEST_RUN(memory_test);
     UTEST_RUN(string_test);
 

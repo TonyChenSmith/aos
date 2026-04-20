@@ -854,7 +854,7 @@ UTEST_CASE(convert_error_cases)
  * 
  * @return 失败测试数。
  */
-int32 convert_test()
+int32 convert_test(void)
 {
     UTEST_SUITE("aos.kernel.test.support.convert");
     

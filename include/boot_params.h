@@ -179,10 +179,10 @@ typedef struct _aos_efi_time_capabilities
  */
 typedef enum _aos_efi_reset_type
 {
-    efi_reset_cold,             /*冷重启。*/
-    efi_reset_warm,             /*暖重启。*/
-    efi_reset_shutdown,         /*关机。*/
-    efi_reset_platform_specific /*平台定义。*/
+    AOS_EFI_RESET_COLD,             /*冷重启。*/
+    AOS_EFI_RESET_WARM,             /*暖重启。*/
+    AOS_EFI_RESET_SHUTDOWN,         /*关机。*/
+    AOS_EFI_RESET_PLATFORM_SPECIFIC /*平台定义。*/
 } aos_efi_reset_type;
 
 /**
@@ -272,7 +272,7 @@ typedef uintn (AOS_EFIAPI *aos_efi_get_time)(aos_efi_time* time,aos_efi_time_cap
 /**
  * 设置时间。
  * 
- * @param time         EFI时间。
+ * @param time EFI时间。
  * 
  * @return EFI状态。具体看UEFI规范。
  */
@@ -307,7 +307,7 @@ typedef uintn (AOS_EFIAPI *aos_efi_set_wakeup_time)(bool enable,aos_efi_time* ti
  * @param data_size    数据大小。
  * @param reset_data   重置数据。
  * 
- * @return EFI状态。具体看UEFI规范。
+ * @return 无返回值。
  */
 typedef void (AOS_EFIAPI *aos_efi_reset_system)(aos_efi_reset_type reset_type,uintn reset_status,uintn data_size,
     void* reset_data);

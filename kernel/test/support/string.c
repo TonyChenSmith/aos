@@ -575,7 +575,7 @@ UTEST_CASE(string_integration_test)
  * 
  * @return 失败测试数。
  */
-int32 string_test()
+int32 string_test(void)
 {
     UTEST_SUITE("aos.kernel.test.support.string");
     

@@ -13,12 +13,14 @@ add_executable(aos.kernel.test.support
     char.c
     convert.c
     fixed.c
+    format.c
     memory.c
     string.c
     test.c
 
     ../../support/char.c
     ../../support/convert.c
+    ../../support/format.c
     ../../support/memory.c
     ../../support/string.c
 )

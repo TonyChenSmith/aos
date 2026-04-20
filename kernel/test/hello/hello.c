@@ -13,7 +13,7 @@
  * 
  * @return 常返回0。
  */
-int main()
+int main(void)
 {
     printf("Hello Test.\n");
     return 0;

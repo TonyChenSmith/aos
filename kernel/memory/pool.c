@@ -6,7 +6,6 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#include <support/const.h>
 #include <support/memory.h>
 #include <support/util.h>
 
@@ -113,7 +112,7 @@ typedef struct _pool_tlsf_meta
  * 
  * @return 对应的第一级索引。
  */
-static uintn pool_get_fl_index(uintn size)
+static inline uintn pool_get_fl_index(uintn size)
 {
     if(size<64)
     {
@@ -131,7 +130,7 @@ static uintn pool_get_fl_index(uintn size)
  * 
  * @return 对应的第二级索引。
  */
-static uintn pool_get_sl_index(uintn size,uintn fl_index)
+static inline uintn pool_get_sl_index(uintn size,uintn fl_index)
 {
     if(size<64||fl_index>=31)
     {
@@ -149,7 +148,7 @@ static uintn pool_get_sl_index(uintn size,uintn fl_index)
  * 
  * @return 无返回值。
  */
-static void pool_get_alloc_index(uintn size,uintn* fl_index,uintn* sl_index)
+static inline void pool_get_alloc_index(uintn size,uintn* fl_index,uintn* sl_index)
 {
     *fl_index=pool_get_fl_index(size);
     *sl_index=pool_get_sl_index(size,*fl_index);
@@ -176,7 +175,7 @@ static void pool_get_alloc_index(uintn size,uintn* fl_index,uintn* sl_index)
  * 
  * @return 无返回值。
  */
-static void pool_list_add(pool_tlsf_node** head,pool_tlsf_node** tail,pool_tlsf_node* node)
+static inline void pool_list_add(pool_tlsf_node** head,pool_tlsf_node** tail,pool_tlsf_node* node)
 {
     node->prev=null;
     node->next=*head;
@@ -200,7 +199,7 @@ static void pool_list_add(pool_tlsf_node** head,pool_tlsf_node** tail,pool_tlsf_
  * 
  * @return 无返回值。
  */
-static void pool_list_remove(pool_tlsf_node** head,pool_tlsf_node** tail,pool_tlsf_node* node)
+static inline void pool_list_remove(pool_tlsf_node** head,pool_tlsf_node** tail,pool_tlsf_node* node)
 {
     if(node->prev!=null)
     {
@@ -262,7 +261,7 @@ static inline bool pool_is_free(uintn packed)
 /**
  * 当前内存池元数据。
  */
-static pool_tlsf_meta* pool_meta=null;
+static pool_tlsf_meta pool_meta;
 
 /**
  * 根据第一级索引和第二级索引更新映射。
@@ -274,25 +273,25 @@ static pool_tlsf_meta* pool_meta=null;
  */
 static void pool_update_bitmap(uintn fl_index,uintn sl_index)
 {
-    if(pool_meta==null)
+    if(pool_meta.free_head[fl_index][sl_index]!=null)
     {
-        return;
-    }
-
-    if(pool_meta->free_head[fl_index][sl_index]!=null)
-    {
-        pool_meta->fl_bitmap|=1<<fl_index;
-        pool_meta->sl_bitmap[fl_index]|=1<<sl_index;
+        pool_meta.fl_bitmap|=1<<fl_index;
+        pool_meta.sl_bitmap[fl_index]|=1<<sl_index;
     }
     else
     {
-        pool_meta->sl_bitmap[fl_index]&=UINT8_MAX^(1<<sl_index);
-        if(pool_meta->sl_bitmap[fl_index]==0)
+        pool_meta.sl_bitmap[fl_index]&=UINT8_MAX^(1<<sl_index);
+        if(pool_meta.sl_bitmap[fl_index]==0)
         {
-            pool_meta->fl_bitmap&=UINT32_MAX^(1<<fl_index);
+            pool_meta.fl_bitmap&=UINT32_MAX^(1<<fl_index);
         }
     }
 }
+
+/**
+ * 当前初始化状态。
+ */
+static bool init_state=false;
 
 /**
  * 初始化内核内存池。
@@ -302,30 +301,32 @@ static void pool_update_bitmap(uintn fl_index,uintn sl_index)
  * 
  * @return 成功初始化返回真。
  */
-bool pool_init(void* pool,uintn pages)
+bool memory_pool_init(void* pool,uintn pages)
 {
-    if(pool_meta!=null||pool==null||pages<=1)
+    if(init_state||pool==null||pages<=1)
     {
         return false;
     }
-    pool_meta=(pool_tlsf_meta*)pool;
-    memory_zero(pool_meta,sizeof(pool_tlsf_meta));
+    else
+    {
+        init_state=true;
+    }
+    memory_zero(&pool_meta,sizeof(pool_tlsf_meta));
 
-    /*大于一页必有空间存储哨兵结点*/
-    pool_tlsf_node* block=(pool_tlsf_node*)((uintn)pool+align_up(sizeof(pool_tlsf_meta),8));
+    pool_tlsf_node* block=(pool_tlsf_node*)pool;
     block->psize=pool_pack_size(0,false);
     block->csize=pool_pack_size(
         (pages<<12)-align_up(sizeof(pool_tlsf_meta),8)-sizeof(pool_tlsf_node),true);
     uintn fl_index=pool_get_fl_index(block->csize);
     uintn sl_index=pool_get_sl_index(block->csize,fl_index);
-    pool_list_add(&pool_meta->free_head[fl_index][sl_index],&pool_meta->free_tail[fl_index][sl_index],
+    pool_list_add(&pool_meta.free_head[fl_index][sl_index],&pool_meta.free_tail[fl_index][sl_index],
         block);
     pool_update_bitmap(fl_index,sl_index);
 
     pool_tlsf_node* sentinel=(pool_tlsf_node*)((uintn)block+pool_get_size(block->csize));
     sentinel->psize=block->csize;
     sentinel->csize=pool_pack_size(sizeof(pool_tlsf_node),false);
-    pool_list_add(&pool_meta->allow_head,&pool_meta->allow_tail,sentinel);
+    pool_list_add(&pool_meta.allow_head,&pool_meta.allow_tail,sentinel);
 
     return true;
 }
@@ -365,8 +366,8 @@ static void* pool_alloc_new(uintn size)
 
     pool_tlsf_node* sentinel=(pool_tlsf_node*)((uintn)block+block_size);
     sentinel->csize=pool_pack_size(sizeof(pool_tlsf_node),false);
-    pool_list_add(&pool_meta->allow_head,&pool_meta->allow_tail,sentinel);
-    pool_list_add(&pool_meta->allow_head,&pool_meta->allow_tail,block);
+    pool_list_add(&pool_meta.allow_head,&pool_meta.allow_tail,sentinel);
+    pool_list_add(&pool_meta.allow_head,&pool_meta.allow_tail,block);
 
     uintn space=block_size-size;
     if(space>=64)
@@ -379,7 +380,7 @@ static void* pool_alloc_new(uintn size)
 
         uintn fl_index=pool_get_fl_index(space);
         uintn sl_index=pool_get_sl_index(space,fl_index);
-        pool_list_add(&pool_meta->free_head[fl_index][sl_index],&pool_meta->free_tail[fl_index][sl_index],
+        pool_list_add(&pool_meta.free_head[fl_index][sl_index],&pool_meta.free_tail[fl_index][sl_index],
             free_block);
         pool_update_bitmap(fl_index,sl_index);
     }
@@ -401,7 +402,7 @@ static void* pool_alloc_new(uintn size)
  */
 void* pool_alloc(uintn size)
 {
-    if(pool_meta==null||size==0)
+    if(size==0)
     {
         return null;
     }
@@ -413,7 +414,7 @@ void* pool_alloc(uintn size)
     pool_tlsf_node* block=null;
     if(fl_index==31)
     {
-        pool_tlsf_node* node=pool_meta->free_head[31][0];
+        pool_tlsf_node* node=pool_meta.free_head[31][0];
         while(node!=null)
         {
             if(pool_get_size(node->csize)>=size)
@@ -430,17 +431,17 @@ void* pool_alloc(uintn size)
     }
     else
     {
-        uintn free_fl=count_trailing_zeros(pool_meta->fl_bitmap&(UINT32_MAX<<fl_index));
+        uintn free_fl=count_trailing_zeros(pool_meta.fl_bitmap&(UINT32_MAX<<fl_index));
         if(free_fl>31)
         {
             return pool_alloc_new(size);
         }
         else if(free_fl==fl_index)
         {
-            uintn free_sl=count_trailing_zeros((uint8)(pool_meta->sl_bitmap[fl_index]&(UINT8_MAX<<sl_index)));
+            uintn free_sl=count_trailing_zeros((uint8)(pool_meta.sl_bitmap[fl_index]&(UINT8_MAX<<sl_index)));
             if(free_sl>7)
             {
-                free_fl=count_trailing_zeros(pool_meta->fl_bitmap&(UINT32_MAX<<(fl_index+1)));
+                free_fl=count_trailing_zeros(pool_meta.fl_bitmap&(UINT32_MAX<<(fl_index+1)));
                 if(free_fl>31)
                 {
                     return pool_alloc_new(size);
@@ -448,7 +449,7 @@ void* pool_alloc(uintn size)
                 else
                 {
                     fl_index=free_fl;
-                    sl_index=count_trailing_zeros(pool_meta->sl_bitmap[fl_index]);
+                    sl_index=count_trailing_zeros(pool_meta.sl_bitmap[fl_index]);
                 }
             }
             else
@@ -459,16 +460,16 @@ void* pool_alloc(uintn size)
         else
         {
             fl_index=free_fl;
-            sl_index=count_trailing_zeros(pool_meta->sl_bitmap[fl_index]);
+            sl_index=count_trailing_zeros(pool_meta.sl_bitmap[fl_index]);
         }
     
-        block=pool_meta->free_head[fl_index][sl_index];
+        block=pool_meta.free_head[fl_index][sl_index];
     }
     
-    pool_list_remove(&pool_meta->free_head[fl_index][sl_index],&pool_meta->free_tail[fl_index][sl_index],
+    pool_list_remove(&pool_meta.free_head[fl_index][sl_index],&pool_meta.free_tail[fl_index][sl_index],
         block);
     pool_update_bitmap(fl_index,sl_index);
-    pool_list_add(&pool_meta->allow_head,&pool_meta->allow_tail,block);
+    pool_list_add(&pool_meta.allow_head,&pool_meta.allow_tail,block);
 
     uintn space=pool_get_size(block->csize)-size;
     if(space>=64)
@@ -482,7 +483,7 @@ void* pool_alloc(uintn size)
 
         fl_index=pool_get_fl_index(space);
         sl_index=pool_get_sl_index(space,fl_index);
-        pool_list_add(&pool_meta->free_head[fl_index][sl_index],&pool_meta->free_tail[fl_index][sl_index],
+        pool_list_add(&pool_meta.free_head[fl_index][sl_index],&pool_meta.free_tail[fl_index][sl_index],
             free_block);
         pool_update_bitmap(fl_index,sl_index);
     }
@@ -522,14 +523,14 @@ void pool_free(void* ptr)
     {
         return;
     }
-    pool_list_remove(&pool_meta->allow_head,&pool_meta->allow_tail,block);
+    pool_list_remove(&pool_meta.allow_head,&pool_meta.allow_tail,block);
 
     if(pool_is_free(block->psize)&&pool_get_size(block->psize)>0)
     {
         pool_tlsf_node* prev=(pool_tlsf_node*)((uintn)block-pool_get_size(block->psize));
         uintn fl_index=pool_get_fl_index(pool_get_size(prev->csize));
         uintn sl_index=pool_get_sl_index(pool_get_size(prev->csize),fl_index);
-        pool_list_remove(&pool_meta->free_head[fl_index][sl_index],&pool_meta->free_tail[fl_index][sl_index],
+        pool_list_remove(&pool_meta.free_head[fl_index][sl_index],&pool_meta.free_tail[fl_index][sl_index],
             prev);
         pool_update_bitmap(fl_index,sl_index);
 
@@ -547,7 +548,7 @@ void pool_free(void* ptr)
     {
         uintn fl_index=pool_get_fl_index(pool_get_size(next->csize));
         uintn sl_index=pool_get_sl_index(pool_get_size(next->csize),fl_index);
-        pool_list_remove(&pool_meta->free_head[fl_index][sl_index],&pool_meta->free_tail[fl_index][sl_index],
+        pool_list_remove(&pool_meta.free_head[fl_index][sl_index],&pool_meta.free_tail[fl_index][sl_index],
             next);
         pool_update_bitmap(fl_index,sl_index);
 
@@ -564,14 +565,14 @@ void pool_free(void* ptr)
     if(block->psize==pool_pack_size(0,true)&&next->csize==sizeof(pool_tlsf_node))
     {
         uintn size=(pool_get_size(block->csize)+sizeof(pool_tlsf_node));
-        pool_list_remove(&pool_meta->allow_head,&pool_meta->allow_tail,next);
+        pool_list_remove(&pool_meta.allow_head,&pool_meta.allow_tail,next);
         pool_page_free(block,size>>12);
     }
     else
     {
         uintn fl_index=pool_get_fl_index(pool_get_size(block->csize));
         uintn sl_index=pool_get_sl_index(pool_get_size(block->csize),fl_index);
-        pool_list_add(&pool_meta->free_head[fl_index][sl_index],&pool_meta->free_tail[fl_index][sl_index],
+        pool_list_add(&pool_meta.free_head[fl_index][sl_index],&pool_meta.free_tail[fl_index][sl_index],
             block);
         pool_update_bitmap(fl_index,sl_index);
     }
@@ -582,7 +583,7 @@ void pool_free(void* ptr)
  * 
  * @return 无返回值。
  */
-void pool_attach_page_allocator()
+void memory_pool_attach_page_allocator(void)
 {
 
 }

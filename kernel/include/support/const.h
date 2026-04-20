@@ -126,52 +126,6 @@
  */
 #define UINT64_MIN ((uint64)0)
 
-#ifdef __x86_64__
-
-/**
- * 有符号指针整型最大值。
- */
-#define INTN_MAX INT64_MAX
-
-/**
- * 无符号指针整型最大值。
- */
-#define UINTN_MAX UINT64_MAX
-
-/**
- * 有符号指针整型最小值。
- */
-#define INTN_MIN INT64_MIN
-
-/**
- * 无符号指针整型最小值。
- */
-#define UINTN_MIN UINT64_MIN
-
-#else
-
-/**
- * 有符号指针整型最大值。
- */
-#define INTN_MAX INT32_MAX
-
-/**
- * 无符号指针整型最大值。
- */
-#define UINTN_MAX UINT32_MAX
-
-/**
- * 有符号指针整型最小值。
- */
-#define INTN_MIN INT32_MIN
-
-/**
- * 无符号指针整型最小值。
- */
-#define UINTN_MIN UINT32_MIN
-
-#endif /*__x86_64__*/
-
 /**
  * 位常量，覆盖0-63位。
  */
@@ -302,5 +256,61 @@
  * EFI ABI定义。
  */
 #define AOS_EFIAPI __attribute__((ms_abi))
+
+#ifdef __x86_64__
+
+/**
+ * 有符号指针整型最大值。
+ */
+#define INTN_MAX INT64_MAX
+
+/**
+ * 无符号指针整型最大值。
+ */
+#define UINTN_MAX UINT64_MAX
+
+/**
+ * 有符号指针整型最小值。
+ */
+#define INTN_MIN INT64_MIN
+
+/**
+ * 无符号指针整型最小值。
+ */
+#define UINTN_MIN UINT64_MIN
+
+/**
+ * 无符号指针整型最高位。
+ */
+#define MAX_UINTN_BIT BIT63
+
+#else
+
+/**
+ * 有符号指针整型最大值。
+ */
+#define INTN_MAX INT32_MAX
+
+/**
+ * 无符号指针整型最大值。
+ */
+#define UINTN_MAX UINT32_MAX
+
+/**
+ * 有符号指针整型最小值。
+ */
+#define INTN_MIN INT32_MIN
+
+/**
+ * 无符号指针整型最小值。
+ */
+#define UINTN_MIN UINT32_MIN
+
+/**
+ * 无符号指针整型最高位。
+ */
+#define MAX_UINTN_BIT BIT31
+
+#endif /*__x86_64__*/
 
 #endif /*__AOS_KERNEL_SUPPORT_CONST_H__*/

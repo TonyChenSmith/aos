@@ -19,6 +19,13 @@
  * 
  * @return 成功初始化返回真。
  */
-bool pool_init(void* pool,uintn pages);
+bool memory_pool_init(void* pool,uintn pages);
+
+/**
+ * 内核内存池接入页管理器。
+ * 
+ * @return 无返回值。
+ */
+void memory_pool_attach_page_allocator(void);
 
 #endif /*__AOS_KERNEL_MEMORY_MEMORY_INTERNAL_H__*/

@@ -16,13 +16,13 @@
  * 
  * @return 当前CPU编号。
  */
-uint32 get_current_cpu_id();
+uint32 get_current_cpu_id(void);
 
 /**
  * 获取当前运行CPU的是否是引导处理器。
  * 
  * @return 如果是BSP返回真。
  */
-bool is_bootstrap_processor();
+bool is_bootstrap_processor(void);
 
 #endif /*__AOS_KERNEL_CPU_INFO_H__*/

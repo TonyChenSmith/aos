@@ -50,6 +50,7 @@ add_compile_options(
     -mcmodel=small
 
     -Wall
+    -Wextra
     -Werror
 
     -fbinutils-version=none

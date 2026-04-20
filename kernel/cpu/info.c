@@ -8,7 +8,6 @@
  */
 #include <support/asm.h>
 #include <support/const.h>
-#include <support/type.h>
 
 /**
  * MSR IA32_APIC_BASE的基址。
@@ -25,7 +24,7 @@ const uint32 IA32_X2APIC_APICID=0x802;
  * 
  * @return 当前CPU编号。
  */
-uint32 get_current_cpu_id()
+uint32 get_current_cpu_id(void)
 {
     uint64 base=read_msr(IA32_APIC_BASE);
     if(!(base&BIT11))
@@ -49,7 +48,7 @@ uint32 get_current_cpu_id()
  * 
  * @return 如果是BSP返回真。
  */
-bool is_bootstrap_processor()
+bool is_bootstrap_processor(void)
 {
     return read_msr(IA32_APIC_BASE)&BIT8;
 }

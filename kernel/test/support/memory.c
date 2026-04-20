@@ -465,7 +465,7 @@ UTEST_CASE(memory_integration)
  * 
  * @return 失败测试数。
  */
-int32 memory_test()
+int32 memory_test(void)
 {
     UTEST_SUITE("aos.kernel.test.support.memory");
     

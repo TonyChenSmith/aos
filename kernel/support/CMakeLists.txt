@@ -12,6 +12,8 @@ project(aos.kernel.support VERSION 0.0.1 LANGUAGES C ASM)
 add_library(aos.kernel.support OBJECT
     char.c
     convert.c
+    format.c
     memory.c
     string.c
+    sync.c
 )

@@ -107,7 +107,7 @@ static int32 utest_total=0;
 /**
  * 测试运行。
  */
-#define UTEST_RUN(name) utest_run_##name()
+#define UTEST_RUN(name) utest_run_##name(void)
 
 /**
  * 测试结果汇总。

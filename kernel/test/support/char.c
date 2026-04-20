@@ -564,7 +564,7 @@ UTEST_CASE(ascii_case_conversion_comprehensive)
  * 
  * @return 失败测试数。
  */
-int32 char_test()
+int32 char_test(void)
 {
     UTEST_SUITE("aos.kernel.test.support.char");
     

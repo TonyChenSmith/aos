@@ -10,7 +10,6 @@
 #define __AOS_KERNEL_SUPPORT_STRING_H__
 
 #include "const.h"
-#include "type.h"
 
 /**
  * 获取字符串长度。

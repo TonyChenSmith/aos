@@ -22,5 +22,5 @@ const uintn KERNEL_POOL_BASE=-5*SIZE_512GB;
  */
 void kernel_memory_init(aos_boot_params* params)
 {
-
+    
 }

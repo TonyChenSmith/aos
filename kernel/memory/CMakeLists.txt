@@ -10,5 +10,7 @@ cmake_minimum_required(VERSION 4.0)
 project(aos.kernel.memory VERSION 0.0.1 LANGUAGES C ASM)
 
 add_library(aos.kernel.memory OBJECT
-    pcp_pool.c
+    buddy.c
+    init.c
+    pool.c
 )

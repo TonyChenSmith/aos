@@ -6,8 +6,6 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#include <support/const.h>
-#include <support/type.h>
 #include <support/util.h>
 
 /**
