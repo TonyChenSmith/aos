@@ -235,36 +235,6 @@ void line(const char8* str)
 }
 
 /**
- * 重置所有AP。
- * 
- * @param params 启动参数。
- * 
- * @return 无返回值。
- */
-static void init_reset_all_aps(aos_boot_params* params)
-{
-    if(params->state.apic==AOS_APIC_NO_APIC)
-    {
-        return;
-    }
-    else if(params->state.apic==AOS_APIC_XAPIC)
-    {
-        uint64 apic_base=read_msr(0x1B)&0xFFFFFFFFFFFFF000UL;
-        uint32* icr_low=(uint32*)(apic_base+0x300);
-        uint32* icr_high=(uint32*)(apic_base+0x310);
-
-        *icr_high=0;
-        uint32 command=(5<<8)|BIT14|(3<<18);
-        *icr_low=command;
-        memory_barrier();
-    }
-    else
-    {
-        write_msr(0x830,(5<<8)|BIT14|(3<<18));
-    }
-}
-
-/**
  * 内核模块入口。
  * 
  * @param params 启动参数。
@@ -273,10 +243,9 @@ static void init_reset_all_aps(aos_boot_params* params)
  */
 noreturn void aos_kernel_entry(aos_boot_params* params)
 {
-    init_reset_all_aps(params);
     while(true)
     {
         sleep();
-        panic("fault");
+        panic("fault",params->system_table);
     }
 }

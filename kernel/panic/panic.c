@@ -238,7 +238,7 @@ void set_panic_managed_output(panic_output_handler output)
  */
 void noreturn panic(const char8* format,...)
 {
-    disable_interrupts();
+    x86_disable_interrupts();
 
     /*多核通知恐慌，这里还未实现*/
 
@@ -268,13 +268,13 @@ void noreturn panic(const char8* format,...)
         /*写个特权死循环，但原则上回调不应该能执行该位置*/
         while(true)
         {
-            cpu_halt();
+            x86_cpu_halt();
         }
     }
     va_end(args);
 
     while(true)
     {
-        cpu_halt();
+        x86_cpu_halt();
     }
 }

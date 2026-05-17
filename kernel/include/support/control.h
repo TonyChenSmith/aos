@@ -16,7 +16,7 @@
  * 
  * @return 无返回值。
  */
-static inline void disable_interrupts(void)
+static inline void x86_disable_interrupts(void)
 {
     __asm__ volatile("cli":::"memory");
 }
@@ -25,7 +25,7 @@ static inline void disable_interrupts(void)
  * 
  * @return 无返回值。
  */
-static inline void enable_interrupts(void)
+static inline void x86_enable_interrupts(void)
 {
     __asm__ volatile("sti":::"memory");
 }
@@ -35,7 +35,7 @@ static inline void enable_interrupts(void)
  * 
  * @return 无返回值。
  */
-static inline void cpu_pause(void)
+static inline void x86_cpu_pause(void)
 {
     __asm__ volatile("pause":::"memory");
 }
@@ -45,7 +45,7 @@ static inline void cpu_pause(void)
  * 
  * @return 无返回值。
  */
-static inline void cpu_halt(void)
+static inline void x86_cpu_halt(void)
 {
     __asm__ volatile("hlt":::"memory");
 }

@@ -8,7 +8,7 @@
  */
 #include <support/char.h>
 #include <support/convert.h>
-#include <support/io_handle.h>
+#include <support/handle.h>
 #include <support/memory.h>
 #include <support/string.h>
 #include <support/util.h>

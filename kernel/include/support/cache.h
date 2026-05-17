@@ -18,7 +18,7 @@
  * 
  * @return 无返回值。
  */
-static inline void flush_single_tlb(uintn vaddr)
+static inline void x86_flush_single_tlb(uintn vaddr)
 {
     __asm__ volatile("invlpg (%0)"::"r"(vaddr):"memory");
 }
@@ -28,7 +28,7 @@ static inline void flush_single_tlb(uintn vaddr)
  * 
  * @return 无返回值。
  */
-static inline void flush_all_tlbs(void)
+static inline void x86_flush_all_tlbs(void)
 {
     uintn cr3;
     __asm__ volatile("mov %%cr3,%0\n\t"
@@ -43,12 +43,12 @@ static inline void flush_all_tlbs(void)
  * 
  * @return 无返回值。
  */
-static inline void flush_all_global_tlbs(void)
+static inline void x86_flush_all_global_tlbs(void)
 {
     uintn cr4;
     __asm__ volatile("mov %%cr4,%0":"=r"(cr4));
     __asm__ volatile("mov %0,%%cr4"::"r"(cr4&~((uintn)BIT7)));
-    flush_all_tlbs();
+    x86_flush_all_tlbs();
     __asm__ volatile("mov %0,%%cr4"::"r"(cr4));
 }
 

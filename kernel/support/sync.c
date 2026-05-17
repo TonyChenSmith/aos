@@ -37,7 +37,7 @@ void spinlock_lock(spinlock* lock)
     {
         while(atomic_flag_test_and_set_explicit(&lock->flag,MEMORY_ORDER_ACQUIRE))
         {
-            cpu_pause();
+            x86_cpu_pause();
         }
     }
     else
@@ -45,7 +45,7 @@ void spinlock_lock(spinlock* lock)
         /*锁指针为空必须终止CPU以保证数据安全，此时应该重启计算机了*/
         while(true)
         {
-            cpu_halt();
+            x86_cpu_halt();
         }
     }
 }
@@ -67,7 +67,7 @@ bool spinlock_try_lock(spinlock* lock)
  * 
  * @param lock 自旋锁。
  * 
- * @return 成功上锁返回真。
+ * @return 无返回值。
  */
 void spinlock_unlock(spinlock* lock)
 {

@@ -18,7 +18,7 @@
  * 
  * @return 读取寄存器的值。
  */
-static inline uint64 read_msr(uint32 index)
+static inline uint64 x86_read_msr(uint32 index)
 {
     uint32 low,high;
     __asm__ volatile("rdmsr":"=a"(low),"=d"(high):"c"(index));
@@ -33,7 +33,7 @@ static inline uint64 read_msr(uint32 index)
  * 
  * @return 无返回值。
  */
-static inline void write_msr(uint32 index,uint64 value)
+static inline void x86_write_msr(uint32 index,uint64 value)
 {
     __asm__ volatile("wrmsr"::"a"(value&UINT32_MAX),"d"(value>>32),"c"(index));
 }
@@ -43,7 +43,7 @@ static inline void write_msr(uint32 index,uint64 value)
  * 
  * @return 标志寄存器的值。
  */
-static inline uintn read_flags(void)
+static inline uintn x86_read_flags(void)
 {
     uintn flags;
     __asm__ volatile("pushfq\n\t"
@@ -60,7 +60,7 @@ static inline uintn read_flags(void)
  * 
  * @return 无返回值。
  */
-static inline void write_flags(uintn flags)
+static inline void x86_write_flags(uintn flags)
 {
     __asm__ volatile("push %0\n\t"
                      "popfq"
@@ -76,7 +76,7 @@ static inline void write_flags(uintn flags)
  * 
  * @return 读取的8位无符号整数。
  */
-static inline uint8 read_port8(uint16 port)
+static inline uint8 x86_read_port8(uint16 port)
 {
     uint8 value;
     __asm__ volatile("inb %w1,%0":"=a"(value):"Nd"(port));
@@ -90,7 +90,7 @@ static inline uint8 read_port8(uint16 port)
  * 
  * @return 读取的16位无符号整数。
  */
-static inline uint16 read_port16(uint16 port)
+static inline uint16 x86_read_port16(uint16 port)
 {
     uint16 value;
     __asm__ volatile("inw %w1,%0":"=a"(value):"Nd"(port));
@@ -104,7 +104,7 @@ static inline uint16 read_port16(uint16 port)
  * 
  * @return 读取的32位无符号整数。
  */
-static inline uint32 read_port32(uint16 port)
+static inline uint32 x86_read_port32(uint16 port)
 {
     uint32 value;
     __asm__ volatile("inl %w1,%0":"=a"(value):"Nd"(port));
@@ -119,7 +119,7 @@ static inline uint32 read_port32(uint16 port)
  * 
  * @return 无返回值。
  */
-static inline void write_port8(uint16 port, uint8 value)
+static inline void x86_write_port8(uint16 port, uint8 value)
 {
     __asm__ volatile("outb %0,%w1"::"a"(value),"Nd"(port));
 }
@@ -132,7 +132,7 @@ static inline void write_port8(uint16 port, uint8 value)
  * 
  * @return 无返回值。
  */
-static inline void write_port16(uint16 port,uint16 value)
+static inline void x86_write_port16(uint16 port,uint16 value)
 {
     __asm__ volatile("outw %0,%w1"::"a"(value),"Nd"(port));
 }
@@ -145,7 +145,7 @@ static inline void write_port16(uint16 port,uint16 value)
  * 
  * @return 无返回值。
  */
-static inline void write_port32(uint16 port,uint32 value)
+static inline void x86_write_port32(uint16 port,uint32 value)
 {
     __asm__ volatile("outl %0,%w1"::"a"(value),"Nd"(port));
 }
@@ -159,7 +159,7 @@ static inline void write_port32(uint16 port,uint32 value)
  * 
  * @return 无返回值。
  */
-static inline void read_port8_repeat(uint16 port,void* addr,uintn count)
+static inline void x86_read_port8_repeat(uint16 port,void* addr,uintn count)
 {
     __asm__ volatile("rep insb":"+D"(addr),"+c"(count):"d"(port):"memory");
 }
@@ -173,7 +173,7 @@ static inline void read_port8_repeat(uint16 port,void* addr,uintn count)
  * 
  * @return 无返回值。
  */
-static inline void read_port16_repeat(uint16 port,void* addr,uintn count)
+static inline void x86_read_port16_repeat(uint16 port,void* addr,uintn count)
 {
     __asm__ volatile("rep insw":"+D"(addr),"+c"(count):"d"(port):"memory");
 }
@@ -187,7 +187,7 @@ static inline void read_port16_repeat(uint16 port,void* addr,uintn count)
  * 
  * @return 无返回值。
  */
-static inline void read_port32_repeat(uint16 port,void* addr,uintn count)
+static inline void x86_read_port32_repeat(uint16 port,void* addr,uintn count)
 {
     __asm__ volatile("rep insl":"+D"(addr),"+c"(count):"d"(port):"memory");
 }
@@ -201,7 +201,7 @@ static inline void read_port32_repeat(uint16 port,void* addr,uintn count)
  * 
  * @return 无返回值。
  */
-static inline void write_port8_repeat(uint16 port,const void* addr,uintn count)
+static inline void x86_write_port8_repeat(uint16 port,const void* addr,uintn count)
 {
     __asm__ volatile("rep outsb":"+S"(addr),"+c"(count):"d"(port):"memory");
 }
@@ -214,7 +214,7 @@ static inline void write_port8_repeat(uint16 port,const void* addr,uintn count)
  * 
  * @return 无返回值。
  */
-static inline void write_port16_repeat(uint16 port,const void* addr,uintn count)
+static inline void x86_write_port16_repeat(uint16 port,const void* addr,uintn count)
 {
     __asm__ volatile("rep outsw":"+S"(addr),"+c"(count):"d"(port):"memory");
 }
@@ -227,7 +227,7 @@ static inline void write_port16_repeat(uint16 port,const void* addr,uintn count)
  * 
  * @return 无返回值。
  */
-static inline void write_port32_repeat(uint16 port,const void* addr,uintn count)
+static inline void x86_write_port32_repeat(uint16 port,const void* addr,uintn count)
 {
     __asm__ volatile("rep outsl":"+S"(addr),"+c"(count):"d"(port):"memory");
 }
