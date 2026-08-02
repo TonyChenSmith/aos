@@ -26,4 +26,9 @@ typedef uintn firmware_status;
  */
 #define FIRMWARE_UNSUPPORTED 1
 
+/**
+ * 固件设备错误。
+ */
+#define FIRMWARE_DEVICE_ERROR 2
+
 #endif /*__AOS_KERNEL_FIRMWARE_STATUS_H__*/

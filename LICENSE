@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2024-2025 Tony Chen Smith
+Copyright (c) 2024-2026 Tony Chen Smith
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,23 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+--------------------------------------------------------------------------------
+
+NOTICE
+
+The MIT License set forth above applies exclusively to the portions of this
+repository authored by Tony Chen Smith, including without limitation the contents
+of the following directories: /kernel/, /include/, /pack/, /test/, /research/,
+and /uefi/AOS/.
+
+The /uefi/ directory incorporates the EDK II development framework, which is
+distributed under the BSD-2-Clause-Patent license. The applicable terms for
+EDK II are set forth in /uefi/License.txt.
+
+Third-party submodules referenced within /uefi/ are distributed under their
+respective license terms, as set forth in the license file contained in each
+such submodule's directory.
+
+Nothing in this file shall be construed as altering or superseding the license
+terms applicable to any third-party code included in this repository.

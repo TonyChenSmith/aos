@@ -6,7 +6,7 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#include <firmware/status.h>
+#include <firmware/time.h>
 #include <init/params.h>
 #include <panic/callback.h>
 #include <support/sync.h>
@@ -76,6 +76,8 @@ static uintn firmware_firmware_to_efi_status(firmware_status status)
     {
         case FIRMWARE_SUCCESS:
             return EFI_SUCCESS;
+        case FIRMWARE_DEVICE_ERROR:
+            return EFI_DEVICE_ERROR;
         case FIRMWARE_UNSUPPORTED:
         default:
             return EFI_UNSUPPORTED;
@@ -95,6 +97,8 @@ static firmware_status firmware_efi_to_firmware_status(uintn status)
     {
         case EFI_SUCCESS:
             return FIRMWARE_SUCCESS;
+        case EFI_DEVICE_ERROR:
+            return FIRMWARE_DEVICE_ERROR;
         case EFI_UNSUPPORTED:
         default:
             return FIRMWARE_UNSUPPORTED;
@@ -113,7 +117,7 @@ firmware_status firmware_cold_reset(firmware_status status)
     spinlock_lock(&lock);
     runtime->reset_system(AOS_EFI_RESET_COLD,firmware_firmware_to_efi_status(status),0,null);
     spinlock_unlock(&lock);
-    return FIRMWARE_SUCCESS;
+    return FIRMWARE_DEVICE_ERROR;
 }
 
 /**
@@ -128,7 +132,7 @@ firmware_status firmware_warm_reset(firmware_status status)
     spinlock_lock(&lock);
     runtime->reset_system(AOS_EFI_RESET_WARM,firmware_firmware_to_efi_status(status),0,null);
     spinlock_unlock(&lock);
-    return FIRMWARE_SUCCESS;
+    return FIRMWARE_DEVICE_ERROR;
 }
 
 /**
@@ -143,5 +147,26 @@ firmware_status firmware_shutdown(firmware_status status)
     spinlock_lock(&lock);
     runtime->reset_system(AOS_EFI_RESET_SHUTDOWN,firmware_firmware_to_efi_status(status),0,null);
     spinlock_unlock(&lock);
-    return FIRMWARE_SUCCESS;
+    return FIRMWARE_DEVICE_ERROR;
 }
+
+/**
+ * 从固件获取当前实时钟时间。
+ * 
+ * @param time 实时钟时间。
+ * 
+ * @return 获取时间状态。
+ */
+firmware_status firmware_get_time(aos_time* time)
+{
+    
+}
+
+/**
+ * 设置固件实时钟时间。
+ * 
+ * @param time 实时钟时间。
+ * 
+ * @return 设置时间状态。
+ */
+firmware_status firmware_set_time(aos_time* time);

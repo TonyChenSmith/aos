@@ -69,6 +69,16 @@ UTEST_CASE(string_test)
 }
 
 /**
+ * 测试时间库函数库函数。
+ * 
+ * @return 无返回值。
+ */
+UTEST_CASE(time_test)
+{
+    UTEST_ASSERT_EQUAL(time_test(),0);
+}
+
+/**
  * 主测试。
  * 
  * @return 失败测试数。
@@ -83,6 +93,7 @@ int32 main(void)
     UTEST_RUN(format_test);
     UTEST_RUN(memory_test);
     UTEST_RUN(string_test);
+    UTEST_RUN(time_test);
 
     UTEST_END("aos.kernel.test.support");
 }

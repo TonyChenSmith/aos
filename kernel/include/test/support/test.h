@@ -53,4 +53,11 @@ int32 memory_test(void);
  */
 int32 string_test(void);
 
+/**
+ * 时间库函数测试。
+ * 
+ * @return 失败测试数。
+ */
+int32 time_test(void);
+
 #endif /*__AOS_KERNEL_TEST_SUPPORT_TEST_H__*/

@@ -16,4 +16,5 @@ add_library(aos.kernel.support OBJECT
     memory.c
     string.c
     sync.c
+    time.c
 )

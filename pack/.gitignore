@@ -1,0 +1,6 @@
+# Created: 2026-07-31
+*.volume
+*.vhd
+__pycache__/
+out/
+sign/

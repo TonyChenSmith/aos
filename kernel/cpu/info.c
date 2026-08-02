@@ -6,7 +6,7 @@
  * 
  * SPDX-License-Identifier: MIT
  */
-#include <support/asm.h>
+#include <support/io.h>
 #include <support/const.h>
 
 /**
@@ -26,14 +26,14 @@ const uint32 IA32_X2APIC_APICID=0x802;
  */
 uint32 get_current_cpu_id(void)
 {
-    uint64 base=read_msr(IA32_APIC_BASE);
+    uint64 base=x86_read_msr(IA32_APIC_BASE);
     if(!(base&BIT11))
     {
         return 0;
     }
     else if(base&BIT10)
     {
-        return (uint32)read_msr(IA32_X2APIC_APICID);
+        return (uint32)x86_read_msr(IA32_X2APIC_APICID);
     }
     else
     {
@@ -50,5 +50,5 @@ uint32 get_current_cpu_id(void)
  */
 bool is_bootstrap_processor(void)
 {
-    return read_msr(IA32_APIC_BASE)&BIT8;
+    return x86_read_msr(IA32_APIC_BASE)&BIT8;
 }

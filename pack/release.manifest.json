@@ -1,25 +1,25 @@
 {
-    "disk":"test/hda.vhd",
+    "disk":"pack/hda.vhd",
     "system":"hd2/",
     "manifest":[
         {
             "file":"BOOTx64.efi",
-            "project":"uefi/Build/AOS/DEBUG_CLANGPDB/X64/",
+            "project":"uefi/Build/AOS/RELEASE_CLANGPDB/X64/",
             "disk":"hd1/EFI/BOOT/"
         },
         {
-            "file":"aos.system.location",
-            "project":"test/",
+            "file":"aos.system.volume",
+            "project":"pack/out/",
             "disk":"hd1/aos/"
         },
         {
             "file":"aos.kernel",
-            "project":"kernel/out/Debug/build/",
+            "project":"kernel/out/Release/build/",
             "disk":"hd2/aos/"
         },
         {
             "file":"aos.kernel.sig",
-            "project":"test/sig/Debug/",
+            "project":"pack/out/Release/",
             "disk":"hd2/aos/"
         }
     ]

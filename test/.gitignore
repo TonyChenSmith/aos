@@ -1,7 +1,3 @@
 # Created: 2024-06-02
 *.log
 *.fd
-*.location
-*.vhd
-__pycache__/
-sig/

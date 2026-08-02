@@ -17,12 +17,14 @@ add_executable(aos.kernel.test.support
     memory.c
     string.c
     test.c
+    time.c
 
     ../../support/char.c
     ../../support/convert.c
     ../../support/format.c
     ../../support/memory.c
     ../../support/string.c
+    ../../support/time.c
 )
 
 add_aos_target(aos.kernel.test.support $<TARGET_FILE:aos.kernel.test.support>)
