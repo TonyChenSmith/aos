@@ -1,0 +1,22 @@
+NOTICE
+
+The MIT License (see LICENSE file) applies exclusively to the portions of this
+repository authored by Tony Chen Smith, located in:
+
+    /kernel/
+    /include/
+    /pack/
+    /test/
+    /research/
+    /uefi/AOS/
+
+The /uefi/ directory incorporates the EDK II development framework, which is
+distributed under the BSD-2-Clause-Patent license. The applicable terms for
+EDK II are set forth in /uefi/License.txt.
+
+Third-party submodules referenced within /uefi/ are distributed under their
+respective license terms, as set forth in the license file contained in each
+such submodule's directory.
+
+Nothing in this file shall be construed as altering or superseding the license
+terms applicable to any third-party code included in this repository.

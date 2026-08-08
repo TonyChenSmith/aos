@@ -18,7 +18,7 @@
     ENTRY_POINT                    = aos_uefi_entry
 
 [Sources]
-    core/main.c
+    core/boot.c
     core/panic.c
     core/pool.c
 

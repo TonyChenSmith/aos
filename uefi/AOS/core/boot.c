@@ -1,19 +1,17 @@
 /**
- * 模块主函数。
+ * 模块引导代码。
  * @date 2026-06-27
  * 
  * Copyright (c) 2026 Tony Chen Smith
  * 
  * SPDX-License-Identifier: MIT
  */
-#include <Uefi.h>
 #include <Guid/Acpi.h>
 #include <Guid/SmBios.h>
 #include <IndustryStandard/Acpi.h>
 #include <IndustryStandard/SmBios.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/MemoryAllocationLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
@@ -72,7 +70,7 @@ STATIC_ASSERT(CONFIG_MINIMUM_FREE_PAGES>=(SIZE_512MB/EFI_PAGE_SIZE),"The macro C
  * 
  * @return 无返回值。
  */
-STATIC VOID EFIAPI main_cpu_check(IN aos_boot_params* params)
+STATIC VOID EFIAPI boot_cpu_check(IN OUT aos_boot_params* params)
 {
     UINT32 eax,ebx,ecx,edx;
     params->features.magic=AOS_FEATURES_MAGIC;
@@ -212,13 +210,13 @@ STATIC VOID EFIAPI main_cpu_check(IN aos_boot_params* params)
 }
 
 /**
- * 设置启动参数所需数据表。
+ * 设置启动参数所需系统表。
  * 
  * @param parmas 启动参数。
  * 
  * @return 无返回值。
  */
-STATIC VOID EFIAPI main_set_table(IN aos_boot_params* params)
+STATIC VOID EFIAPI boot_set_table(IN OUT aos_boot_params* params)
 {
     UINTN range[3][2];
     VOID* table;
@@ -436,7 +434,7 @@ STATIC VOID EFIAPI main_set_table(IN aos_boot_params* params)
     {
         UINTN size=range[1][1]-range[1][0]+range[2][1]-range[2][0];
         EFI_PHYSICAL_ADDRESS smaddr=SIZE_4GB;
-        panic_if_error(gBS->AllocatePages(AllocateMaxAddress,EfiRuntimeServicesData,EFI_SIZE_TO_PAGES(size),&smaddr),
+        panic_if_error(gBS->AllocatePages(AllocateMaxAddress,EfiReservedMemoryType,EFI_SIZE_TO_PAGES(size),&smaddr),
             "Failed to allocate memory for SMBIOS relocation.");
         if(is3)
         {
@@ -496,15 +494,17 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     aos_boot_params* params=pool_alloc(sizeof(aos_boot_params));
     if(params==NULL)
     {
-        panic(EFI_INVALID_PARAMETER,"Failed to allocate AOS boot parameters from bootstrap pool.");
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate AOS boot parameters from bootstrap pool.");
     }
     params->kminfo.bpbase=bpbase;
 
     /*CPU检查*/
-    main_cpu_check(params);
+    boot_cpu_check(params);
 
-    /*设置表*/
-    main_set_table(params);
+    /*设置系统表*/
+    boot_set_table(params);
+
+    
 
     panic_if_error(EFI_DEVICE_ERROR,"Hello?");
     return EFI_SUCCESS;
