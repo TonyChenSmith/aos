@@ -23,8 +23,8 @@ typedef struct _pool_tlsf_block pool_tlsf_block;
 
 struct _pool_tlsf_block
 {
-    UINTN           psize; /*前一块大小与分配状态。*/
-    UINTN           csize; /*当前块大小与分配状态。*/
+    UINTN            psize; /*前一块大小与分配状态。*/
+    UINTN            csize; /*当前块大小与分配状态。*/
     pool_tlsf_block* prev;  /*双向链表前指针。*/
     pool_tlsf_block* next;  /*双向链表后指针。*/
 };

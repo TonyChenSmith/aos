@@ -12,6 +12,7 @@
 #include <IndustryStandard/SmBios.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/IoLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
@@ -22,9 +23,24 @@
 #include <Register/Intel/LocalApic.h>
 
 #include "config.h"
+#include "mark.h"
 #include "panic.h"
 #include "params.h"
 #include "pool.h"
+
+/**
+ * 环境使用的GDT设置。
+ */
+CONST UINT64 ENV_GDT[]={
+    0x0000000000000000ULL, /*NULL*/
+    0x00CF9A000000FFFFULL, /*KERNEL_CODE32*/
+    0x00CF92000000FFFFULL, /*KERNEL_DATA32*/
+    0x00AF9A000000FFFFULL, /*KERNEL_CODE64*/
+    0x00AF92000000FFFFULL, /*KERNEL_DATA64*/
+    0x00AFFA000000FFFFULL, /*USER_CODE64*/
+    0x00AFF2000000FFFFULL, /*USER_DATA64*/
+    0x0000000000000000ULL, /*BOUNDARY*/
+};
 
 /*配置检查*/
 
@@ -216,9 +232,9 @@ STATIC VOID EFIAPI boot_cpu_check(IN OUT aos_boot_params* params)
  * 
  * @return 无返回值。
  */
-STATIC VOID EFIAPI boot_set_table(IN OUT aos_boot_params* params)
+STATIC VOID EFIAPI boot_set_table(OUT aos_boot_params* params)
 {
-    UINTN range[3][2];
+    UINTN rsdp_start,rsdp_end;
     VOID* table;
     panic_if_error(EfiGetSystemConfigurationTable(&gEfiAcpiTableGuid,&table),
         "ACPI RSDP not found in UEFI Configuration Table. This system does not support ACPI, which is"
@@ -226,30 +242,77 @@ STATIC VOID EFIAPI boot_set_table(IN OUT aos_boot_params* params)
     params->acpi=(UINTN)table;
 
     EFI_ACPI_5_0_ROOT_SYSTEM_DESCRIPTION_POINTER* rsdp=(EFI_ACPI_5_0_ROOT_SYSTEM_DESCRIPTION_POINTER*)params->acpi;
+    if(rsdp->Signature!=EFI_ACPI_5_0_ROOT_SYSTEM_DESCRIPTION_POINTER_SIGNATURE)
+    {
+        panic(EFI_DEVICE_ERROR,"ACPI RSDP signature mismatch.");
+    }
     if(rsdp->Revision<EFI_ACPI_5_0_ROOT_SYSTEM_DESCRIPTION_POINTER_REVISION)
     {
         panic(EFI_UNSUPPORTED,"This system's ACPI revision is below 5.0, which is required to boot.");
     }
-    range[0][0]=params->acpi;
-    range[0][1]=rsdp->Length+range[0][0];
+    rsdp_start=params->acpi;
+    rsdp_end=params->acpi+rsdp->Length;
 
-    table=NULL;
-    BOOLEAN is3=TRUE;
-    EFI_STATUS status=EfiGetSystemConfigurationTable(&gEfiSmbios3TableGuid,&table);
+    EFI_MEMORY_DESCRIPTOR* memmap=NULL;
+    UINTN map_size=0,desc_size,map_key;
+    UINT32 desc_ver;
+
+    EFI_STATUS status=gBS->GetMemoryMap(&map_size,memmap,&map_key,&desc_size,&desc_ver);
+    if(status!=EFI_BUFFER_TOO_SMALL)
+    {
+        panic(status,"Failed to retrieve UEFI Memory Map.");
+    }
+    memmap=pool_alloc(map_size+3*desc_size);
+    if(memmap==NULL)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate UEFI Memory Map from bootstrap pool.");
+    }
+    panic_if_error(gBS->GetMemoryMap(&map_size,memmap,&map_key,&desc_size,&desc_ver),
+        "Failed to retrieve UEFI Memory Map.");
+    if(desc_ver!=EFI_MEMORY_DESCRIPTOR_VERSION)
+    {
+        panic(EFI_DEVICE_ERROR,"UEFI Memory Map descriptor version mismatch.");
+    }
+    if(desc_size<sizeof(EFI_MEMORY_DESCRIPTOR))
+    {
+        panic(EFI_DEVICE_ERROR,"UEFI Memory Map descriptor size mismatch.");
+    }
+
+    EFI_MEMORY_DESCRIPTOR* desc=memmap;
+    UINTN end=map_size+(UINTN)memmap;
+    BOOLEAN found=FALSE;
+    while((UINTN)desc<end)
+    {
+        UINTN desc_end=EFI_PAGES_TO_SIZE(desc->NumberOfPages)+desc->PhysicalStart;
+        if(desc->PhysicalStart<=rsdp_start&&rsdp_end<=desc_end)
+        {
+            if(desc->Type!=EfiACPIReclaimMemory)
+            {
+                panic(EFI_DEVICE_ERROR,"ACPI RSDP is not in ACPI Reclaim memory.");
+            }
+            found=TRUE;
+        }
+        desc=(EFI_MEMORY_DESCRIPTOR*)((UINTN)desc+desc_size);
+    }
+    if(!found)
+    {
+        panic(EFI_DEVICE_ERROR,"ACPI RSDP not found in UEFI memory map.");
+    }
+    pool_free(memmap);
+
+    status=EfiGetSystemConfigurationTable(&gEfiSmbios3TableGuid,&table);
     if(EFI_ERROR(status))
     {
         panic_if_error(EfiGetSystemConfigurationTable(&gEfiSmbiosTableGuid,&table),
             "SMBIOS not found in UEFI Configuration Table. This system does not expose SMBIOS,"
             " which is required.");
-        is3=FALSE;
-        params->smbios=(UINTN)table;
-        range[1][0]=params->smbios;
-        range[1][1]=range[1][0]+sizeof(SMBIOS_TABLE_ENTRY_POINT);
-        SMBIOS_TABLE_ENTRY_POINT* entry=(SMBIOS_TABLE_ENTRY_POINT*)params->smbios;
-        range[2][0]=entry->TableAddress;
+        UINTN smbios_entry_base=(UINTN)table;
+        SMBIOS_TABLE_ENTRY_POINT* entry=(SMBIOS_TABLE_ENTRY_POINT*)table;
+        UINTN smbios_base=entry->TableAddress;
+        UINTN smbios_size;
 
         UINT8 checksum=0,index=0;
-        UINT8* edata=(UINT8*)params->smbios;
+        UINT8* edata=(UINT8*)smbios_entry_base;
         if(CompareMem(entry->AnchorString,SMBIOS_ANCHOR_STRING,
             SMBIOS_ANCHOR_STRING_LENGTH)!=0)
         {
@@ -268,7 +331,7 @@ STATIC VOID EFIAPI boot_set_table(IN OUT aos_boot_params* params)
             panic(EFI_DEVICE_ERROR,"SMBIOS entry point checksum verification failed.");
         }
 
-        UINT8* sm=(UINT8*)range[2][0];
+        UINT8* sm=(UINT8*)smbios_base;
         UINTN tail=(UINTN)sm+entry->TableLength;
         while(TRUE)
         {
@@ -283,20 +346,25 @@ STATIC VOID EFIAPI boot_set_table(IN OUT aos_boot_params* params)
                 if(stru->Length<sizeof(SMBIOS_STRUCTURE))
                 {
                     panic(EFI_DEVICE_ERROR,"SMBIOS structure at offset 0x%X has invalid length %u.",
-                        (UINTN)sm-range[2][0],stru->Length);
+                        (UINTN)sm-smbios_base,stru->Length);
                 }
                 if((UINTN)sm+stru->Length>tail)
                 {
                     panic(EFI_DEVICE_ERROR,"SMBIOS structure at offset 0x%X formatted area exceeds table"
-                        " size.",(UINTN)sm-range[2][0]);
+                        " size.",(UINTN)sm-smbios_base);
                 }
                 sm=(UINT8*)((UINTN)sm+stru->Length);
+                if((UINTN)sm+2>tail)
+                {
+                    panic(EFI_DEVICE_ERROR,"SMBIOS structure at offset 0x%X missing string-list"
+                        " terminator.",(UINTN)sm-smbios_base);
+                }
                 while(sm[0]!=0||sm[1]!=0)
                 {
                     if((UINTN)sm+1>=tail)
                     {
                         panic(EFI_DEVICE_ERROR,"SMBIOS structure at offset 0x%X has unterminated"
-                            " string-list.",(UINTN)stru-range[2][0]);
+                            " string-list.",(UINTN)stru-smbios_base);
                     }
                     sm++;
                 }
@@ -304,21 +372,47 @@ STATIC VOID EFIAPI boot_set_table(IN OUT aos_boot_params* params)
             }
             else
             {
-                range[2][1]=(UINTN)sm+stru->Length+2;
+                if(stru->Length<sizeof(SMBIOS_STRUCTURE))
+                {
+                    panic(EFI_DEVICE_ERROR,"SMBIOS structure at offset 0x%X has invalid length %u.",
+                        (UINTN)sm-smbios_base,stru->Length);
+                }
+                sm=(UINT8*)((UINTN)sm+stru->Length);
+                if((UINTN)sm+2>tail)
+                {
+                    panic(EFI_DEVICE_ERROR,"SMBIOS structure at offset 0x%X missing string-list"
+                        " terminator.",(UINTN)sm-smbios_base);
+                }
+                smbios_size=(UINTN)sm+2-smbios_base;
                 break;
             }
         }
+
+        SMBIOS_TABLE_ENTRY_POINT* copy=(SMBIOS_TABLE_ENTRY_POINT*)allocate_page(AOS_BOOT_MEMORY_SMBIOS,
+            EFI_SIZE_TO_PAGES(sizeof(SMBIOS_TABLE_ENTRY_POINT)+smbios_size),SIZE_4GB-1);
+        SMBIOS_STRUCTURE* smcopy=(SMBIOS_STRUCTURE*)((UINTN)copy+sizeof(SMBIOS_TABLE_ENTRY_POINT));
+        CopyMem(copy,(VOID*)smbios_entry_base,sizeof(SMBIOS_TABLE_ENTRY_POINT));
+        CopyMem(smcopy,(VOID*)((UINTN)copy->TableAddress),smbios_size);
+        copy->TableAddress=(UINT32)((UINTN)smcopy&MAX_UINT32);
+        copy->EntryPointStructureChecksum=0;
+        checksum=0,index=0;
+        UINT8* copydata=(UINT8*)copy;
+        while(index<copy->EntryPointLength)
+        {
+            checksum+=copydata[index++];
+        }
+        copy->EntryPointStructureChecksum=-checksum;
+        params->smbios=(UINTN)copy;
     }
     else
     {
-        params->smbios=(UINTN)table;
-        range[1][0]=params->smbios;
-        range[1][1]=range[1][0]+sizeof(SMBIOS_TABLE_3_0_ENTRY_POINT);
-        SMBIOS_TABLE_3_0_ENTRY_POINT* entry=(SMBIOS_TABLE_3_0_ENTRY_POINT*)params->smbios;
-        range[2][0]=entry->TableAddress;
+        UINTN smbios_entry_base=(UINTN)table;
+        SMBIOS_TABLE_3_0_ENTRY_POINT* entry=(SMBIOS_TABLE_3_0_ENTRY_POINT*)table;
+        UINTN smbios_base=entry->TableAddress;
+        UINTN smbios_size;
 
         UINT8 checksum=0,index=0;
-        UINT8* edata=(UINT8*)params->smbios;
+        UINT8* edata=(UINT8*)smbios_entry_base;
         if(CompareMem(entry->AnchorString,SMBIOS_3_0_ANCHOR_STRING,
             SMBIOS_3_0_ANCHOR_STRING_LENGTH)!=0)
         {
@@ -337,7 +431,7 @@ STATIC VOID EFIAPI boot_set_table(IN OUT aos_boot_params* params)
             panic(EFI_DEVICE_ERROR,"SMBIOS 3.0 entry point checksum verification failed.");
         }
 
-        UINT8* sm=(UINT8*)range[2][0];
+        UINT8* sm=(UINT8*)smbios_base;
         UINTN tail=(UINTN)sm+entry->TableMaximumSize;
         while(TRUE)
         {
@@ -352,20 +446,25 @@ STATIC VOID EFIAPI boot_set_table(IN OUT aos_boot_params* params)
                 if(stru->Length<sizeof(SMBIOS_STRUCTURE))
                 {
                     panic(EFI_DEVICE_ERROR,"SMBIOS 3.0 structure at offset 0x%X has invalid length %u.",
-                        (UINTN)sm-range[2][0],stru->Length);
+                        (UINTN)sm-smbios_base,stru->Length);
                 }
                 if((UINTN)sm+stru->Length>tail)
                 {
                     panic(EFI_DEVICE_ERROR,"SMBIOS 3.0 structure at offset 0x%X formatted area exceeds"
-                        " table size.",(UINTN)sm-range[2][0]);
+                        " table size.",(UINTN)sm-smbios_base);
                 }
                 sm=(UINT8*)((UINTN)sm+stru->Length);
+                if((UINTN)sm+2>tail)
+                {
+                    panic(EFI_DEVICE_ERROR,"SMBIOS structure at offset 0x%X missing string-list"
+                        " terminator.",(UINTN)sm-smbios_base);
+                }
                 while(sm[0]!=0||sm[1]!=0)
                 {
                     if((UINTN)sm+1>=tail)
                     {
                         panic(EFI_DEVICE_ERROR,"SMBIOS 3.0 structure at offset 0x%X has unterminated"
-                            " string-list.",(UINTN)stru-range[2][0]);
+                            " string-list.",(UINTN)stru-smbios_base);
                     }
                     sm++;
                 }
@@ -373,106 +472,352 @@ STATIC VOID EFIAPI boot_set_table(IN OUT aos_boot_params* params)
             }
             else
             {
-                range[2][1]=(UINTN)sm+stru->Length+2;
+                if(stru->Length<sizeof(SMBIOS_STRUCTURE))
+                {
+                    panic(EFI_DEVICE_ERROR,"SMBIOS structure at offset 0x%X has invalid length %u.",
+                        (UINTN)sm-smbios_base,stru->Length);
+                }
+                sm=(UINT8*)((UINTN)sm+stru->Length);
+                if((UINTN)sm+2>tail)
+                {
+                    panic(EFI_DEVICE_ERROR,"SMBIOS structure at offset 0x%X missing string-list"
+                        " terminator.",(UINTN)sm-smbios_base);
+                }
+                smbios_size=(UINTN)sm+2-smbios_base;
+                break;
+            }
+        }
+
+        SMBIOS_TABLE_3_0_ENTRY_POINT* copy=(SMBIOS_TABLE_3_0_ENTRY_POINT*)allocate_page(AOS_BOOT_MEMORY_SMBIOS,
+            EFI_SIZE_TO_PAGES(sizeof(SMBIOS_TABLE_ENTRY_POINT)+smbios_size),SIZE_4GB-1);
+        SMBIOS_STRUCTURE* smcopy=(SMBIOS_STRUCTURE*)((UINTN)copy+sizeof(SMBIOS_TABLE_3_0_ENTRY_POINT));
+        CopyMem(copy,(VOID*)smbios_entry_base,
+            sizeof(SMBIOS_TABLE_3_0_ENTRY_POINT));
+        CopyMem(smcopy,(VOID*)copy->TableAddress,smbios_size);
+        copy->TableAddress=(UINT64)smcopy;
+        copy->EntryPointStructureChecksum=0;
+        checksum=0,index=0;
+        UINT8* copydata=(UINT8*)copy;
+        while(index<copy->EntryPointLength)
+        {
+            checksum+=copydata[index++];
+        }
+        copy->EntryPointStructureChecksum=-checksum;
+        params->smbios=(UINTN)copy;
+    }
+}
+
+/**
+ * 申请并准备内核所需数据结构。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI boot_prepare_data(IN OUT aos_boot_params* params)
+{
+    /*统计CPU槽数*/
+    typedef struct _cpu_data
+    {
+        struct _cpu_data* next;  /*下一指针。*/
+        UINT32            apic;  /*APIC ID。*/
+        UINT32            flags; /*标志。*/
+    } cpu_data;
+
+    UINT32 bsp=0;
+    if(params->state.apic==AOS_APIC_NO_APIC)
+    {
+        UINT32 max_leaf=0,ebx=0;
+
+        AsmCpuid(CPUID_SIGNATURE,&max_leaf,NULL,NULL,NULL);
+        if(max_leaf>=CPUID_EXTENDED_TOPOLOGY)
+        {
+            AsmCpuidEx(CPUID_EXTENDED_TOPOLOGY,0,NULL,&ebx,NULL,&bsp);
+        }
+        if((max_leaf<CPUID_EXTENDED_TOPOLOGY)||((ebx&0xFFFF)==0))
+        {
+            AsmCpuid(CPUID_VERSION_INFO,NULL,&ebx,NULL,NULL);
+            bsp=ebx>>24;
+        }
+    }
+    else if(params->state.apic==AOS_APIC_X2APIC)
+    {
+        bsp=AsmReadMsr32(MSR_IA32_X2APIC_APICID);
+    }
+    else
+    {
+        MSR_IA32_APIC_BASE_REGISTER apic_base;
+        apic_base.Uint64=AsmReadMsr64(MSR_IA32_APIC_BASE);
+        UINT64 base=(apic_base.Bits.ApicBase<<12)|((UINT64)apic_base.Bits.ApicBaseHi<<32);
+        bsp=MmioRead32(base+XAPIC_ID_OFFSET)>>24;
+    }
+
+    cpu_data* xapic=NULL;
+    UINTN xapics=0;
+    cpu_data* x2apic=NULL;
+    UINTN x2apics=0;
+    BOOLEAN xapic_bsp=FALSE;
+    BOOLEAN x2apic_bsp=FALSE;
+
+    EFI_ACPI_5_0_ROOT_SYSTEM_DESCRIPTION_POINTER* rsdp=(EFI_ACPI_5_0_ROOT_SYSTEM_DESCRIPTION_POINTER*)params->acpi;
+    EFI_ACPI_5_0_MULTIPLE_APIC_DESCRIPTION_TABLE_HEADER* madt=NULL;
+    if(rsdp->XsdtAddress)
+    {
+        EFI_ACPI_DESCRIPTION_HEADER* xsdt=(EFI_ACPI_DESCRIPTION_HEADER*)rsdp->XsdtAddress;
+        UINTN count=(xsdt->Length-sizeof(EFI_ACPI_DESCRIPTION_HEADER))>>3;
+        UINT64* tables=(UINT64*)((UINTN)xsdt+sizeof(EFI_ACPI_DESCRIPTION_HEADER));
+        for(UINTN index=0;index<count;index++)
+        {
+            if(((EFI_ACPI_DESCRIPTION_HEADER*)tables[index])->Signature==
+                EFI_ACPI_5_0_MULTIPLE_APIC_DESCRIPTION_TABLE_SIGNATURE)
+            {
+                madt=(EFI_ACPI_5_0_MULTIPLE_APIC_DESCRIPTION_TABLE_HEADER*)tables[index];
+                break;
+            }
+        }
+    }
+    else
+    {
+        EFI_ACPI_DESCRIPTION_HEADER* rsdt=(EFI_ACPI_DESCRIPTION_HEADER*)(UINTN)rsdp->RsdtAddress;
+        UINTN count=(rsdt->Length-sizeof(EFI_ACPI_DESCRIPTION_HEADER))>>2;
+        UINT32* tables=(UINT32*)((UINTN)rsdt+sizeof(EFI_ACPI_DESCRIPTION_HEADER));
+        for(UINTN index=0;index<count;index++)
+        {
+            if(((EFI_ACPI_DESCRIPTION_HEADER*)(UINTN)tables[index])->Signature==
+                EFI_ACPI_5_0_MULTIPLE_APIC_DESCRIPTION_TABLE_SIGNATURE)
+            {
+                madt=(EFI_ACPI_5_0_MULTIPLE_APIC_DESCRIPTION_TABLE_HEADER*)(UINTN)tables[index];
                 break;
             }
         }
     }
 
-    EFI_MEMORY_TYPE types[3]={EfiMaxMemoryType,EfiMaxMemoryType,EfiMaxMemoryType};
-    EFI_MEMORY_DESCRIPTOR* memmap=NULL;
-    UINTN map_size=0,desc_size,map_key;
-    UINT32 desc_ver;
-
-    status=gBS->GetMemoryMap(&map_size,memmap,&map_key,&desc_size,&desc_ver);
-    if(status!=EFI_BUFFER_TOO_SMALL)
+    if(madt==NULL)
     {
-        panic(status,"Failed to retrieve UEFI Memory Map.");
-    }
-    memmap=pool_alloc(map_size);
-    if(memmap==NULL)
-    {
-        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate UEFI Memory Map from bootstrap pool.");
-    }
-    panic_if_error(gBS->GetMemoryMap(&map_size,memmap,&map_key,&desc_size,&desc_ver),
-        "Failed to retrieve UEFI Memory Map.");
-    if(desc_ver!=EFI_MEMORY_DESCRIPTOR_VERSION)
-    {
-        panic(EFI_DEVICE_ERROR,"UEFI Memory Map descriptor version mismatch.");
+        panic(EFI_UNSUPPORTED,"MADT not found.");
     }
 
-    EFI_MEMORY_DESCRIPTOR* desc=memmap;
-    UINTN end=map_size+(UINTN)memmap;
-    while((UINTN)desc<end)
+    UINT8* p=(UINT8*)(madt+1);
+    UINT8* end=(UINT8*)madt+madt->Header.Length;
+
+    while(p+2<=end)
     {
-        UINTN desc_end=EFI_PAGES_TO_SIZE(desc->NumberOfPages)+desc->PhysicalStart;
-        for(UINTN index=0;index<3;index++)
+        UINT8 type=p[0];
+        UINT8 len=p[1];
+
+        if(len<2||p+len>end)
         {
-            if(desc->PhysicalStart<=range[index][0]&&range[index][1]<=desc_end)
+            panic(EFI_DEVICE_ERROR,"Malformed MADT entry.");
+        }
+
+        if(type==EFI_ACPI_5_0_PROCESSOR_LOCAL_APIC)
+        {
+            EFI_ACPI_5_0_PROCESSOR_LOCAL_APIC_STRUCTURE* lapic=(EFI_ACPI_5_0_PROCESSOR_LOCAL_APIC_STRUCTURE*)p;
+            if(lapic->ApicId==MAX_UINT8)
             {
-                if(types[index]>=EfiMaxMemoryType)
+                p+=len;
+                continue;
+            }
+            BOOLEAN new_apic=TRUE;
+            cpu_data* prev=NULL;
+            cpu_data* node=xapic;
+            while(node!=NULL)
+            {
+                if(node->apic==lapic->ApicId)
                 {
-                    types[index]=desc->Type;
+                    new_apic=FALSE;
+                    break;
+                }
+                prev=node;
+                node=node->next;
+            }
+            if(new_apic)
+            {
+                if(lapic->ApicId==bsp)
+                {
+                    xapic_bsp=TRUE;
+                }
+                node=pool_alloc(sizeof(cpu_data));
+                if(node==NULL)
+                {
+                    panic(EFI_OUT_OF_RESOURCES,"Failed to allocate memory from bootstrap pool.");
+                }
+                node->apic=lapic->ApicId;
+                node->flags=lapic->Flags;
+                node->next=NULL;
+                xapics++;
+                if(prev==NULL)
+                {
+                    xapic=node;
                 }
                 else
                 {
-                    panic(EFI_DEVICE_ERROR,"UEFI Memory Map descriptor overlap detected.");
+                    prev->next=node;
                 }
             }
         }
-        desc=(EFI_MEMORY_DESCRIPTOR*)((UINTN)desc+desc_size);
+        p+=len;
     }
-    pool_free(memmap);
 
-    if(types[0]!=EfiACPIReclaimMemory)
+    p=(UINT8*)(madt+1);
+    while(p+2<=end)
     {
-        panic(EFI_DEVICE_ERROR,"ACPI RSDP is not in ACPI Reclaim memory.");
+        UINT8 type=p[0];
+        UINT8 len=p[1];
+
+        if(len<2||p+len>end)
+        {
+            panic(EFI_DEVICE_ERROR,"Malformed MADT entry.");
+        }
+
+        if(type==EFI_ACPI_5_0_PROCESSOR_LOCAL_X2APIC)
+        {
+            EFI_ACPI_5_0_PROCESSOR_LOCAL_X2APIC_STRUCTURE* lapic=(EFI_ACPI_5_0_PROCESSOR_LOCAL_X2APIC_STRUCTURE*)p;
+            if(lapic->X2ApicId==MAX_UINT32)
+            {
+                p+=len;
+                continue;
+            }
+            if(xapics>0&&lapic->X2ApicId<MAX_UINT8)
+            {
+                panic(EFI_DEVICE_ERROR,"MADT contains both xAPIC and x2APIC entries, and x2APIC ID"
+                    " 0x%X overlaps the 8-bit APIC ID range.",(UINTN)lapic->X2ApicId);
+            }
+            BOOLEAN new_apic=TRUE;
+            cpu_data* prev=NULL;
+            cpu_data* node=x2apic;
+            while(node!=NULL)
+            {
+                if(node->apic==lapic->X2ApicId)
+                {
+                    new_apic=FALSE;
+                    break;
+                }
+                prev=node;
+                node=node->next;
+            }
+            if(new_apic)
+            {
+                if(lapic->X2ApicId==bsp)
+                {
+                    x2apic_bsp=TRUE;
+                }
+                node=pool_alloc(sizeof(cpu_data));
+                if(node==NULL)
+                {
+                    panic(EFI_OUT_OF_RESOURCES,"Failed to allocate memory from bootstrap pool.");
+                }
+                node->apic=lapic->X2ApicId;
+                node->flags=lapic->Flags;
+                node->next=NULL;
+                x2apics++;
+                if(prev==NULL)
+                {
+                    x2apic=node;
+                }
+                else
+                {
+                    prev->next=node;
+                }
+            }
+        }
+        p+=len;
     }
-    if(!(types[1]==EfiMaxMemoryType||types[1]==EfiReservedMemoryType||types[1]==EfiRuntimeServicesData||
-        types[1]==EfiRuntimeServicesCode)||!(types[2]==EfiMaxMemoryType||types[2]==EfiReservedMemoryType||
-        types[2]==EfiRuntimeServicesData||types[2]==EfiRuntimeServicesCode))
+
+    if(!(xapic_bsp||x2apic_bsp))
     {
-        UINTN size=range[1][1]-range[1][0]+range[2][1]-range[2][0];
-        EFI_PHYSICAL_ADDRESS smaddr=SIZE_4GB;
-        panic_if_error(gBS->AllocatePages(AllocateMaxAddress,EfiReservedMemoryType,EFI_SIZE_TO_PAGES(size),&smaddr),
-            "Failed to allocate memory for SMBIOS relocation.");
-        if(is3)
+        panic(EFI_DEVICE_ERROR,"BSP APIC ID 0x%X not found in MADT.",(UINTN)bsp);
+    }
+
+    params->cpu_count=xapics+x2apics;
+    params->cpus=pool_alloc(sizeof(UINT32)*params->cpu_count);
+    if(params->cpus==NULL)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate memory from bootstrap pool.");
+    }
+    params->cpus[0]=bsp;
+
+    UINTN cpu_index=1;
+    cpu_data* node=xapic;
+    while(node!=NULL)
+    {
+        if(node->apic!=bsp&&(node->flags&EFI_ACPI_5_0_LOCAL_APIC_ENABLED))
         {
-            SMBIOS_TABLE_3_0_ENTRY_POINT* copy=(SMBIOS_TABLE_3_0_ENTRY_POINT*)smaddr;
-            SMBIOS_STRUCTURE* smcopy=(SMBIOS_STRUCTURE*)((UINTN)copy+sizeof(SMBIOS_TABLE_3_0_ENTRY_POINT));
-            CopyMem(copy,(VOID*)params->smbios,
-                sizeof(SMBIOS_TABLE_3_0_ENTRY_POINT));
-            CopyMem(smcopy,(VOID*)copy->TableAddress,range[2][1]-range[2][0]);
-            copy->TableAddress=(UINT64)smcopy;
-            copy->EntryPointStructureChecksum=0;
-            UINT8 checksum=0,index=0;
-            UINT8* copydata=(UINT8*)copy;
-            while(index<copy->EntryPointLength)
-            {
-                checksum+=copydata[index++];
-            }
-            copy->EntryPointStructureChecksum=-checksum;
-            params->smbios=(UINTN)copy;
+            params->cpus[cpu_index]=node->apic;
+            cpu_index++;
         }
-        else
+        node=node->next;
+    }
+
+    node=x2apic;
+    while(node!=NULL)
+    {
+        if(node->apic!=bsp&&(node->flags&EFI_ACPI_5_0_LOCAL_APIC_ENABLED))
         {
-            SMBIOS_TABLE_ENTRY_POINT* copy=(SMBIOS_TABLE_ENTRY_POINT*)smaddr;
-            SMBIOS_STRUCTURE* smcopy=(SMBIOS_STRUCTURE*)((UINTN)copy+sizeof(SMBIOS_TABLE_ENTRY_POINT));
-            CopyMem(copy,(VOID*)params->smbios,
-                sizeof(SMBIOS_TABLE_ENTRY_POINT));
-            CopyMem(smcopy,(VOID*)((UINTN)copy->TableAddress),
-                range[2][1]-range[2][0]);
-            copy->TableAddress=(UINT32)((UINTN)smcopy&MAX_UINT32);
-            copy->EntryPointStructureChecksum=0;
-            UINT8 checksum=0,index=0;
-            UINT8* copydata=(UINT8*)copy;
-            while(index<copy->EntryPointLength)
-            {
-                checksum+=copydata[index++];
-            }
-            copy->EntryPointStructureChecksum=-checksum;
-            params->smbios=(UINTN)copy;
+            params->cpus[cpu_index]=node->apic;
+            cpu_index++;
         }
+        node=node->next;
+    }
+
+    params->enabled_count=cpu_index;
+    if(cpu_index<params->cpu_count)
+    {
+        UINTN disable_count=params->cpu_count-cpu_index;
+        UINT32* disable=pool_alloc(sizeof(UINT32)*disable_count);
+        if(disable==NULL)
+        {
+            panic(EFI_OUT_OF_RESOURCES,"Failed to allocate memory from bootstrap pool.");
+        }
+
+        UINTN disable_index=0;
+        node=xapic;
+        while(node!=NULL)
+        {
+            if(node->apic!=bsp&&!(node->flags&EFI_ACPI_5_0_LOCAL_APIC_ENABLED))
+            {
+                disable[disable_index]=node->apic;
+                disable_index++;
+            }
+            node=node->next;
+        }
+
+        node=x2apic;
+        while(node!=NULL)
+        {
+            if(node->apic!=bsp&&!(node->flags&EFI_ACPI_5_0_LOCAL_APIC_ENABLED))
+            {
+                disable[disable_index]=node->apic;
+                disable_index++;
+            }
+            node=node->next;
+        }
+
+        for(UINTN di=0;di<disable_count-1;di++)
+        {
+            UINTN dmin=di;
+            for(UINTN dj=di+1;dj<disable_count;dj++)
+            {
+                if(disable[dj]<disable[dmin])
+                {
+                    dmin=dj;
+                }
+            }
+
+            if(dmin!=di)
+            {
+                UINT32 tmp=disable[di];
+                disable[di]=disable[dmin];
+                disable[dmin]=tmp;
+            }
+        }
+
+        for(UINTN di=0;di<disable_count;di++)
+        {
+            params->cpus[cpu_index]=disable[di];
+            cpu_index++;
+        }
+        pool_free(disable);
     }
 }
 
@@ -496,7 +841,6 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate AOS boot parameters from bootstrap pool.");
     }
-    params->kminfo.bpbase=bpbase;
 
     /*CPU检查*/
     boot_cpu_check(params);
@@ -504,7 +848,8 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     /*设置系统表*/
     boot_set_table(params);
 
-    
+    /*准备启动数据*/
+    boot_prepare_data(params);
 
     panic_if_error(EFI_DEVICE_ERROR,"Hello?");
     return EFI_SUCCESS;

@@ -20,6 +20,7 @@
 [Sources]
     core/boot.c
     core/panic.c
+    core/page.c
     core/pool.c
 
 [Packages]
@@ -34,9 +35,8 @@
     BaseLib
     BaseMemoryLib
     CpuLib
-    DebugLib
-    DebugPrintErrorLevelLib
     FileHandleLib
+    IoLib
     UefiApplicationEntryPoint
     UefiBootServicesTableLib
     UefiLib

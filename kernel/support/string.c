@@ -823,7 +823,7 @@ uintn string_convert16_char8(char16* dest,const char8* src,uintn size)
             cp|=((char32)(src[index++]&0x3F))<<6;
             cp|=src[index++]&0x3F;
             cp-=0x10000;
-            dest[result++]=(char16)(0xDB00|(cp>>10));
+            dest[result++]=(char16)(0xD800|(cp>>10));
             dest[result++]=(char16)(0xDC00|(cp&0x3FF));
         }
     }
@@ -888,8 +888,9 @@ uintn string_convert16_char32(char16* dest,const char32* src,uintn size)
         }
         else
         {
-            dest[result++]=(char16)(0xDB00|(src[index]>>10));
-            dest[result++]=(char16)(0xDC00|(src[index++]&0x3FF));
+            char32 cp=src[index++]-0x10000;
+            dest[result++]=(char16)(0xD800|(cp>>10));
+            dest[result++]=(char16)(0xDC00|(cp&0x3FF));
         }
     }
     dest[result++]=0;

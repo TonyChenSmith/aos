@@ -137,6 +137,8 @@ def generate_key():
     生成新密钥。
     """
     os.makedirs("sign/",exist_ok=True)
+    os.makedirs("out/Release/",exist_ok=True)
+    os.makedirs("out/Debug/",exist_ok=True)
     private_key=rsa.generate_private_key(public_exponent=65537,key_size=4096,backend=default_backend())
     private_key_content=private_key.private_bytes(encoding=serialization.Encoding.PEM,format=serialization.PrivateFormat.PKCS8,encryption_algorithm=serialization.NoEncryption())
     with open("sign/kernel.rsa.debug.private.pem","wb") as pf:
@@ -181,6 +183,7 @@ def export_public():
     """
     导出公钥成数组元素。
     """
+    os.makedirs("sign/",exist_ok=True)
     with open("sign/kernel.rsa.debug.public.pem","rb") as pf:
         pem_data=pf.read()
     public_key=serialization.load_pem_public_key(pem_data,backend=default_backend())

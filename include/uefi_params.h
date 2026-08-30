@@ -40,24 +40,24 @@ typedef struct _aos_cpu_state
  */
 typedef struct _aos_graphics_info
 {
-    uint32 hres;      /*水平分辨率。*/
-    uint32 vres;      /*竖直分辨率。*/
-    uintn  fbase;     /*帧缓冲基址。*/
-    uintn  fsize;     /*帧缓冲大小。*/
-    uint32 red;       /*红色区掩码。*/
-    uint32 green;     /*绿色区掩码。*/
-    uint32 blue;      /*蓝色区掩码。*/
-    uint32 reserved;  /*保留区掩码。*/
-    uint32 scan;      /*扫描线长度。*/
-    uint32 clock;     /*像素时钟。*/
-    uint32 htotal;    /*水平总行数。*/
-    uint32 vtotal;    /*竖直总列数。*/
-    uint32 width;     /*物理界面宽度。单位毫米。*/
-    uint32 height;    /*物理界面高度。单位毫米。*/
+    uint32 hres;             /*水平分辨率。*/
+    uint32 vres;             /*竖直分辨率。*/
+    uintn  framebuffer_base; /*帧缓冲基址。*/
+    uintn  framebuffer_size; /*帧缓冲大小。*/
+    uint32 red_mask;         /*红色区掩码。*/
+    uint32 green_mask;       /*绿色区掩码。*/
+    uint32 blue_mask;        /*蓝色区掩码。*/
+    uint32 reserved_mask;    /*保留区掩码。*/
+    uint32 scan_line;        /*扫描线长度。*/
+    uint32 pixel_clock;      /*像素时钟。*/
+    uint32 horizontal_total; /*水平总行数。*/
+    uint32 vertical_total;   /*竖直总列数。*/
+    uint32 physical_width;   /*物理界面宽度。单位毫米。*/
+    uint32 physical_height;  /*物理界面高度。单位毫米。*/
 } aos_graphics_info;
 
 /**
- * 线性区。这里使用了简单的双向链表结构用于传递信息。
+ * 线性区。这里使用了简单的单向链表结构用于传递信息。
  * 红黑树版本的在内核再实现。
  */
 typedef struct _aos_boot_vma aos_boot_vma;
@@ -68,11 +68,12 @@ struct _aos_boot_vma
     aos_boot_vma* next;  /*后一线性区。*/
     uintn         start; /*开始地址。*/
     uintn         end;   /*结束地址。*/
-    uint64        flags; /*标志。*/
+    uint64        flags; /*VMA标志。*/
+    uint64        type;  /*VMA类型。*/
 };
 
 /**
- * AOS内存。记录了所有可管理未分配物理内存。
+ * AOS内存。
  */
 typedef struct _aos_boot_memory aos_boot_memory;
 
@@ -82,7 +83,7 @@ struct _aos_boot_memory
     aos_boot_memory* next;  /*后一内存。*/
     uintn            start; /*起始地址。*/
     uintn            size;  /*内存大小。*/
-    uintn            type;  /*内存类型。*/
+    uint64           type;  /*内存类型。*/
 };
 
 
@@ -94,27 +95,15 @@ struct _aos_boot_memory
  */
 typedef struct _aos_kernel_memory_info
 {
-    uintn            rbase;   /*资源映射线性基址。*/
-    uintn            kbase;   /*内核程序线性基址。*/
-    uintn            sbase;   /*内核栈线性基址。*/
-    uintn            gbase;   /*GDT基址。*/
-    uintn            ibase;   /*IDT基址。*/
-    uintn            tbase;   /*起始TSS基址。*/
-    uint8*           ptmap;   /*页表池位图映射。*/
-    uintn            ptbase;  /*页表池基址。*/
-    uintn            ptpages; /*页表池页数。*/
-    uintn            bpbase;  /*引导内存池基址。*/
-    uintn            bppages; /*引导内存池页数。*/
-    uintn            kpbase;  /*内核内存池线性基址。*/
-    uintn            kppages; /*内核内存池页数。*/
-    uintn            entry;   /*入口偏移。*/
-    aos_boot_memory* memorys; /*内存区域链表。*/
-    aos_boot_vma*    kvma;    /*内核VMA链表。*/
-    aos_boot_vma*    fixed;   /*固定VMA链表。*/
-    aos_boot_vma*    shared;  /*共享VMA链表。*/
-    uintn            kroot;   /*内核总页表根地址。*/
-    uintn            froot;   /*固定PDPT根地址。*/
-    uintn            sroot;   /*共享PDPT根地址。*/
+    aos_boot_memory* memory_map;    /*内存图链表。*/
+    aos_boot_vma*    kernel_vma;    /*内核VMA链表。*/
+    uintn            page_table;    /*内核页表根地址。*/
+    uintn            kernel_base;   /*内核程序线性基址。*/
+    uintn            stack_base;    /*内核栈线性基址。*/
+    uintn            kernel_entry;  /*内核入口偏移。*/
+    uintn            firmware_base; /*固件映射线性基址。*/
+    uint8*           pt_pool_map;   /*页表池位图映射。*/
+    uintn            pt_pool_pages; /*页表池页面数。*/
 } aos_kernel_memory_info;
 
 /**
@@ -422,8 +411,8 @@ typedef struct _aos_efi_system_table
     void*                        unused6;  /*未使用6。*/
     aos_efi_runtime_services*    runtime;  /*运行时服务表。*/
     void*                        unused7;  /*未使用7。*/
-    uintn                        tables;   /*配置表表数。*/
-    aos_efi_configuration_table* ctable;   /*配置表。*/
+    uintn                        items;    /*配置表项数。*/
+    aos_efi_configuration_table* tables;   /*配置表。*/
 } aos_efi_system_table;
 
 /**
@@ -432,18 +421,19 @@ typedef struct _aos_efi_system_table
  */
 typedef struct _aos_boot_params
 {
-    aos_cpu_features       features; /*CPU特性。*/
-    aos_cpu_state          state;    /*CPU状态。*/
-    uintn                  acpi;     /*ACPI表。*/
-    uintn                  smbios;   /*SMBIOS表。*/
-    uintn                  cpucount; /*处理器数目。*/
-    uint32*                cpus;     /*处理器数组。*/
-    aos_graphics_info      graphics; /*图形信息。*/
-    aos_efi_device_path*   gdevice;  /*图形设备路径。*/
-    aos_efi_device_path*   esp;      /*EFI系统分区设备路径。*/
-    aos_efi_device_path*   asv;      /*AOS系统卷设备路径。*/
-    aos_kernel_memory_info kminfo;   /*内核内存信息。*/
-    aos_efi_system_table*  systable; /*UEFI系统表。*/
+    aos_cpu_features       features;        /*CPU特性。*/
+    aos_cpu_state          state;           /*CPU状态。*/
+    uintn                  acpi;            /*ACPI表。*/
+    uintn                  smbios;          /*SMBIOS表。*/
+    uintn                  cpu_count;       /*处理器数目。*/
+    uintn                  enabled_count;   /*启用处理器数目。*/
+    uint32*                cpus;            /*处理器数组。*/
+    aos_graphics_info      graphics;        /*图形信息。*/
+    aos_efi_device_path*   graphics_device; /*图形设备路径。*/
+    aos_efi_device_path*   esp;             /*EFI系统分区设备路径。*/
+    aos_efi_device_path*   asv;             /*AOS系统卷设备路径。*/
+    aos_kernel_memory_info memory;          /*内核内存信息。*/
+    aos_efi_system_table*  system_table;    /*UEFI系统表。*/
 } aos_boot_params;
 
 /**
@@ -532,39 +522,39 @@ typedef struct _aos_boot_params
 #define AOS_APIC_X2APIC 2
 
 /**
- * 线性区内存类型掩码。
+ * 线性区内存缓存策略掩码。
  */
-#define AOS_BOOT_VMA_TYPE_MASK 0xFF
+#define AOS_BOOT_VMA_CACHE_MASK 0xFF
 
 /**
- * 线性区无缓存类型。
+ * 线性区无缓存策略。
  */
-#define AOS_BOOT_VMA_TYPE_UC 0
+#define AOS_BOOT_VMA_CACHE_UC 0
 
 /**
- * 线性区写合并类型。
+ * 线性区写合并策略。
  */
-#define AOS_BOOT_VMA_TYPE_WC 1
+#define AOS_BOOT_VMA_CACHE_WC 1
 
 /**
- * 线性区写直通类型。
+ * 线性区写直通策略。
  */
-#define AOS_BOOT_VMA_TYPE_WT 2
+#define AOS_BOOT_VMA_CACHE_WT 2
 
 /**
- * 线性区写回类型。
+ * 线性区写回策略。
  */
-#define AOS_BOOT_VMA_TYPE_WB 3
+#define AOS_BOOT_VMA_CACHE_WB 3
 
 /**
- * 线性区写保护类型。
+ * 线性区写保护策略。
  */
-#define AOS_BOOT_VMA_TYPE_WP 4
+#define AOS_BOOT_VMA_CACHE_WP 4
 
 /**
- * 线性区无缓存减类型。
+ * 线性区无缓存减策略。
  */
-#define AOS_BOOT_VMA_TYPE_UCM 5
+#define AOS_BOOT_VMA_CACHE_UCM 5
 
 /**
  * 线性区可读标志。
@@ -607,28 +597,128 @@ typedef struct _aos_boot_params
 #define AOS_BOOT_VMA_HUGEPAGE 0x4000
 
 /**
- * 内存普通内存类型。
+ * 线性区内核类型。
  */
-#define AOS_BOOT_MEMORY_COMMON 0
+#define AOS_BOOT_VMA_TYPE_KERNEL 0
+
+/**
+ * 线性区栈类型。
+ */
+#define AOS_BOOT_VMA_TYPE_STACK 1
+
+/**
+ * 线性区内存池类型。
+ */
+#define AOS_BOOT_VMA_TYPE_POOL 2
+
+/**
+ * 线性区固件类型。
+ */
+#define AOS_BOOT_VMA_TYPE_FIRMWARE 3
+
+/**
+ * 线性区帧类型。
+ */
+#define AOS_BOOT_VMA_TYPE_FRAME 4
+
+/**
+ * 线性区页表类型。
+ */
+#define AOS_BOOT_VMA_TYPE_PAGE_TABLE 5
+
+/**
+ * 线性区GDT类型。
+ */
+#define AOS_BOOT_VMA_TYPE_GDT 6
+
+/**
+ * 线性区IDT类型。
+ */
+#define AOS_BOOT_VMA_TYPE_IDT 7
+
+/**
+ * 线性区TSS类型。
+ */
+#define AOS_BOOT_VMA_TYPE_TSS 8
+
+/**
+ * 内存自由内存类型。
+ */
+#define AOS_BOOT_MEMORY_FREE 0
+
+/**
+ * 内存引导池类型。
+ */
+#define AOS_BOOT_MEMORY_BOOTSTRAP_POOL 1
+
+/**
+ * 内存页表池类型。
+ */
+#define AOS_BOOT_MEMORY_PAGE_TABLE_POOL 2
+
+/**
+ * 内存内核池类型。
+ */
+#define AOS_BOOT_MEMORY_KERNEL_POOL 3
+
+/**
+ * 内存内核类型。
+ */
+#define AOS_BOOT_MEMORY_KERNEL 4
+
+/**
+ * 内存栈类型。
+ */
+#define AOS_BOOT_MEMORY_STACK 5
+
+/**
+ * 内存GDT类型。
+ */
+#define AOS_BOOT_MEMORY_GDT 6
+
+/**
+ * 内存IDT类型。
+ */
+#define AOS_BOOT_MEMORY_IDT 7
+
+/**
+ * 内存TSS类型。
+ */
+#define AOS_BOOT_MEMORY_TSS 8
+
+/**
+ * 内存SMBIOS类型。
+ */
+#define AOS_BOOT_MEMORY_SMBIOS 9
 
 /**
  * 内存固件类型。
  */
-#define AOS_BOOT_MEMORY_FIRMWARE 1
+#define AOS_BOOT_MEMORY_FIRMWARE 10
 
 /**
  * 内存ACPI表类型。
  */
-#define AOS_BOOT_MEMORY_ACPI_TABLE 2
+#define AOS_BOOT_MEMORY_ACPI_TABLE 11
 
 /**
  * 内存ACPI NVS类型。
  */
-#define AOS_BOOT_MEMORY_ACPI_NVS 3
+#define AOS_BOOT_MEMORY_ACPI_NVS 12
 
 /**
  * 内存持久性内存类型。
  */
-#define AOS_BOOT_MEMORY_PERSISTENT 4
+#define AOS_BOOT_MEMORY_PERSISTENT 13
+
+/**
+ * 内存保留类型。
+ */
+#define AOS_BOOT_MEMORY_RESERVED 14
+
+/**
+ * 内存最低1MB类型。
+ */
+#define AOS_BOOT_MEMORY_1MB 15
 
 #endif /*__AOS_INCLUDE_UEFI_PARAMS_H__*/

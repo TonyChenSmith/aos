@@ -10,6 +10,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 
 #include "config.h"
+#include "mark.h"
 #include "panic.h"
 #include "params.h"
 #include "pool.h"
@@ -644,23 +645,23 @@ STATIC UINT64 EFIAPI page_vflags_to_pflags(IN UINT64 flags)
         }
     }
 
-    switch(flags&AOS_BOOT_VMA_TYPE_MASK)
+    switch(flags&AOS_BOOT_VMA_CACHE_MASK)
     {
-        case AOS_BOOT_VMA_TYPE_WB:
+        case AOS_BOOT_VMA_CACHE_WB:
             break;
-        case AOS_BOOT_VMA_TYPE_WP:
+        case AOS_BOOT_VMA_CACHE_WP:
             pflags|=PAGE_PDE_PAT|PAGE_PTE_PAT|PAGE_PTE_PWT;
             break;
-        case AOS_BOOT_VMA_TYPE_WT:
+        case AOS_BOOT_VMA_CACHE_WT:
             pflags|=PAGE_PTE_PWT;
             break;
-        case AOS_BOOT_VMA_TYPE_WC:
+        case AOS_BOOT_VMA_CACHE_WC:
             pflags|=PAGE_PDE_PAT|PAGE_PTE_PAT;
             break;
-        case AOS_BOOT_VMA_TYPE_UCM:
+        case AOS_BOOT_VMA_CACHE_UCM:
             pflags|=PAGE_PTE_PCD;
             break;
-        case AOS_BOOT_VMA_TYPE_UC:
+        case AOS_BOOT_VMA_CACHE_UC:
         default:
             pflags|=PAGE_PTE_PWT|PAGE_PTE_PCD;
             break;
@@ -686,25 +687,6 @@ STATIC VOID EFIAPI page_pml5_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
         panic(EFI_INVALID_PARAMETER,"Page count exceeds 128PB linear address limit.");
     }
 
-    if(flags&AOS_BOOT_VMA_HUGEPAGE)
-    {
-        if((paddr&PAGE_2M_OFFSET_MASK)||(vaddr&PAGE_2M_OFFSET_MASK))
-        {
-            panic(EFI_INVALID_PARAMETER,"The address is not 2MB-aligned for huge page mapping.");
-        }
-
-        if(pages%EFI_SIZE_TO_PAGES(SIZE_2MB))
-        {
-            panic(EFI_INVALID_PARAMETER,"The page count is not a multiple of the huge page size.");
-        }
-    }
-
-    UINTN plimit=paddr+EFI_PAGES_TO_SIZE(pages)-1;
-    if(pages==0||plimit<paddr)
-    {
-        panic(EFI_INVALID_PARAMETER,"The address range wraps around.");
-    }
-
     UINTN vamask=vaddr&PAGE_VADDR5_RESERVED_MASK;
     UINTN vlmask=(vaddr+EFI_PAGES_TO_SIZE(pages)-1)&PAGE_VADDR5_RESERVED_MASK;
     if((vamask!=0&&vamask!=PAGE_VADDR5_RESERVED_MASK)||vamask!=vlmask)
@@ -713,15 +695,8 @@ STATIC VOID EFIAPI page_pml5_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
     }
 
     UINT64 pflags=page_vflags_to_pflags(flags);
-    if(ready)
-    {
-        page_pml5e_unmap(pt_root,vaddr,pages);
-        page_pml5e_map(pt_root,vaddr,paddr,pages,pflags);
-    }
-    else
-    {
-        panic(EFI_UNSUPPORTED,"The root page table is not initialized.");
-    }
+    page_pml5e_unmap(pt_root,vaddr,pages);
+    page_pml5e_map(pt_root,vaddr,paddr,pages,pflags);
 }
 
 /**
@@ -741,25 +716,6 @@ STATIC VOID EFIAPI page_pml4_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
         panic(EFI_INVALID_PARAMETER,"Page count exceeds 256TB linear address limit.");
     }
 
-    if(flags&AOS_BOOT_VMA_HUGEPAGE)
-    {
-        if((paddr&PAGE_2M_OFFSET_MASK)||(vaddr&PAGE_2M_OFFSET_MASK))
-        {
-            panic(EFI_INVALID_PARAMETER,"The address is not 2MB-aligned for huge page mapping.");
-        }
-
-        if(pages%EFI_SIZE_TO_PAGES(SIZE_2MB))
-        {
-            panic(EFI_INVALID_PARAMETER,"The page count is not a multiple of the huge page size.");
-        }
-    }
-
-    UINTN plimit=paddr+EFI_PAGES_TO_SIZE(pages)-1;
-    if(pages==0||plimit<paddr)
-    {
-        panic(EFI_INVALID_PARAMETER,"The address range wraps around.");
-    }
-
     UINTN vamask=vaddr&PAGE_VADDR4_RESERVED_MASK;
     UINTN vlmask=(vaddr+EFI_PAGES_TO_SIZE(pages)-1)&PAGE_VADDR4_RESERVED_MASK;
     if((vamask!=0&&vamask!=PAGE_VADDR4_RESERVED_MASK)||vamask!=vlmask)
@@ -768,15 +724,8 @@ STATIC VOID EFIAPI page_pml4_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN
     }
 
     UINT64 pflags=page_vflags_to_pflags(flags);
-    if(ready)
-    {
-        page_pml4e_unmap(pt_root,vaddr,pages);
-        page_pml4e_map(pt_root,vaddr,paddr,pages,pflags);
-    }
-    else
-    {
-        panic(EFI_UNSUPPORTED,"The root page table is not initialized.");
-    }
+    page_pml4e_unmap(pt_root,vaddr,pages);
+    page_pml4e_map(pt_root,vaddr,paddr,pages,pflags);
 }
 
 /**
@@ -792,10 +741,6 @@ STATIC VOID EFIAPI page_pml5_unmap(IN UINTN start,IN UINTN end)
     if(end<=start)
     {
         panic(EFI_INVALID_PARAMETER,"The address range is empty or inverted.");
-    }
-    if(!ready)
-    {
-        panic(EFI_UNSUPPORTED,"The root page table is not initialized.");
     }
     UINTN pages=EFI_SIZE_TO_PAGES(end-start);
     page_pml5e_unmap(pt_root,start,pages);
@@ -815,10 +760,6 @@ STATIC VOID EFIAPI page_pml4_unmap(IN UINTN start,IN UINTN end)
     {
         panic(EFI_INVALID_PARAMETER,"The address range is empty or inverted.");
     }
-    if(!ready)
-    {
-        panic(EFI_UNSUPPORTED,"The root page table is not initialized.");
-    }
     UINTN pages=EFI_SIZE_TO_PAGES(end-start);
     page_pml4e_unmap(pt_root,start,pages);
 }
@@ -832,9 +773,10 @@ STATIC VOID EFIAPI page_pml4_unmap(IN UINTN start,IN UINTN end)
  */
 VOID EFIAPI init_page_table_pool(IN OUT aos_boot_params* params)
 {
-    EFI_PHYSICAL_ADDRESS base=SIZE_2GB;
-    panic_if_error(gBS->AllocatePages(AllocateMaxAddress,EfiLoaderData,CONFIG_PAGE_TABLE_POOL,&base),
-        "Failed to allocate page table pool.");
+    ptbase=(UINTN)allocate_page(AOS_BOOT_MEMORY_PAGE_TABLE_POOL,CONFIG_PAGE_TABLE_POOL,SIZE_4GB-1);
+    ptpages=CONFIG_PAGE_TABLE_POOL;
+    params->memory.pt_pool_pages=CONFIG_PAGE_TABLE_POOL;
+
     ptmap_size=CONFIG_PAGE_TABLE_POOL/8+(CONFIG_PAGE_TABLE_POOL%8?1:0);
     ptmap=(UINT8*)pool_alloc(ptmap_size);
     if(ptmap==NULL)
@@ -845,6 +787,8 @@ VOID EFIAPI init_page_table_pool(IN OUT aos_boot_params* params)
     {
         ptmap[ptmap_size-1]=MAX_UINT8<<(CONFIG_PAGE_TABLE_POOL%8);
     }
+    params->memory.pt_pool_map=ptmap;
+
     nx=params->features.features&AOS_FEATURES_NX;
     page1gb=params->features.features&AOS_FEATURES_PAGE1GB;
     if(params->state.state&AOS_STATE_LA57)
@@ -857,13 +801,15 @@ VOID EFIAPI init_page_table_pool(IN OUT aos_boot_params* params)
         page_pml_map_handle=page_pml4_map;
         page_pml_unmap_handle=page_pml4_unmap;
     }
-    params->kminfo.ptpages=CONFIG_PAGE_TABLE_POOL;
-    params->kminfo.ptmap=ptmap;
 
     pt_root=page_page_alloc();
-    params->kminfo.ptbase=(UINTN)pt_root;
+    params->memory.page_table=(UINTN)pt_root;
 
     ready=TRUE;
+
+    /*预先映射低4GB，在线性区管理之外*/
+    page_pml_map_handle(0,0,EFI_SIZE_TO_PAGES(SIZE_4GB),AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_EXECUTE|
+        AOS_BOOT_VMA_CACHE_UC);
 }
 
 /**
@@ -882,6 +828,36 @@ VOID EFIAPI page_table_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN UINT6
     {
         panic(EFI_UNSUPPORTED,"The root page table is not initialized.");
     }
+
+    if((paddr&PAGE_4K_OFFSET_MASK)||(vaddr&PAGE_4K_OFFSET_MASK))
+    {
+        panic(EFI_INVALID_PARAMETER,"The address is not 4K-aligned.");
+    }
+
+    if(paddr&PAGE_PADDR_RESERVED_MASK)
+    {
+        panic(EFI_INVALID_PARAMETER,"The physical address has reserved bits set.");
+    }
+
+    if(flags&AOS_BOOT_VMA_HUGEPAGE)
+    {
+        if((paddr&PAGE_2M_OFFSET_MASK)||(vaddr&PAGE_2M_OFFSET_MASK))
+        {
+            panic(EFI_INVALID_PARAMETER,"The address is not 2MB-aligned for huge page mapping.");
+        }
+
+        if(pages%EFI_SIZE_TO_PAGES(SIZE_2MB))
+        {
+            panic(EFI_INVALID_PARAMETER,"The page count is not a multiple of the huge page size.");
+        }
+    }
+
+    UINTN plimit=paddr+EFI_PAGES_TO_SIZE(pages)-1;
+    if(pages==0||plimit<paddr)
+    {
+        panic(EFI_INVALID_PARAMETER,"The address range wraps around.");
+    }
+
     page_pml_map_handle(vaddr,paddr,pages,flags);
 }
 
