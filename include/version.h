@@ -42,7 +42,7 @@
 /**
  * 模块“aos.uefi” 0.2.0版本。
  */
-#define AOS_UEFI_VERSION_0_2_0 0x20260801
+#define AOS_UEFI_VERSION_0_2_0 0x20260831
 
 /**
  * 模块“aos.uefi”当前版本。
@@ -52,7 +52,7 @@
 /**
  * 模块“aos.kernel” 0.0.1版本。
  */
-#define AOS_KERNEL_VERSION_0_0_1 0x20260801
+#define AOS_KERNEL_VERSION_0_0_1 0x20260831
 
 /**
  * 模块“aos.kernel”当前版本。

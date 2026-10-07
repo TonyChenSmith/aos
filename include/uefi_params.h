@@ -102,6 +102,7 @@ typedef struct _aos_kernel_memory_info
     uintn            stack_base;    /*内核栈线性基址。*/
     uintn            kernel_entry;  /*内核入口偏移。*/
     uintn            firmware_base; /*固件映射线性基址。*/
+    uintn            data_base;     /*内核数据基址。*/
     uint8*           pt_pool_map;   /*页表池位图映射。*/
     uintn            pt_pool_pages; /*页表池页面数。*/
 } aos_kernel_memory_info;
@@ -637,11 +638,6 @@ typedef struct _aos_boot_params
 #define AOS_BOOT_VMA_TYPE_IDT 7
 
 /**
- * 线性区TSS类型。
- */
-#define AOS_BOOT_VMA_TYPE_TSS 8
-
-/**
  * 内存自由内存类型。
  */
 #define AOS_BOOT_MEMORY_FREE 0
@@ -682,43 +678,38 @@ typedef struct _aos_boot_params
 #define AOS_BOOT_MEMORY_IDT 7
 
 /**
- * 内存TSS类型。
- */
-#define AOS_BOOT_MEMORY_TSS 8
-
-/**
  * 内存SMBIOS类型。
  */
-#define AOS_BOOT_MEMORY_SMBIOS 9
+#define AOS_BOOT_MEMORY_SMBIOS 8
 
 /**
  * 内存固件类型。
  */
-#define AOS_BOOT_MEMORY_FIRMWARE 10
+#define AOS_BOOT_MEMORY_FIRMWARE 9
 
 /**
  * 内存ACPI表类型。
  */
-#define AOS_BOOT_MEMORY_ACPI_TABLE 11
+#define AOS_BOOT_MEMORY_ACPI_TABLE 10
 
 /**
  * 内存ACPI NVS类型。
  */
-#define AOS_BOOT_MEMORY_ACPI_NVS 12
+#define AOS_BOOT_MEMORY_ACPI_NVS 11
 
 /**
  * 内存持久性内存类型。
  */
-#define AOS_BOOT_MEMORY_PERSISTENT 13
+#define AOS_BOOT_MEMORY_PERSISTENT 12
 
 /**
  * 内存保留类型。
  */
-#define AOS_BOOT_MEMORY_RESERVED 14
+#define AOS_BOOT_MEMORY_RESERVED 13
 
 /**
  * 内存最低1MB类型。
  */
-#define AOS_BOOT_MEMORY_1MB 15
+#define AOS_BOOT_MEMORY_1MB 14
 
 #endif /*__AOS_INCLUDE_UEFI_PARAMS_H__*/

@@ -12,7 +12,10 @@
 #include <IndustryStandard/SmBios.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/BaseCryptLib.h>
 #include <Library/IoLib.h>
+#include <Library/PrintLib.h>
+#include <Library/RngLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
@@ -23,24 +26,135 @@
 #include <Register/Intel/LocalApic.h>
 
 #include "config.h"
+#include "idt.h"
+#include "load.h"
 #include "mark.h"
+#include "page.h"
 #include "panic.h"
 #include "params.h"
 #include "pool.h"
+#include "verify.h"
+#include "version.h"
+#include "vma.h"
 
 /**
- * 环境使用的GDT设置。
+ * 系统使用的固定GDT常量。
  */
-CONST UINT64 ENV_GDT[]={
-    0x0000000000000000ULL, /*NULL*/
-    0x00CF9A000000FFFFULL, /*KERNEL_CODE32*/
-    0x00CF92000000FFFFULL, /*KERNEL_DATA32*/
-    0x00AF9A000000FFFFULL, /*KERNEL_CODE64*/
-    0x00AF92000000FFFFULL, /*KERNEL_DATA64*/
-    0x00AFFA000000FFFFULL, /*USER_CODE64*/
-    0x00AFF2000000FFFFULL, /*USER_DATA64*/
-    0x0000000000000000ULL, /*BOUNDARY*/
+CONST IA32_SEGMENT_DESCRIPTOR AOS_FIXED_GDT[]={
+    {
+        .Uint64=0x0000000000000000ULL,
+    }, /*NULL*/
+    {
+        .Bits={
+            .LimitLow=0xFFFF,
+            .BaseLow=0,
+            .BaseMid=0,
+            .Type=0xB,
+            .S=1,
+            .DPL=0,
+            .P=1,
+            .LimitHigh=0xF,
+            .AVL=0,
+            .L=0,
+            .DB=1,
+            .G=1,
+            .BaseHigh=0
+        }
+    }, /*KERNEL_CODE32*/
+    {
+        .Bits={
+            .LimitLow=0xFFFF,
+            .BaseLow=0,
+            .BaseMid=0,
+            .Type=0x3,
+            .S=1,
+            .DPL=0,
+            .P=1,
+            .LimitHigh=0xF,
+            .AVL=0,
+            .L=0,
+            .DB=1,
+            .G=1,
+            .BaseHigh=0
+        }
+    }, /*KERNEL_DATA32*/
+    {
+        .Bits={
+            .LimitLow=0xFFFF,
+            .BaseLow=0,
+            .BaseMid=0,
+            .Type=0xB,
+            .S=1,
+            .DPL=0,
+            .P=1,
+            .LimitHigh=0xF,
+            .AVL=0,
+            .L=1,
+            .DB=0,
+            .G=1,
+            .BaseHigh=0
+        }
+    }, /*KERNEL_CODE64*/
+    {
+        .Bits={
+            .LimitLow=0xFFFF,
+            .BaseLow=0,
+            .BaseMid=0,
+            .Type=0x3,
+            .S=1,
+            .DPL=0,
+            .P=1,
+            .LimitHigh=0xF,
+            .AVL=0,
+            .L=0,
+            .DB=1,
+            .G=1,
+            .BaseHigh=0
+        }
+    }, /*KERNEL_DATA64*/
+    {
+        .Bits={
+            .LimitLow=0xFFFF,
+            .BaseLow=0,
+            .BaseMid=0,
+            .Type=0x3,
+            .S=1,
+            .DPL=3,
+            .P=1,
+            .LimitHigh=0xF,
+            .AVL=0,
+            .L=0,
+            .DB=1,
+            .G=1,
+            .BaseHigh=0
+        }
+    }, /*USER_DATA64*/
+    {
+        .Bits={
+            .LimitLow=0xFFFF,
+            .BaseLow=0,
+            .BaseMid=0,
+            .Type=0xB,
+            .S=1,
+            .DPL=3,
+            .P=1,
+            .LimitHigh=0xF,
+            .AVL=0,
+            .L=1,
+            .DB=0,
+            .G=1,
+            .BaseHigh=0
+        }
+    }, /*USER_CODE64*/
+    {
+        .Uint64=0x0000000000000000ULL,
+    }, /*BOUNDARY*/
 };
+
+/**
+ * 系统共享区单栈页数。
+ */
+CONST UINTN AOS_SHARED_STACK=2;
 
 /*配置检查*/
 
@@ -508,13 +622,13 @@ STATIC VOID EFIAPI boot_set_table(OUT aos_boot_params* params)
 }
 
 /**
- * 申请并准备内核所需数据结构。
+ * 查找CPU。
  * 
  * @param params 启动参数。
  * 
  * @return 无返回值。
  */
-STATIC VOID EFIAPI boot_prepare_data(IN OUT aos_boot_params* params)
+STATIC VOID EFIAPI boot_find_cpus(IN OUT aos_boot_params* params)
 {
     /*统计CPU槽数*/
     typedef struct _cpu_data
@@ -548,7 +662,7 @@ STATIC VOID EFIAPI boot_prepare_data(IN OUT aos_boot_params* params)
     {
         MSR_IA32_APIC_BASE_REGISTER apic_base;
         apic_base.Uint64=AsmReadMsr64(MSR_IA32_APIC_BASE);
-        UINT64 base=(apic_base.Bits.ApicBase<<12)|((UINT64)apic_base.Bits.ApicBaseHi<<32);
+        UINT64 base=((UINT64)apic_base.Bits.ApicBase<<12)|((UINT64)apic_base.Bits.ApicBaseHi<<32);
         bsp=MmioRead32(base+XAPIC_ID_OFFSET)>>24;
     }
 
@@ -819,7 +933,445 @@ STATIC VOID EFIAPI boot_prepare_data(IN OUT aos_boot_params* params)
         }
         pool_free(disable);
     }
+
+    cpu_data* node_next=NULL;
+    node=xapic;
+    while(node!=NULL)
+    {
+        node_next=node->next;
+        pool_free(node);
+        node=node_next;
+    }
+
+    node_next=NULL;
+    node=x2apic;
+    while(node!=NULL)
+    {
+        node_next=node->next;
+        pool_free(node);
+        node=node_next;
+    }
 }
+
+/**
+ * 生成随机64位数。参数通过指针传递，方便后续二次加强计算。
+ * 
+ * @param a 参数A。
+ * @param b 参数B。
+ * @param c 参数C。
+ * 
+ * @return 返回一个随机数。
+ */
+STATIC UINT64 EFIAPI boot_random(IN OUT UINT64* a,IN OUT UINT64* b,IN OUT UINT64* c)
+{
+    UINT64 ra,rb,rc;
+    UINT64 fresh;
+
+    RandomBytes((UINT8*)&ra,sizeof(ra));
+    RandomBytes((UINT8*)&rb,sizeof(rb));
+    RandomBytes((UINT8*)&rc,sizeof(rc));
+    GetRandomNumber64(&fresh);
+
+    *a^=ra^fresh;
+    *b^=rb^LRotU64(fresh,23);
+    *c^=rc^LRotU64(fresh,47);
+
+    UINT64 value=*a;
+    value^=LRotU64(*b,17);
+    value^=*c;
+    value=MultU64x64(value,0x9E3779B97F4A7C15ULL);
+    value^=value>>30;
+    value=MultU64x64(value,0xBF58476D1CE4E5B9ULL);
+    value^=value>>27;
+    value=MultU64x64(value,0x94D049BB133111EBULL);
+    value^=value>>31;
+
+    return value;
+}
+
+/**
+ * 共享区域基址。
+ */
+STATIC UINTN share_base=-SIZE_512GB;
+
+/**
+ * 固件基址。
+ */
+STATIC UINTN firmware_base=-2*SIZE_512GB;
+
+/**
+ * 内核基址。
+ */
+STATIC UINTN kernel_base=-3*SIZE_512GB;
+
+/**
+ * 内核数据基址。
+ */
+STATIC UINTN data_base=-(3*SIZE_512GB-SIZE_128GB);
+
+/**
+ * 内核栈基址。
+ */
+STATIC UINTN stack_base=-(3*SIZE_512GB-SIZE_256GB);
+
+/**
+ * 准备基址。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI boot_prepare_base(VOID)
+{
+    if(!CONFIG_RANDOMIZE_BASE)
+    {
+        firmware_base+=SIZE_4GB;
+        kernel_base+=SIZE_2GB;
+        data_base+=SIZE_2GB;
+        stack_base+=SIZE_2GB;
+        return;
+    }
+
+    UINT64 a=AOS_UEFI_VERSION,b=AOS_UEFI_VERSION_0_0_1,c=AOS_UEFI_VERSION_0_1_3;
+    UINT64 random=boot_random(&a,&b,&c);
+    UINTN min_base=firmware_base+SIZE_4GB;
+    UINTN max_base=firmware_base+SIZE_512GB-SIZE_8GB;
+    UINTN slots=(max_base-min_base)/SIZE_2MB;
+    UINTN offset=(UINTN)(random%slots);
+    firmware_base=min_base+offset*SIZE_2MB;
+
+    random=boot_random(&a,&b,&c);
+    min_base=kernel_base+SIZE_2GB;
+    max_base=kernel_base+SIZE_128GB-SIZE_2GB-SIZE_4GB;
+    slots=(max_base-min_base)/SIZE_2MB;
+    offset=(UINTN)(random%slots);
+    kernel_base=min_base+offset*SIZE_2MB;
+
+    random=boot_random(&a,&b,&c);
+    min_base=data_base+SIZE_2GB;
+    max_base=data_base+SIZE_128GB-SIZE_2GB-SIZE_4GB;
+    slots=(max_base-min_base)/SIZE_2MB;
+    offset=(UINTN)(random%slots);
+    data_base=min_base+offset*SIZE_2MB;
+
+    random=boot_random(&a,&b,&c);
+    min_base=stack_base+SIZE_2GB;
+    max_base=stack_base+SIZE_128GB-SIZE_2GB-EFI_PAGES_TO_SIZE(CONFIG_KERNEL_STACK);
+    slots=(max_base-min_base)/SIZE_2MB;
+    offset=(UINTN)(random%slots);
+    stack_base=min_base+offset*SIZE_2MB;
+}
+
+/**
+ * 准备CPU运行数据。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI boot_prepare_cpu_data(IN aos_boot_params* params)
+{
+    UINTN kernel_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,CONFIG_KERNEL_STACK,SIZE_4GB-1);
+    if(kernel_stack==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the kernel stack space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_STACK,stack_base,kernel_stack,CONFIG_KERNEL_STACK,
+        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|AOS_BOOT_VMA_ALLOCATED);
+
+    UINTN gdt_size=MAX(sizeof(AOS_FIXED_GDT)+sizeof(IA32_TSS_DESCRIPTOR),128)+MAX(sizeof(IA32_TASK_STATE_SEGMENT),128);
+    UINTN gdt_pages=EFI_SIZE_TO_PAGES(gdt_size);
+    UINT64* gdt=allocate_page(AOS_BOOT_MEMORY_GDT,gdt_pages,SIZE_4GB-1);
+    if(gdt==NULL)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the BSP GDT space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_GDT,data_base+(UINTN)gdt,(UINTN)gdt,gdt_pages,
+        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_UC|AOS_BOOT_VMA_ALLOCATED);
+    add_vma(AOS_BOOT_VMA_TYPE_GDT,share_base,(UINTN)gdt,gdt_pages,
+        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_CACHE_UC|AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
+
+    ZeroMem(gdt,EFI_PAGES_TO_SIZE(gdt_pages));
+    UINTN index;
+    for(index=0;index<ARRAY_SIZE(AOS_FIXED_GDT);index++)
+    {
+        gdt[index]=AOS_FIXED_GDT[index].Uint64;
+    }
+    IA32_TASK_STATE_SEGMENT* tss=(IA32_TASK_STATE_SEGMENT*)((UINTN)gdt+MAX(sizeof(AOS_FIXED_GDT)
+        +sizeof(IA32_TSS_DESCRIPTOR),128));
+    UINTN tss_base=share_base+MAX(sizeof(AOS_FIXED_GDT)+sizeof(IA32_TSS_DESCRIPTOR),128);
+    IA32_TSS_DESCRIPTOR* tss_desc=(IA32_TSS_DESCRIPTOR*)&gdt[index];
+    tss_desc->Uint128.Uint64=0;
+    tss_desc->Uint128.Uint64_1=0;
+    tss_desc->Bits.LimitLow=sizeof(IA32_TASK_STATE_SEGMENT)-1;
+    tss_desc->Bits.BaseLow=tss_base&0xFFFF;
+    tss_desc->Bits.BaseMidl=(tss_base>>16)&0xFF;
+    tss_desc->Bits.Type=IA32_GDT_TYPE_TSS;
+    tss_desc->Bits.DPL=0;
+    tss_desc->Bits.P=1;
+    tss_desc->Bits.LimitHigh=0;
+    tss_desc->Bits.AVL=0;
+    tss_desc->Bits.G=0;
+    tss_desc->Bits.BaseMidh=(tss_base>>24)&0xFF;
+    tss_desc->Bits.BaseHigh=(tss_base>>32)&0xFFFFFFFF;
+    ZeroMem(tss,sizeof(IA32_TASK_STATE_SEGMENT));
+    tss->IOMapBaseAddress=sizeof(IA32_TASK_STATE_SEGMENT);
+
+    UINTN rsp0_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    if(rsp0_stack==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS RSP0 space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_4MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+        rsp0_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
+        AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
+    tss->RSP0=share_base+SIZE_4MB;
+
+    UINTN ist1_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    if(ist1_stack==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST1 space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_4MB+SIZE_2MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+        ist1_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
+        AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
+    tss->IST[0]=share_base+SIZE_4MB+SIZE_2MB;
+
+    UINTN ist2_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    if(ist2_stack==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST2 space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_8MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+        ist2_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
+        AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
+    tss->IST[1]=share_base+SIZE_8MB;
+
+    UINTN ist3_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    if(ist3_stack==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST3 space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_8MB+SIZE_2MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+        ist3_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
+        AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
+    tss->IST[2]=share_base+SIZE_8MB+SIZE_2MB;
+
+    UINTN ist4_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    if(ist4_stack==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST4 space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_8MB+SIZE_4MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+        ist4_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
+        AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
+    tss->IST[3]=share_base+SIZE_8MB+SIZE_4MB;
+
+    UINTN ist5_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    if(ist5_stack==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST5 space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_8MB+SIZE_4MB+SIZE_2MB-
+        EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),ist5_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|
+        AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
+    tss->IST[4]=share_base+SIZE_8MB+SIZE_4MB+SIZE_2MB;
+
+    UINTN ist6_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    if(ist6_stack==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST6 space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_16MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+        ist6_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
+        AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
+    tss->IST[5]=share_base+SIZE_16MB;
+
+    UINTN ist7_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    if(ist7_stack==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST7 space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_16MB+SIZE_2MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+        ist7_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
+        AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
+    tss->IST[6]=share_base+SIZE_16MB+SIZE_2MB;
+
+    UINTN idt_handler_pages=EFI_SIZE_TO_PAGES(AOS_BOOT_IDT_DATA_SIZE);
+    UINT8* idt_handler=allocate_page(AOS_BOOT_MEMORY_FIRMWARE,idt_handler_pages,SIZE_4GB-1);
+    if(idt_handler==NULL)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the IDT handler space.");
+    }
+    SetMem(idt_handler,EFI_PAGES_TO_SIZE(idt_handler_pages),0xCC);
+    CopyMem(idt_handler,AOS_BOOT_IDT_DATA,AOS_BOOT_IDT_DATA_SIZE);
+    UINTN idt_handler_base=firmware_base+(UINTN)idt_handler;
+    add_vma(AOS_BOOT_VMA_TYPE_FIRMWARE,idt_handler_base,(UINTN)idt_handler,
+        idt_handler_pages,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_EXECUTE|AOS_BOOT_VMA_CACHE_WB|
+        AOS_BOOT_VMA_ALLOCATED);
+
+    UINTN idt_size=sizeof(IA32_IDT_GATE_DESCRIPTOR)*256;
+    UINTN idt_pages=EFI_SIZE_TO_PAGES(idt_size);
+    IA32_IDT_GATE_DESCRIPTOR* idt=allocate_page(AOS_BOOT_MEMORY_IDT,idt_pages,SIZE_4GB-1);
+    if(idt==NULL)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the IDT space.");
+    }
+    ZeroMem(idt,idt_size);
+    add_vma(AOS_BOOT_VMA_TYPE_IDT,data_base+(UINTN)idt,(UINTN)idt,idt_pages,
+        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_UC|AOS_BOOT_VMA_ALLOCATED);
+    add_vma(AOS_BOOT_VMA_TYPE_IDT,share_base+SIZE_8KB,(UINTN)idt,idt_pages,
+        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_CACHE_UC|AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
+    
+    for(UINTN index=0;index<AOS_IDT_VECTOR_COUNT;index++)
+    {
+        idt[index].Bits.GateType=IA32_IDT_GATE_TYPE_INTERRUPT_32;
+        idt[index].Bits.Selector=3*sizeof(IA32_SEGMENT_DESCRIPTOR);
+        UINTN offset=idt_handler_base+AOS_BOOT_IDT_HANDLER_OFFSET[index];
+        idt[index].Bits.OffsetLow=offset&0xFFFF;
+        idt[index].Bits.OffsetHigh=(offset>>16)&0xFFFF;
+        idt[index].Bits.OffsetUpper=(offset>>32)&0xFFFFFFFF;
+    }
+}
+
+/**
+ * 查询AOS系统卷类型。
+ * 
+ * @param params     启动参数。
+ * @param identifier 识别符指针。
+ * 
+ * @return AOS系统卷类型。
+ */
+STATIC asv_type EFIAPI boot_find_asv(IN OUT aos_boot_params* params,OUT VOID** identifier)
+{
+    if(params==NULL)
+    {
+        return ASV_ESP;
+    }
+
+    init_esp_io(params);
+    esp_mount();
+
+    EFI_FILE_HANDLE asv_file=esp_open(L"\\aos\\aos.system.volume",EFI_FILE_MODE_READ,0);
+    if(asv_file==NULL)
+    {
+        esp_unmount();
+        return ASV_ESP;
+    }
+
+    UINT64 asv_size=esp_get_size(asv_file);
+    UINTN read_size=asv_size;
+    CHAR8* asv=pool_alloc(asv_size+1);
+    if(asv==NULL)
+    {
+        asv_file->Close(asv_file);
+        esp_unmount();
+        return ASV_ESP;
+    }
+    ZeroMem(asv,asv_size+1);
+
+    EFI_STATUS status=asv_file->Read(asv_file,&read_size,asv);
+    asv_file->Close(asv_file);
+    if(EFI_ERROR(status)||read_size!=asv_size)
+    {
+        pool_free(asv);
+        esp_unmount();
+        return ASV_ESP;
+    }
+
+    esp_unmount();
+
+    CHAR8* node=asv;
+    CHAR8* sep=AsciiStrStr(node,",");
+    if(sep==NULL)
+    {
+        /*无论是否为ESP字符串，都认为是ESP*/
+        pool_free(asv);
+        return ASV_ESP;
+    }
+    *sep=0;
+
+    if(AsciiStrCmp(node,"HD")==0)
+    {
+        node=sep+1;
+        sep=AsciiStrStr(node,",");
+        if(sep==NULL)
+        {
+            pool_free(asv);
+            return ASV_ESP;
+        }
+        *sep=0;
+
+        if(AsciiStrCmp(node,"GPT")==0)
+        {
+            node=sep+1;
+            if(AsciiStrSize(node)!=37)
+            {
+                pool_free(asv);
+                return ASV_ESP;
+            }
+            
+            EFI_GUID* guid=pool_alloc(sizeof(EFI_GUID));
+            if(guid==NULL)
+            {
+                pool_free(asv);
+                return ASV_ESP;
+            }
+
+            status=AsciiStrToGuid(node,guid);
+            if(EFI_ERROR(status))
+            {
+                pool_free(guid);
+                pool_free(asv);
+                return ASV_ESP;
+            }
+            
+            pool_free(asv);
+            *identifier=guid;
+            return ASV_GPT;
+        }
+    }
+
+    pool_free(asv);
+    return ASV_ESP;
+}
+
+/**
+ * 准备加载内核。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI boot_verify_and_load(IN OUT aos_boot_params* params)
+{
+    VOID* identifier=NULL;
+    asv_type asv=boot_find_asv(params,&identifier);
+
+    init_asv_io(asv,identifier,params);
+
+    asv_mount();
+
+    asv_file* signature=asv_open("/aos/aos.signature");
+    if(signature==NULL)
+    {
+        panic(EFI_NOT_FOUND,"The signature file is not found.");
+    }
+
+    asv_file* kernel=asv_open("/aos/aos.kernel");
+    if(kernel==NULL)
+    {
+        panic(EFI_NOT_FOUND,"The kernel file is not found.");
+    }
+
+    verify_kernel(signature,kernel);
+    UINTN entry=load_kernel(kernel,kernel_base);
+
+    params->memory.kernel_entry=kernel_base+entry;
+}
+
+/**
+ * 随机种子字符串。
+ */
+STATIC CHAR8 seed[512];
 
 /**
  * 模块“aos.uefi”的入口函数。
@@ -848,9 +1400,114 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     /*设置系统表*/
     boot_set_table(params);
 
-    /*准备启动数据*/
-    boot_prepare_data(params);
+    /*查找CPU*/
+    boot_find_cpus(params);
 
-    panic_if_error(EFI_DEVICE_ERROR,"Hello?");
+    /*初始化页表*/
+    init_page_table_pool(params);
+
+    /*设置随机种子*/
+    UINT64 seed_value=AOS_UEFI_VERSION;
+    GetRandomNumber64(&seed_value);
+    AsciiSPrint(seed,sizeof(seed),"Module \"aos.uefi\" seed: "
+        "The version bcd of the module \"aos.uefi\" is %016lX. The time stamp counter is %016lX. The random seed value "
+        "is %016lX.",(UINT64)AOS_UEFI_VERSION,AsmReadTsc(),seed_value);
+    RandomSeed((UINT8*)seed,sizeof(seed));
+
+    /*准备基址*/
+    boot_prepare_base();
+
+    boot_prepare_cpu_data(params);
+
+    boot_verify_and_load(params);
+
+    UINTN EFIAPI page_table_pool_base(VOID);
+    aos_boot_vma* EFIAPI vma_head(VOID);
+    aos_boot_memory* EFIAPI memory_head(VOID);
+
+
+    /*统计页表池位图占用情况*/
+    UINTN pt_pages=params->memory.pt_pool_pages;
+    CONST UINT8* pt_map=(CONST UINT8*)params->memory.pt_pool_map;
+    UINTN pt_used=0;
+    UINTN pt_first_free=pt_pages; /*首个空闲位；池满时等于页数*/
+    for(UINTN i=0;i<pt_pages;i++)
+    {
+        if(pt_map[i>>3]&(UINT8)(1U<<(i&7)))
+        {
+            pt_used++;
+        }
+        else if(pt_first_free==pt_pages)
+        {
+            pt_first_free=i;
+        }
+    }
+
+    CHAR8 report[768];
+    AsciiSPrint(report,sizeof(report),
+        "pool=0x%lX\n"
+        "features: magic=0x%02X baseline=%u vendor=%u bits=0x%02X\n"
+        "state: magic=0x%02X state=0x%02X vmtrr=%u apic=%u\n"
+        "table: acpi=0x%lX smbios=0x%lX\n"
+        "cpus: total=%lu enabled=%lu\n"
+        "pt: base=0x%lX root=0x%lX pages=%lu bitmap=0x%lX used=%lu first_free=%lu\n"
+        "size: params=%lu kinfo=%lu vma=%lu mem=%lu\n"
+        "base: share=0x%lX fw=0x%lX kern=0x%lX data=0x%lX stack=0x%lX\n",
+        (UINT64)bpbase,
+        (UINTN)params->features.magic,(UINTN)params->features.baseline,
+        (UINTN)params->features.vendor,(UINTN)params->features.features,
+        (UINTN)params->state.magic,(UINTN)params->state.state,
+        (UINTN)params->state.vmtrr,(UINTN)params->state.apic,
+        (UINT64)params->acpi,(UINT64)params->smbios,
+        (UINT64)params->cpu_count,(UINT64)params->enabled_count,
+        (UINT64)page_table_pool_base(),(UINT64)params->memory.page_table,
+        (UINT64)pt_pages,(UINT64)params->memory.pt_pool_map,
+        (UINT64)pt_used,(UINT64)pt_first_free,
+        (UINT64)sizeof(aos_boot_params),(UINT64)sizeof(aos_kernel_memory_info),
+        (UINT64)sizeof(aos_boot_vma),(UINT64)sizeof(aos_boot_memory),
+        (UINT64)share_base,(UINT64)firmware_base,(UINT64)kernel_base,
+        (UINT64)data_base,(UINT64)stack_base);
+    for(UINTN i=0;report[i]!=0;i++)
+    {
+        IoWrite8(0x402,(UINT8)report[i]);
+    }
+
+    /*CPU列表(有多少打多少)*/
+    for(UINTN i=0;i<params->cpu_count;i++)
+    {
+        AsciiSPrint(report,sizeof(report),"cpu[%lu]=%u\n",(UINT64)i,(UINTN)params->cpus[i]);
+        for(UINTN j=0;report[j]!=0;j++)
+        {
+            IoWrite8(0x402,(UINT8)report[j]);
+        }
+    }
+
+    /*内存图输出*/
+    aos_boot_memory* mem_node=memory_head();
+    for(UINTN i=0;mem_node!=NULL;i++)
+    {
+        AsciiSPrint(report,sizeof(report),"mem[%lu] start=0x%lX size=0x%lX type=%lu\n",
+            (UINT64)i,(UINT64)mem_node->start,(UINT64)mem_node->size,(UINT64)mem_node->type);
+        for(UINTN j=0;report[j]!=0;j++)
+        {
+            IoWrite8(0x402,(UINT8)report[j]);
+        }
+        mem_node=mem_node->next;
+    }
+
+    /*线性区输出*/
+    aos_boot_vma* vma_node=vma_head();
+    for(UINTN i=0;vma_node!=NULL;i++)
+    {
+        AsciiSPrint(report,sizeof(report),"vma[%lu] start=0x%lX end=0x%lX flags=0x%lX type=%lu\n",
+            (UINT64)i,(UINT64)vma_node->start,(UINT64)vma_node->end,
+            (UINT64)vma_node->flags,(UINT64)vma_node->type);
+        for(UINTN j=0;report[j]!=0;j++)
+        {
+            IoWrite8(0x402,(UINT8)report[j]);
+        }
+        vma_node=vma_node->next;
+    }
+    panic_if_error(EFI_DEVICE_ERROR,"Hello? %u",bpbase);
     return EFI_SUCCESS;
 }

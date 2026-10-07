@@ -11,8 +11,8 @@
 
 #include "page.h"
 #include "panic.h"
+#include "params.h"
 #include "pool.h"
-#include "vma.h"
 
 /**
  * 线性区链表头。
@@ -343,16 +343,16 @@ STATIC VOID EFIAPI vma_set_runtime_vma(IN OUT EFI_MEMORY_DESCRIPTOR* runtime,IN 
 }
 
 /**
- * 用EFI内存图和内存属性表填充AOS线性区，并为EFI内存图和启动参数赋值。
+ * 用EFI内存图和内存属性表填充AOS线性区，并为EFI内存图赋值。
  * 
- * @param params    启动参数。
+ * @param base      固件线性基址。
  * @param map       EFI内存图。
  * @param map_size  内存图大小。
  * @param desc_size 描述符大小。
  * 
- * @return 无返回值。
+ * @return 已完成的线性区头节点。
  */
-VOID EFIAPI fill_firmware_vma(IN OUT aos_boot_params* params,IN OUT EFI_MEMORY_DESCRIPTOR* map,IN UINTN map_size,
+aos_boot_vma* EFIAPI fill_firmware_vma(IN UINTN base,IN OUT EFI_MEMORY_DESCRIPTOR* map,IN UINTN map_size,
     IN UINTN desc_size)
 {
     if(map==NULL||map_size==0||desc_size<sizeof(EFI_MEMORY_DESCRIPTOR))
@@ -395,10 +395,13 @@ VOID EFIAPI fill_firmware_vma(IN OUT aos_boot_params* params,IN OUT EFI_MEMORY_D
     {
         if(node->Attribute&EFI_MEMORY_RUNTIME)
         {
-            vma_set_runtime_vma(node,mat,params->memory.firmware_base);
+            vma_set_runtime_vma(node,mat,base);
         }
         node=(EFI_MEMORY_DESCRIPTOR*)((UINTN)node+desc_size);
     }
 
-    params->memory.kernel_vma=head;
+    return head;
 }
+
+/* vma.c 追加 */
+aos_boot_vma* EFIAPI vma_head(VOID){ return head; }

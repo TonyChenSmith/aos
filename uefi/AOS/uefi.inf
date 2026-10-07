@@ -19,9 +19,16 @@
 
 [Sources]
     core/boot.c
-    core/panic.c
+    core/file.c
+    core/idt.nasm
+    core/key.nasm
+    core/load.c
+    core/mark.c
     core/page.c
+    core/panic.c
     core/pool.c
+    core/verify.c
+    core/vma.c
 
 [Packages]
     AOS/AOS.dec

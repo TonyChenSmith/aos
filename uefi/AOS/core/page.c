@@ -146,7 +146,7 @@ STATIC VOID EFIAPI (*page_pml_unmap_handle)(IN UINTN start,IN UINTN end);
  * 
  * @return 正常返回一页指针基址，错误返回固定常量。
  */
-STATIC VOID* EFIAPI page_page_alloc()
+STATIC VOID* EFIAPI page_page_alloc(VOID)
 {
     UINTN index=ptmap_size;
     for(UINTN i=0;i<ptmap_size;i++)
@@ -774,6 +774,10 @@ STATIC VOID EFIAPI page_pml4_unmap(IN UINTN start,IN UINTN end)
 VOID EFIAPI init_page_table_pool(IN OUT aos_boot_params* params)
 {
     ptbase=(UINTN)allocate_page(AOS_BOOT_MEMORY_PAGE_TABLE_POOL,CONFIG_PAGE_TABLE_POOL,SIZE_4GB-1);
+    if(ptbase==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate page table pool.");
+    }
     ptpages=CONFIG_PAGE_TABLE_POOL;
     params->memory.pt_pool_pages=CONFIG_PAGE_TABLE_POOL;
 
@@ -783,6 +787,7 @@ VOID EFIAPI init_page_table_pool(IN OUT aos_boot_params* params)
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate page table pool bitmap from bootstrap pool.");
     }
+    ZeroMem(ptmap, ptmap_size);
     if(CONFIG_PAGE_TABLE_POOL%8)
     {
         ptmap[ptmap_size-1]=MAX_UINT8<<(CONFIG_PAGE_TABLE_POOL%8);
@@ -876,4 +881,14 @@ VOID EFIAPI page_table_unmap(IN UINTN start,IN UINTN end)
         panic(EFI_UNSUPPORTED,"The root page table is not initialized.");
     }
     page_pml_unmap_handle(start,end);
+}
+
+/**
+ * 获取页表池基址。
+ * ?
+ * @return 页表池的物理基址。
+ */
+UINTN EFIAPI page_table_pool_base(VOID)
+{
+    return ptbase;
 }

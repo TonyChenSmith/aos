@@ -25,15 +25,14 @@ VOID* EFIAPI allocate_page(IN UINT64 type,IN UINTN pages,IN UINTN max);
 /**
  * 用EFI内存图填充AOS内存图。
  * 
- * @param params    启动参数。
  * @param map       EFI内存图。
  * @param map_size  内存图大小。
  * @param desc_size 描述符大小。
  * @param boot_pool 引导内存池基址。
  * 
- * @return 无返回值。
+ * @return 已填充完成的内存图头结点。
  */
-VOID EFIAPI fill_memory_map(OUT aos_boot_params* params,IN EFI_MEMORY_DESCRIPTOR* map,IN UINTN map_size,
-    IN UINTN desc_size,IN UINTN boot_pool);
+aos_boot_memory* EFIAPI fill_memory_map(IN EFI_MEMORY_DESCRIPTOR* map,IN UINTN map_size,IN UINTN desc_size,
+    IN UINTN boot_pool);
 
 #endif /*__AOS_UEFI_MARK_H__*/

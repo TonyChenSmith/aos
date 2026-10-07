@@ -7,24 +7,27 @@
 # SPDX-License-Identifier: MIT
 # 
 [Defines]
-    PLATFORM_NAME              = AOS
+    PLATFORM_NAME                = AOS
     # UUID.nameUUIDFromBytes("aos.uefi.description".getBytes("UTF-8"))
-    PLATFORM_GUID              = DE82DA92-FC7F-3E64-A5BC-619E1E42E1A4
+    PLATFORM_GUID                = DE82DA92-FC7F-3E64-A5BC-619E1E42E1A4
     # Major.Minor.Patch Before the official launch, do not increment the major version number.
-    PLATFORM_VERSION           = 0.2.0
-    DSC_SPECIFICATION          = 0x00010005
-    OUTPUT_DIRECTORY           = Build/AOS
-    SUPPORTED_ARCHITECTURES    = X64
-    BUILD_TARGETS              = DEBUG|RELEASE
-    RFC_LANGUAGES              = "en-us"
-    SKUID_IDENTIFIER           = DEFAULT
+    PLATFORM_VERSION             = 0.2.0
+    DSC_SPECIFICATION            = 0x00010005
+    OUTPUT_DIRECTORY             = Build/AOS
+    SUPPORTED_ARCHITECTURES      = X64
+    BUILD_TARGETS                = DEBUG|RELEASE
+    RFC_LANGUAGES                = "en-us"
+    SKUID_IDENTIFIER             = DEFAULT
 
 [BuildOptions]
-    GCC:RELEASE_*_*_CC_FLAGS   = -DMDEPKG_NDEBUG -DAOS_NDEBUG
-    INTEL:RELEASE_*_*_CC_FLAGS = /D MDEPKG_NDEBUG /D AOS_NDEBUG
-    MSFT:RELEASE_*_*_CC_FLAGS  = /D MDEPKG_NDEBUG /D AOS_NDEBUG
+    GCC:RELEASE_*_*_CC_FLAGS     = -DMDEPKG_NDEBUG -DAOS_NDEBUG
+    INTEL:RELEASE_*_*_CC_FLAGS   = /D MDEPKG_NDEBUG /D AOS_NDEBUG
+    MSFT:RELEASE_*_*_CC_FLAGS    = /D MDEPKG_NDEBUG /D AOS_NDEBUG
+    GCC:RELEASE_*_*_NASM_FLAGS   = -dAOS_NDEBUG
+    INTEL:RELEASE_*_*_NASM_FLAGS = -dAOS_NDEBUG
+    MSFT:RELEASE_*_*_NASM_FLAGS  = -dAOS_NDEBUG
 !if $(TOOL_CHAIN_TAG) != "XCODE5" && $(TOOL_CHAIN_TAG) != "CLANGPDB"
-    GCC:*_*_*_CC_FLAGS         = -mno-mmx -mno-sse
+    GCC:*_*_*_CC_FLAGS           = -mno-mmx -mno-sse
 !endif
 
 [LibraryClasses]
@@ -38,7 +41,7 @@
     IntrinsicLib|CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
     IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
     MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
-    OpensslLib|CryptoPkg/Library/OpensslLib/OpensslLib.inf
+    OpensslLib|CryptoPkg/Library/OpensslLib/OpensslLibFull.inf
     PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
     PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
     RegisterFilterLib|MdePkg/Library/RegisterFilterLibNull/RegisterFilterLibNull.inf

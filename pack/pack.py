@@ -76,10 +76,10 @@ if __name__=="__main__":
 
     manifest_path="debug.manifest.json"
     if args.mode=="Release":
-        sign.sign_kernel(False)
+        sign.sign_aos(False)
         manifest_path="release.manifest.json"
     else:
-        sign.sign_kernel(True)
+        sign.sign_aos(True)
 
     project_base=os.path.normpath(os.path.abspath("../"))
     partitions=None

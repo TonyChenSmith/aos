@@ -6,291 +6,294 @@
 # 
 # SPDX-License-Identifier: MIT
 # 
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes,serialization
-from cryptography.hazmat.primitives.asymmetric import padding,rsa
 import argparse
+import datetime
 import hashlib
 import json
 import os
+import re
+import shutil
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec,utils
+from cryptography.x509.oid import NameOID
 
-def sign_kernel(debug):
+# 版本宏提取。
+# 宏定义里<MODULE>代表模块名，<MAJOR>代表主版本号，<MINOR>代表次版本号，<PATCH>代表修订版本号。
+# Y、M、D均是BCD数，Y代表年份，M代表月份，D代表日期。
+# 版本头文件内版本宏格式固定如下：
+#   #define AOS_<MODULE>_VERSION_<MAJOR>_<MINOR>_<PATCH> (0xYYYYMMDD|0xY{4,12}MMDDULL)
+#   #define AOS_<MODULE>_VERSION AOS_<MODULE>_VERSION_<MAJOR>_<MINOR>_<PATCH>
+_VERSION_DEFINE_RE=re.compile(r"^#define\s+(\w+)\s+(\S+)",re.M)
+_VERSION_VALUE_RE=re.compile(r"^(?:0x[0-9]{8}|0x[0-9]{8,16}ULL)$")
+
+def read_version_macros(path):
     """
-    对期望内核文件进行签名，签名后进行校验，检查签名是否合格。
+    读取版本头文件，返回{宏名:原始值}。
     """
-    kprivate_key_path="sign/kernel.rsa.release.private.pem"
-    kpublic_key_path="sign/kernel.rsa.release.public.pem"
-    sprivate_key_path="sign/signature.rsa.release.private.pem"
-    spublic_key_path="sign/signature.rsa.release.public.pem"
-    manifest_path="release.manifest.json"
-    sig_path="out/Release/aos.kernel.sig"
-    sig_db_path="out/Release/aos.kernel.sig.db"
-    sig_current_path="out/Release/aos.kernel.current.sig"
-    sig_txt_path="out/Release/aos.kernel.sig.txt"
-    os.makedirs("out/Release/",exist_ok=True)
+    with open(path,"r",encoding="utf-8") as f:
+        return dict(_VERSION_DEFINE_RE.findall(f.read()))
+
+def parse_version_value(raw):
+    """
+    版本字面量转换成BCD数值。格式不符即报错。
+    """
+    raw=raw.strip()
+    if not _VERSION_VALUE_RE.match(raw):
+        raise ValueError(f"版本值格式不符: {raw}")
+    return int(raw[:-3] if raw.endswith("ULL") else raw,16)
+
+def bcd_to_int(byte):
+    """
+    BCD字节转十进制。
+    """
+    return (byte>>4)*10+(byte&0xF)
+
+def check_version_value(value):
+    """
+    版本数值正常性检查。
+    """
+    digits=f"{value:X}"
+    if any(c>"9"for c in digits):
+        raise ValueError(f"版本值含非BCD数字: 0x{digits}")
+
+    year_bcd=value>>16
+    year=int(f"{year_bcd:X}") if year_bcd else 0
+    month=bcd_to_int((value>>8)&0xFF)
+    day=bcd_to_int(value&0xFF)
+
+    if not (datetime.MINYEAR<=year<= datetime.MAXYEAR):
+        raise ValueError(f"版本值年份超出支持范围({datetime.MINYEAR}~{datetime.MAXYEAR}): {year}")
+    try:
+        datetime.date(year,month,day)
+    except ValueError as e:
+        raise ValueError(f"版本值日期非法: {year}-{month:02d}-{day:02d}") from e
+
+def read_version_value(macros,name):
+    """
+    按宏名读取版本数值。
+    解析并检查后返回BCD数值。
+    """
+    if name not in macros:
+        raise KeyError(f"未找到版本宏: {name}")
+    raw=macros[name]
+    for _ in range(8):
+        if raw.startswith("0x"):
+            value=parse_version_value(raw)
+            check_version_value(value)
+            return value
+        if raw not in macros:
+            raise KeyError(f"版本宏引用未定义: {name}->{raw}")
+        raw=macros[raw]
+    raise ValueError(f"版本宏引用链异常: {name}")
+
+def read_version_field(macros,name):
+    """
+    按宏名读取对应版本值。
+    """
+    return read_version_value(macros,name).to_bytes(8,"little")
+
+def find_manifest_file(debug,file_name):
+    """
+    按调试状态读取清单，返回清单内指定文件的绝对路径。
+    """
+    manifest_name="debug.manifest.json" if debug else "release.manifest.json"
+    with open(manifest_name,"r",encoding="utf-8") as f:
+        manifest=json.load(f)
+    project_base=os.path.normpath(os.path.abspath("../"))
+    for info in manifest["manifest"]:
+        if info["file"]==file_name:
+            return os.path.join(project_base,info["project"],info["file"])
+    raise KeyError(f"未在清单 {manifest_name} 中找到文件 {file_name}。")
+
+def generate_keys(debug=True):
+    """
+    根据调试状态生成新的密钥。正本存入当日备份目录，并复制一份到sign/keys/下。
+    """
+    project_base=os.path.normpath(os.path.abspath("../"))
+    macros=read_version_macros(os.path.join(project_base,"include","version.h"))
+    uefi_version=read_version_value(macros,"AOS_UEFI_VERSION")
+    kernel_version=read_version_value(macros,"AOS_KERNEL_VERSION")
+    time_now=datetime.datetime.now().astimezone()
+    record_time=time_now.strftime("%Y%m%d-%H%M%S")
 
     if debug:
-        kprivate_key_path="sign/kernel.rsa.debug.private.pem"
-        kpublic_key_path="sign/kernel.rsa.debug.public.pem"
-        sprivate_key_path="sign/signature.rsa.debug.private.pem"
-        spublic_key_path="sign/signature.rsa.debug.public.pem"
-        manifest_path="debug.manifest.json"
-        sig_path="out/Debug/aos.kernel.sig"
-        sig_db_path="out/Debug/aos.kernel.sig.db"
-        sig_current_path="out/Debug/aos.kernel.current.sig"
-        sig_txt_path="out/Debug/aos.kernel.sig.txt"
-        os.makedirs("out/Debug/",exist_ok=True)
-    
-    with open(kprivate_key_path,"rb") as pf:
-        pem_data=pf.read()
-    kprivate_key=serialization.load_pem_private_key(pem_data,password=None,backend=default_backend())
-    with open(kpublic_key_path,"rb") as pf:
-        pem_data=pf.read()
-    kpublic_key=serialization.load_pem_public_key(pem_data,backend=default_backend())
+        uefi_record_dir="sign/keys/Debug/uefi/"
+        kernel_record_dir="sign/keys/Debug/kernel/"
+        uefi_root_public_key="uefi.debug.public.der"
+        uefi_root_private_key="uefi.debug.private.pem"
+        kernel_root_public_key="kernel.debug.public.der"
+        kernel_root_private_key="kernel.debug.private.pem"
 
-    with open(sprivate_key_path,"rb") as pf:
-        pem_data=pf.read()
-    sprivate_key=serialization.load_pem_private_key(pem_data,password=None,backend=default_backend())
-    with open(spublic_key_path,"rb") as pf:
-        pem_data=pf.read()
-    spublic_key=serialization.load_pem_public_key(pem_data,backend=default_backend())
-
-    project_base=os.path.normpath(os.path.abspath("../"))
-    kernel_path=None
-    with open(manifest_path,"r") as f:
-        manifest=json.load(f)
-    for info in manifest["manifest"]:
-        if info["file"]=="aos.kernel":
-            kernel_path=os.path.join(project_base,info["project"],info["file"])
-            break
-    if kernel_path==None:
-        print("未发现清单内的内核文件路径。")
+        uefi_subject_name=x509.Name([x509.NameAttribute(NameOID.COMMON_NAME,"Debug Module aos.uefi")])
+        kernel_subject_name=x509.Name([x509.NameAttribute(NameOID.COMMON_NAME,"Debug Module aos.kernel")])
     else:
-        ksha512=hashlib.sha512()
-        ksha256=hashlib.sha256()
+        uefi_record_dir="sign/keys/Release/uefi/"
+        kernel_record_dir="sign/keys/Release/kernel/"
+        uefi_root_public_key="uefi.release.public.der"
+        uefi_root_private_key="uefi.release.private.pem"
+        kernel_root_public_key="kernel.release.public.der"
+        kernel_root_private_key="kernel.release.private.pem"
 
-        with open(kernel_path,"rb") as f:
-            while chunk:=f.read(4096):
-                ksha256.update(chunk)
-                ksha512.update(chunk)
-        ksha512hash=ksha512.digest()
-        ksha256hash=ksha256.digest()
+        uefi_subject_name=x509.Name([x509.NameAttribute(NameOID.COMMON_NAME,"Release Module aos.uefi")])
+        kernel_subject_name=x509.Name([x509.NameAttribute(NameOID.COMMON_NAME,"Release Module aos.kernel")])
+    
+    os.makedirs(uefi_record_dir,exist_ok=True)
+    os.makedirs(kernel_record_dir,exist_ok=True)
 
-        ksignature=kprivate_key.sign(ksha512hash,padding=padding.PSS(mgf=padding.MGF1(hashes.SHA512()),salt_length=hashes.SHA512.digest_size),algorithm=hashes.SHA512())
-        print("已对当前版本内核进行签名。")
-        try:
-            kpublic_key.verify(ksignature,data=ksha512hash,padding=padding.PSS(mgf=padding.MGF1(hashes.SHA512()),salt_length=hashes.SHA512.digest_size),algorithm=hashes.SHA512())
-            print("对当前版本内核签名验证成功。")
-        except InvalidSignature as e:
-            print("对当前版本内核签名验证失败。")
-            return
-        except Exception as e:
-            print(f"发生错误：{e}")
-            return
-        
-        sig_data=ksha256hash+ksignature
-        with open(sig_current_path,"wb") as f:
-            f.write(sig_data)
+    curve=ec.SECP384R1()
+    uefi_private=ec.generate_private_key(curve)
+    kernel_private=ec.generate_private_key(curve)
 
-        sig_db=bytes()
-        if os.path.exists(sig_db_path):
-            with open(sig_db_path,"rb") as f:
-                sig_db=f.read()
-        sig_data=sig_data+sig_db
+    uefi_private_data=uefi_private.private_bytes(encoding=serialization.Encoding.PEM,format=serialization.PrivateFormat.PKCS8,encryption_algorithm=serialization.NoEncryption())
+    kernel_private_data=kernel_private.private_bytes(encoding=serialization.Encoding.PEM,format=serialization.PrivateFormat.PKCS8,encryption_algorithm=serialization.NoEncryption())
 
-        ssha512=hashlib.sha512()
-        ssha256=hashlib.sha256()
+    uefi_public_data=(x509.CertificateBuilder()
+        .subject_name(uefi_subject_name)
+        .issuer_name(uefi_subject_name)
+        .public_key(uefi_private.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(time_now)
+        .not_valid_after(time_now+datetime.timedelta(days=3650))
+        .sign(uefi_private,hashes.SHA512())
+        .public_bytes(serialization.Encoding.DER))
+    
+    kernel_public_data=(x509.CertificateBuilder()
+        .subject_name(kernel_subject_name)
+        .issuer_name(kernel_subject_name)
+        .public_key(kernel_private.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(time_now)
+        .not_valid_after(time_now+datetime.timedelta(days=3650))
+        .sign(kernel_private,hashes.SHA512())
+        .public_bytes(serialization.Encoding.DER))
 
-        ssha512.update(sig_data)
-        ssha256.update(sig_data)
-        
-        ssha512hash=ssha512.digest()
-        ssha256hash=ssha256.digest()
-        ssignature=sprivate_key.sign(ssha512hash,padding=padding.PSS(mgf=padding.MGF1(hashes.SHA512()),salt_length=hashes.SHA512.digest_size),algorithm=hashes.SHA512())
-        print("已对当前版本签名文件进行签名。")
-        try:
-            spublic_key.verify(ssignature,data=ssha512hash,padding=padding.PSS(mgf=padding.MGF1(hashes.SHA512()),salt_length=hashes.SHA512.digest_size),algorithm=hashes.SHA512())
-            print("对当前版本签名文件签名验证成功。")
-        except InvalidSignature as e:
-            print("对当前版本签名文件签名验证失败。")
-            return
-        except Exception as e:
-            print(f"发生错误：{e}")
-            return
+    uefi_public_key=f"uefi.public.ecdsa.V{uefi_version:08X}.{record_time}.der"
+    uefi_private_key=f"uefi.private.ecdsa.V{uefi_version:08X}.{record_time}.pem"
+    kernel_public_key=f"kernel.public.ecdsa.V{kernel_version:08X}.{record_time}.der"
+    kernel_private_key=f"kernel.private.ecdsa.V{kernel_version:08X}.{record_time}.pem"
+    with open(os.path.join(uefi_record_dir,uefi_public_key),"wb") as f:
+        f.write(uefi_public_data)
+    with open(os.path.join(uefi_record_dir,uefi_private_key),"wb") as f:
+        f.write(uefi_private_data)
+    with open(os.path.join(kernel_record_dir,kernel_public_key),"wb") as f:
+        f.write(kernel_public_data)
+    with open(os.path.join(kernel_record_dir,kernel_private_key),"wb") as f:
+        f.write(kernel_private_data)
+    
+    shutil.copy2(os.path.join(uefi_record_dir,uefi_public_key),os.path.join("sign/keys/",uefi_root_public_key))
+    shutil.copy2(os.path.join(uefi_record_dir,uefi_private_key),os.path.join("sign/keys/",uefi_root_private_key))
+    shutil.copy2(os.path.join(kernel_record_dir,kernel_public_key),os.path.join("sign/keys/",kernel_root_public_key))
+    shutil.copy2(os.path.join(kernel_record_dir,kernel_private_key),os.path.join("sign/keys/",kernel_root_private_key))
 
-        with open(sig_txt_path,"w") as f:
-            f.write(f"[K]SHA-256[{len(ksha256hash):04d}]:{ksha256hash.hex().upper()}\n")
-            f.write(f"[K]SHA-512[{len(ksha512hash):04d}]:{ksha512hash.hex().upper()}\n")
-            f.write(f"[K]RSA-PSS[{len(ksignature):04d}]:{ksignature.hex().upper()}\n")
-            f.write(f"[S]SHA-256[{len(ssha256hash):04d}]:{ssha256hash.hex().upper()}\n")
-            f.write(f"[S]SHA-512[{len(ssha512hash):04d}]:{ssha512hash.hex().upper()}\n")
-            f.write(f"[S]RSA-PSS[{len(ssignature):04d}]:{ssignature.hex().upper()}\n")
-
-        with open(sig_path,"wb") as f:
-            f.write(ssha256hash)
-            f.write(ssignature)
-            f.write(sig_data)
-
-def generate_key():
+def sign_aos(debug=True):
     """
-    生成新密钥。
+    准备签名文件。
     """
-    os.makedirs("sign/",exist_ok=True)
-    os.makedirs("out/Release/",exist_ok=True)
-    os.makedirs("out/Debug/",exist_ok=True)
-    private_key=rsa.generate_private_key(public_exponent=65537,key_size=4096,backend=default_backend())
-    private_key_content=private_key.private_bytes(encoding=serialization.Encoding.PEM,format=serialization.PrivateFormat.PKCS8,encryption_algorithm=serialization.NoEncryption())
-    with open("sign/kernel.rsa.debug.private.pem","wb") as pf:
-        pf.write(private_key_content)
-    
-    public_key=private_key.public_key()
-    public_key_content=public_key.public_bytes(encoding=serialization.Encoding.PEM,format=serialization.PublicFormat.PKCS1)
-    with open("sign/kernel.rsa.debug.public.pem","wb") as pf:
-        pf.write(public_key_content)
+    project_base=os.path.normpath(os.path.abspath("../"))
+    macros=read_version_macros(os.path.join(project_base,"include","version.h"))
+    uefi_version=read_version_field(macros,"AOS_UEFI_VERSION")
+    kernel_version=read_version_field(macros,"AOS_KERNEL_VERSION")
 
-    private_key=rsa.generate_private_key(public_exponent=65537,key_size=4096,backend=default_backend())
-    private_key_content=private_key.private_bytes(encoding=serialization.Encoding.PEM,format=serialization.PrivateFormat.PKCS8,encryption_algorithm=serialization.NoEncryption())
-    with open("sign/kernel.rsa.release.private.pem","wb") as pf:
-        pf.write(private_key_content)
+    kernel_path=find_manifest_file(debug,"aos.kernel")
+    if not os.path.exists(kernel_path):
+        raise KeyError(f"文件 {kernel_path} 不存在。")
     
-    public_key=private_key.public_key()
-    public_key_content=public_key.public_bytes(encoding=serialization.Encoding.PEM,format=serialization.PublicFormat.PKCS1)
-    with open("sign/kernel.rsa.release.public.pem","wb") as pf:
-        pf.write(public_key_content)
-    
-    private_key=rsa.generate_private_key(public_exponent=65537,key_size=4096,backend=default_backend())
-    private_key_content=private_key.private_bytes(encoding=serialization.Encoding.PEM,format=serialization.PrivateFormat.PKCS8,encryption_algorithm=serialization.NoEncryption())
-    with open("sign/signature.rsa.debug.private.pem","wb") as pf:
-        pf.write(private_key_content)
-    
-    public_key=private_key.public_key()
-    public_key_content=public_key.public_bytes(encoding=serialization.Encoding.PEM,format=serialization.PublicFormat.PKCS1)
-    with open("sign/signature.rsa.debug.public.pem","wb") as pf:
-        pf.write(public_key_content)
+    sha256=hashlib.sha256()
+    sha384=hashlib.sha384()
+    sha512=hashlib.sha512()
+    with open(kernel_path,"rb") as f:
+        while chunk:=f.read(4096):
+            sha256.update(chunk)
+            sha384.update(chunk)
+            sha512.update(chunk)
+    kernel_sha256=sha256.digest()
+    kernel_sha384=sha384.digest()
+    kernel_sha512=sha512.digest()
 
-    private_key=rsa.generate_private_key(public_exponent=65537,key_size=4096,backend=default_backend())
-    private_key_content=private_key.private_bytes(encoding=serialization.Encoding.PEM,format=serialization.PrivateFormat.PKCS8,encryption_algorithm=serialization.NoEncryption())
-    with open("sign/signature.rsa.release.private.pem","wb") as pf:
-        pf.write(private_key_content)
-    
-    public_key=private_key.public_key()
-    public_key_content=public_key.public_bytes(encoding=serialization.Encoding.PEM,format=serialization.PublicFormat.PKCS1)
-    with open("sign/signature.rsa.release.public.pem","wb") as pf:
-        pf.write(public_key_content)
+    if debug:
+        signature_dir="out/Debug"
+        with open("sign/keys/kernel.debug.private.pem","rb") as f:
+            kernel_key_pem=f.read()
+        with open("sign/keys/uefi.debug.private.pem","rb") as f:
+            uefi_key_pem=f.read()
+    else:
+        signature_dir="out/Release"
+        with open("sign/keys/kernel.release.private.pem","rb") as f:
+            kernel_key_pem=f.read()
+        with open("sign/keys/uefi.release.private.pem","rb") as f:
+            uefi_key_pem=f.read()
+    kernel_key=serialization.load_pem_private_key(kernel_key_pem,password=None,backend=default_backend())
+    uefi_key=serialization.load_pem_private_key(uefi_key_pem,password=None,backend=default_backend())
+    os.makedirs(signature_dir,exist_ok=True)
 
-def export_public():
-    """
-    导出公钥成数组元素。
-    """
-    os.makedirs("sign/",exist_ok=True)
-    with open("sign/kernel.rsa.debug.public.pem","rb") as pf:
-        pem_data=pf.read()
-    public_key=serialization.load_pem_public_key(pem_data,backend=default_backend())
-    public_numbers=public_key.public_numbers()
-    n_bytes=public_numbers.n.to_bytes(512,"big")
-    e_bytes=public_numbers.e.to_bytes(3,"big")
+    sha512=hashlib.sha512()
+    sha512.update(kernel_version)
+    sha512.update(kernel_sha256)
+    sha512.update(kernel_sha384)
+    sha512.update(kernel_sha512)
+    with open(kernel_path,"rb") as f:
+        while chunk:=f.read(4096):
+            sha512.update(chunk)
+    kernel_group_sha512=sha512.digest()
 
-    with open(f"out/Debug/kernel_keyn.txt","w") as nf:
-        for i in range(0,len(n_bytes),16):
-            line=n_bytes[i:i+16]
-            hex_str=",".join([f"0x{b:02X}"for b in line])
-            nf.write(f"{hex_str}")
-            if i+16<len(n_bytes):
-                nf.write(",\n")
-            else:
-                nf.write("\n")
-    
-    with open(f"out/Debug/kernel_keye.txt","w") as ef:
-        hex_str=",".join([f"0x{b:02X}"for b in e_bytes])
-        ef.write(f"{hex_str}\n")
-    
-    with open("sign/kernel.rsa.release.public.pem","rb") as pf:
-        pem_data=pf.read()
-    
-    public_key=serialization.load_pem_public_key(pem_data,backend=default_backend())
-    public_numbers=public_key.public_numbers()
-    n_bytes=public_numbers.n.to_bytes(512,"big")
-    e_bytes=public_numbers.e.to_bytes(3,"big")
+    kernel_ecdsa_der=kernel_key.sign(kernel_group_sha512,ec.ECDSA(utils.Prehashed(hashes.SHA512())))
+    kernel_r,kernel_s=utils.decode_dss_signature(kernel_ecdsa_der)
+    kernel_ecdsa=kernel_r.to_bytes(48,"big")+kernel_s.to_bytes(48,"big")
+    kernel_signature=kernel_version+kernel_sha256+kernel_sha384+kernel_sha512+kernel_ecdsa
 
-    with open(f"out/Release/kernel_keyn.txt","w") as nf:
-        for i in range(0,len(n_bytes),16):
-            line=n_bytes[i:i+16]
-            hex_str=",".join([f"0x{b:02X}"for b in line])
-            nf.write(f"{hex_str}")
-            if i+16<len(n_bytes):
-                nf.write(",\n")
-            else:
-                nf.write("\n")
-    
-    with open(f"out/Release/kernel_keye.txt","w") as ef:
-        hex_str=",".join([f"0x{b:02X}"for b in e_bytes])
-        ef.write(f"{hex_str}\n")
-    
-    with open("sign/signature.rsa.debug.public.pem","rb") as pf:
-        pem_data=pf.read()
-    public_key=serialization.load_pem_public_key(pem_data,backend=default_backend())
-    public_numbers=public_key.public_numbers()
-    n_bytes=public_numbers.n.to_bytes(512,"big")
-    e_bytes=public_numbers.e.to_bytes(3,"big")
+    sha256=hashlib.sha256()
+    sha384=hashlib.sha384()
+    sha512=hashlib.sha512()
+    sha256.update(kernel_signature)
+    sha384.update(kernel_signature)
+    sha512.update(kernel_signature)
+    uefi_sha256=sha256.digest()
+    uefi_sha384=sha384.digest()
+    uefi_sha512=sha512.digest()
 
-    with open(f"out/Debug/signature_keyn.txt","w") as nf:
-        for i in range(0,len(n_bytes),16):
-            line=n_bytes[i:i+16]
-            hex_str=",".join([f"0x{b:02X}"for b in line])
-            nf.write(f"{hex_str}")
-            if i+16<len(n_bytes):
-                nf.write(",\n")
-            else:
-                nf.write("\n")
-    
-    with open(f"out/Debug/signature_keye.txt","w") as ef:
-        hex_str=",".join([f"0x{b:02X}"for b in e_bytes])
-        ef.write(f"{hex_str}\n")
-    
-    with open("sign/signature.rsa.release.public.pem","rb") as pf:
-        pem_data=pf.read()
-    
-    public_key=serialization.load_pem_public_key(pem_data,backend=default_backend())
-    public_numbers=public_key.public_numbers()
-    n_bytes=public_numbers.n.to_bytes(512,"big")
-    e_bytes=public_numbers.e.to_bytes(3,"big")
+    sha512=hashlib.sha512()
+    sha512.update(uefi_version)
+    sha512.update(uefi_sha256)
+    sha512.update(uefi_sha384)
+    sha512.update(uefi_sha512)
+    sha512.update(kernel_signature)
+    uefi_group_sha512=sha512.digest()
 
-    with open(f"out/Release/signature_keyn.txt","w") as nf:
-        for i in range(0,len(n_bytes),16):
-            line=n_bytes[i:i+16]
-            hex_str=",".join([f"0x{b:02X}"for b in line])
-            nf.write(f"{hex_str}")
-            if i+16<len(n_bytes):
-                nf.write(",\n")
-            else:
-                nf.write("\n")
-    
-    with open(f"out/Release/signature_keye.txt","w") as ef:
-        hex_str=",".join([f"0x{b:02X}"for b in e_bytes])
-        ef.write(f"{hex_str}\n")
+    uefi_ecdsa_der=uefi_key.sign(uefi_group_sha512,ec.ECDSA(utils.Prehashed(hashes.SHA512())))
+    uefi_r,uefi_s=utils.decode_dss_signature(uefi_ecdsa_der)
+    uefi_ecdsa=uefi_r.to_bytes(48,"big")+uefi_s.to_bytes(48,"big")
+    uefi_signature=uefi_version+uefi_sha256+uefi_sha384+uefi_sha512+uefi_ecdsa
+
+    with open(os.path.join(signature_dir,"aos.signature"),"wb") as f:
+        f.write(uefi_signature+kernel_signature)
 
 if __name__=="__main__":
     """
     默认将会对文件进行签名。带了参数后才会改变行为。
     """
     parser=argparse.ArgumentParser()
-    groups=parser.add_mutually_exclusive_group()
-    groups.add_argument("-d","-D","-debug","-Debug","-DEBUG",action="store_const",dest="mode",default="Debug",const="Debug")
-    groups.add_argument("-r","-R","-release","-Release","-RELEASE",action="store_const",dest="mode",const="Release")
-    groups.add_argument("-k","-K","-key","-Key","-KEY",action="store_const",dest="mode",const="Key")
-    groups.add_argument("-e", "-E", "-export", "-Export", "-EXPORT",action="store_const", dest="mode", const="Export")
+    groups1=parser.add_mutually_exclusive_group()
+    groups1.add_argument("-d","-D","-debug","-Debug","-DEBUG",action="store_const",dest="mode",default="Debug",const="Debug")
+    groups1.add_argument("-r","-R","-release","-Release","-RELEASE",action="store_const",dest="mode",const="Release")
+    groups2=parser.add_mutually_exclusive_group()
+    groups2.add_argument("-k","-K","-key","-Key","-KEY",action="store_const",dest="target",const="Key")
+    groups2.add_argument("-s","-S","-sign","-Sign","-SIGN",action="store_const",dest="target",default="Sign",const="Sign")
     args=parser.parse_args()
 
-    if args.mode=="Release":
-        sign_kernel(False)
-        print("已经完成对发行版内核签名。")
-    elif args.mode=="Key":
-        generate_key()
-        print("已经生成了新的密钥，请注意备份。")
-    elif args.mode=="Export":
-        export_public()
-        print("已经将公钥转换成数组元素。")
+    if args.target=="Key":
+        if args.mode=="Release":
+            generate_keys(False)
+            print("已经生成了新的发行版密钥。")
+        else:
+            generate_keys(True)
+            print("已经生成了新的调试版密钥。")
     else:
-        sign_kernel(True)
-        print("已经完成对调试版内核签名。")
+        if args.mode=="Release":
+            sign_aos(False)
+            print("已经生成了新的发行版签名。")
+        else:
+            sign_aos(True)
+            print("已经生成了新的调试版签名。")

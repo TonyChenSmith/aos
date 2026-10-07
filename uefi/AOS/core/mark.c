@@ -280,18 +280,49 @@ STATIC VOID EFIAPI mark_desc_to_map(IN EFI_MEMORY_DESCRIPTOR* desc)
 }
 
 /**
+ * 合并相邻同类型结点。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI mark_merge_node(VOID)
+{
+    aos_boot_memory* node=head;
+    while(node!=NULL&&node->next!=NULL)
+    {
+        if(node->type==node->next->type&&node->start+node->size==node->next->start)
+        {
+            aos_boot_memory* dead=node->next;
+            node->size+=dead->size;
+            node->next=dead->next;
+            if(dead->next!=NULL)
+            {
+                dead->next->prev=node;
+            }
+            else
+            {
+                tail=node;
+            }
+            pool_free(dead);
+        }
+        else
+        {
+            node=node->next;
+        }
+    }
+}
+
+/**
  * 用EFI内存图填充AOS内存图。
  * 
- * @param params    启动参数。
  * @param map       EFI内存图。
  * @param map_size  内存图大小。
  * @param desc_size 描述符大小。
  * @param boot_pool 引导内存池基址。
  * 
- * @return 无返回值。
+ * @return 已填充完成的内存图头结点。
  */
-VOID EFIAPI fill_memory_map(OUT aos_boot_params* params,IN EFI_MEMORY_DESCRIPTOR* map,IN UINTN map_size,
-    IN UINTN desc_size,IN UINTN boot_pool)
+aos_boot_memory* EFIAPI fill_memory_map(IN EFI_MEMORY_DESCRIPTOR* map,IN UINTN map_size,IN UINTN desc_size,
+    IN UINTN boot_pool)
 {
     aos_boot_memory* bpnode=pool_alloc(sizeof(aos_boot_memory));
     if(bpnode==NULL)
@@ -323,5 +354,9 @@ VOID EFIAPI fill_memory_map(OUT aos_boot_params* params,IN EFI_MEMORY_DESCRIPTOR
         desc=(EFI_MEMORY_DESCRIPTOR*)((UINTN)desc+desc_size);
     }
 
-    params->memory.memory_map=head;
+    mark_merge_node();
+
+    return head;
 }
+
+aos_boot_memory* EFIAPI memory_head(VOID){ return head; }
