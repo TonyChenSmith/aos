@@ -243,9 +243,10 @@ void line(const char8* str)
  */
 noreturn void aos_kernel_entry(aos_boot_params* params)
 {
+    line("hello");
     while(true)
     {
         sleep();
-        panic("fault",params->system_table);
+        panic("hello2",params->system_table);
     }
 }

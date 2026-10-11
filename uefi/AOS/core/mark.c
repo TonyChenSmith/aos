@@ -358,5 +358,3 @@ aos_boot_memory* EFIAPI fill_memory_map(IN EFI_MEMORY_DESCRIPTOR* map,IN UINTN m
 
     return head;
 }
-
-aos_boot_memory* EFIAPI memory_head(VOID){ return head; }

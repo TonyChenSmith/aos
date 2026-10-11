@@ -11,6 +11,6 @@
 
 #include <support/const.h>
 
-#include "../../../include/boot_params.h"
+#include "../../../include/uefi_params.h"
 
 #endif /*__AOS_KERNEL_INIT_PARAMS_H__*/

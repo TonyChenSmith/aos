@@ -25,6 +25,7 @@
     core/load.c
     core/mark.c
     core/page.c
+    core/page_asm.nasm
     core/panic.c
     core/pool.c
     core/verify.c

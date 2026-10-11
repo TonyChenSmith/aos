@@ -32,29 +32,10 @@
 .type aos_kernel_trampoline,@function
 
 aos_kernel_trampoline:
-    movq   %rcx,%rdi
-    movq   %rdx,%rsp
+    movq %rcx,%rdi
+    movq %rdx,%rsp
+    subq $8,%rsp
     cli
     cld
-    /*将所有AP变成初始状态*/
-    movzbl 0x17(%rdi),%esi
-    testb  %sil,%sil
-    je     .Ltrampoline_end
-    cmpb   $0x1,%sil
-    jne    .Lx2apic
-    movl   $0x1b,%ecx
-    rdmsr
-    shlq   $0x20,%rdx
-    andl   $0xfffff000,%eax
-    movl   $0x0,0x310(%rdx,%rax)
-    movl   $0xc4500,0x300(%rdx,%rax)
-    mfence
-    jmp    .Ltrampoline_end
-.Lx2apic:
-    movl    $0xc4500,%eax
-    xorl    %edx,%edx
-    movl    $0x830,%ecx
-    wrmsr
-.Ltrampoline_end:
-    jmp aos_kernel_entry
+    jmp  aos_kernel_entry
 .size aos_kernel_trampoline,.-aos_kernel_trampoline

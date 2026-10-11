@@ -1,9 +1,7 @@
 ;------------------------------------------------------------------------------
-;* Assembly functions required for module page tables and linear area 
-;* management.
-;* @date 2025-12-21
+;* Assembly functions used to modify segment registers.
 ;* 
-;* Copyright (c) 2025 Tony Chen Smith
+;* Copyright (c) 2026 Tony Chen Smith
 ;* 
 ;* SPDX-License-Identifier: MIT
 ;------------------------------------------------------------------------------

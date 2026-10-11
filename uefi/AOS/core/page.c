@@ -767,7 +767,7 @@ STATIC VOID EFIAPI page_pml4_unmap(IN UINTN start,IN UINTN end)
 /**
  * 初始化页表池和页表池位图。
  * 
- * @param parmas 启动参数。
+ * @param params 启动参数。
  * 
  * @return 无返回值。
  */
@@ -779,9 +779,9 @@ VOID EFIAPI init_page_table_pool(IN OUT aos_boot_params* params)
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate page table pool.");
     }
     ptpages=CONFIG_PAGE_TABLE_POOL;
-    params->memory.pt_pool_pages=CONFIG_PAGE_TABLE_POOL;
 
     ptmap_size=CONFIG_PAGE_TABLE_POOL/8+(CONFIG_PAGE_TABLE_POOL%8?1:0);
+    params->memory.pt_map_length=ptmap_size;
     ptmap=(UINT8*)pool_alloc(ptmap_size);
     if(ptmap==NULL)
     {
@@ -881,14 +881,4 @@ VOID EFIAPI page_table_unmap(IN UINTN start,IN UINTN end)
         panic(EFI_UNSUPPORTED,"The root page table is not initialized.");
     }
     page_pml_unmap_handle(start,end);
-}
-
-/**
- * 获取页表池基址。
- * ?
- * @return 页表池的物理基址。
- */
-UINTN EFIAPI page_table_pool_base(VOID)
-{
-    return ptbase;
 }

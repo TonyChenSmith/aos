@@ -14,7 +14,7 @@
 /**
  * 初始化页表池和页表池位图。
  * 
- * @param parmas 启动参数。
+ * @param params 启动参数。
  * 
  * @return 无返回值。
  */
@@ -41,5 +41,23 @@ VOID EFIAPI page_table_map(IN UINTN vaddr,IN UINTN paddr,IN UINTN pages,IN UINT6
  * @return 无返回值。
  */
 VOID EFIAPI page_table_unmap(IN UINTN start,IN UINTN end);
+
+/**
+ * 设置代码段寄存器。
+ * 
+ * @param cs 代码段选择子。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI set_cs(UINT16 cs);
+
+/**
+ * 设置数据段寄存器。
+ * 
+ * @param ds 数据段选择子。
+ * 
+ * @return 无返回值。
+ */
+VOID EFIAPI set_ds(UINT16 ds);
 
 #endif /*__AOS_UEFI_PAGE_H__*/

@@ -15,10 +15,10 @@
  */
 typedef struct _aos_cpu_features
 {
-    uint8 magic;    /*魔数。*/
-    uint8 baseline; /*架构基线。*/
-    uint8 vendor;   /*厂商。*/
-    uint8 features; /*CPU特性。*/
+    uint16 magic;    /*魔数。*/
+    uint8  baseline; /*架构基线。*/
+    uint8  vendor;   /*厂商。*/
+    uint32 features; /*CPU特性。*/
 } aos_cpu_features;
 
 /**
@@ -28,10 +28,10 @@ typedef struct _aos_cpu_features
  */
 typedef struct _aos_cpu_state
 {
-    uint8 magic; /*魔数。*/
-    uint8 state; /*设备状态。*/
-    uint8 vmtrr; /*可变MTRR数目。*/
-    uint8 apic;  /*APIC状态。*/
+    uint16 magic; /*魔数。*/
+    uint8  vmtrr; /*可变MTRR数目。*/
+    uint8  apic;  /*APIC状态。*/
+    uint32 state; /*设备状态。*/
 } aos_cpu_state;
 
 /**
@@ -49,7 +49,7 @@ typedef struct _aos_graphics_info
     uint32 blue_mask;        /*蓝色区掩码。*/
     uint32 reserved_mask;    /*保留区掩码。*/
     uint32 scan_line;        /*扫描线长度。*/
-    uint32 pixel_clock;      /*像素时钟。*/
+    uint32 pixel_clock;      /*像素时钟。单位kHz。*/
     uint32 horizontal_total; /*水平总行数。*/
     uint32 vertical_total;   /*竖直总列数。*/
     uint32 physical_width;   /*物理界面宽度。单位毫米。*/
@@ -97,14 +97,12 @@ typedef struct _aos_kernel_memory_info
 {
     aos_boot_memory* memory_map;    /*内存图链表。*/
     aos_boot_vma*    kernel_vma;    /*内核VMA链表。*/
+    uint8*           pt_pool_map;   /*页表池位图映射。*/
+    uintn            pt_map_length; /*页表池位图映射长度。*/
     uintn            page_table;    /*内核页表根地址。*/
     uintn            kernel_base;   /*内核程序线性基址。*/
-    uintn            stack_base;    /*内核栈线性基址。*/
     uintn            kernel_entry;  /*内核入口偏移。*/
-    uintn            firmware_base; /*固件映射线性基址。*/
     uintn            data_base;     /*内核数据基址。*/
-    uint8*           pt_pool_map;   /*页表池位图映射。*/
-    uintn            pt_pool_pages; /*页表池页面数。*/
 } aos_kernel_memory_info;
 
 /**
@@ -440,7 +438,7 @@ typedef struct _aos_boot_params
 /**
  * 特性魔数。
  */
-#define AOS_FEATURES_MAGIC 0xFE
+#define AOS_FEATURES_MAGIC 0xA0FE
 
 /**
  * x86-64-v1基线。详细定义见SysV ABI。
@@ -493,9 +491,19 @@ typedef struct _aos_boot_params
 #define AOS_FEATURES_MC 32
 
 /**
+ * 特性特权内存执行保护标志位。
+ */
+#define AOS_FEATURES_SMEP 64
+
+/**
+ * 特性特权内存访问保护标志位。
+ */
+#define AOS_FEATURES_SMAP 128
+
+/**
  * 状态魔数。
  */
-#define AOS_STATE_MAGIC 0xAE
+#define AOS_STATE_MAGIC 0xA0AE
 
 /**
  * 状态LA57标志位。
@@ -506,6 +514,21 @@ typedef struct _aos_boot_params
  * 状态固定MTRR标志位。
  */
 #define AOS_STATE_FIXED_MTRR 2
+
+/**
+ * 状态机器检查标志位。
+ */
+#define AOS_STATE_MCE 4
+
+/**
+ * 状态特权内存执行保护标志位。
+ */
+#define AOS_STATE_SMEP 8
+
+/**
+ * 状态特权内存访问保护标志位。
+ */
+#define AOS_STATE_SMAP 16
 
 /**
  * 未启用APIC。
@@ -638,6 +661,11 @@ typedef struct _aos_boot_params
 #define AOS_BOOT_VMA_TYPE_IDT 7
 
 /**
+ * 线性区固定栈类型。
+ */
+#define AOS_BOOT_VMA_TYPE_FIXED_STACK 8
+
+/**
  * 内存自由内存类型。
  */
 #define AOS_BOOT_MEMORY_FREE 0
@@ -678,38 +706,43 @@ typedef struct _aos_boot_params
 #define AOS_BOOT_MEMORY_IDT 7
 
 /**
+ * 内存固定栈类型。
+ */
+#define AOS_BOOT_MEMORY_FIXED_STACK 8
+
+/**
  * 内存SMBIOS类型。
  */
-#define AOS_BOOT_MEMORY_SMBIOS 8
+#define AOS_BOOT_MEMORY_SMBIOS 9
 
 /**
  * 内存固件类型。
  */
-#define AOS_BOOT_MEMORY_FIRMWARE 9
+#define AOS_BOOT_MEMORY_FIRMWARE 10
 
 /**
  * 内存ACPI表类型。
  */
-#define AOS_BOOT_MEMORY_ACPI_TABLE 10
+#define AOS_BOOT_MEMORY_ACPI_TABLE 11
 
 /**
  * 内存ACPI NVS类型。
  */
-#define AOS_BOOT_MEMORY_ACPI_NVS 11
+#define AOS_BOOT_MEMORY_ACPI_NVS 12
 
 /**
  * 内存持久性内存类型。
  */
-#define AOS_BOOT_MEMORY_PERSISTENT 12
+#define AOS_BOOT_MEMORY_PERSISTENT 13
 
 /**
  * 内存保留类型。
  */
-#define AOS_BOOT_MEMORY_RESERVED 13
+#define AOS_BOOT_MEMORY_RESERVED 14
 
 /**
  * 内存最低1MB类型。
  */
-#define AOS_BOOT_MEMORY_1MB 14
+#define AOS_BOOT_MEMORY_1MB 15
 
 #endif /*__AOS_INCLUDE_UEFI_PARAMS_H__*/

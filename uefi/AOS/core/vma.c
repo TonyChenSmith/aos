@@ -402,6 +402,3 @@ aos_boot_vma* EFIAPI fill_firmware_vma(IN UINTN base,IN OUT EFI_MEMORY_DESCRIPTO
 
     return head;
 }
-
-/* vma.c 追加 */
-aos_boot_vma* EFIAPI vma_head(VOID){ return head; }

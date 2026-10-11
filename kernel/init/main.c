@@ -55,9 +55,9 @@ noreturn void aos_kernel_entry(aos_boot_params* params)
     line("[aos.kernel.entry] 你好.");
     while(true)
     {
-        print_num((uintn)&memory_find);
-        uintn a=string_length("A");
-        print_num(a);
+        //print_num((uintn)&memory_find);
+        //uintn a=string_length("A");
+        //print_num(a);
         sleep();
     }
 }

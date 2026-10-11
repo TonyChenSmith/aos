@@ -13,12 +13,17 @@
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseCryptLib.h>
+#include <Library/CpuLib.h>
+#include <Library/DevicePathLib.h>
 #include <Library/IoLib.h>
 #include <Library/PrintLib.h>
 #include <Library/RngLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
+#include <Protocol/EdidActive.h>
+#include <Protocol/EdidDiscovered.h>
+#include <Protocol/GraphicsOutput.h>
 #include <Register/Amd/ArchitecturalMsr.h>
 #include <Register/Amd/Cpuid.h>
 #include <Register/Intel/ArchitecturalMsr.h>
@@ -156,6 +161,36 @@ CONST IA32_SEGMENT_DESCRIPTOR AOS_FIXED_GDT[]={
  */
 CONST UINTN AOS_SHARED_STACK=2;
 
+/**
+ * 内核蹦床函数，在换栈后进入内核入口函数不再返回。
+ * 
+ * @param params 启动参数。
+ * @param stack  栈底。
+ * 
+ * @return 不再返回。
+ */
+typedef VOID NORETURN EFIAPI (*aos_kernel_trampoline)(IN aos_boot_params* params,IN UINTN stack);
+
+/**
+ * VGA水平分辨率。
+ */
+#define BOOT_VGA_HORIZONTAL_RESOLUTION 640
+
+/**
+ * VGA竖直分辨率。
+ */
+#define BOOT_VGA_VERTICAL_RESOLUTION 480
+
+/**
+ * SVGA水平分辨率。
+ */
+#define BOOT_SVGA_HORIZONTAL_RESOLUTION 800
+
+/**
+ * SVGA竖直分辨率。
+ */
+#define BOOT_SVGA_VERTICAL_RESOLUTION 600
+
 /*配置检查*/
 
 #ifndef CONFIG_BOOTSTRAP_POOL
@@ -196,7 +231,7 @@ STATIC_ASSERT(CONFIG_MINIMUM_FREE_PAGES>=(SIZE_512MB/EFI_PAGE_SIZE),"The macro C
 /**
  * 在UEFI阶段检查CPU必要功能。
  * 
- * @param parmas 启动参数。
+ * @param params 启动参数。
  * 
  * @return 无返回值。
  */
@@ -246,6 +281,7 @@ STATIC VOID EFIAPI boot_cpu_check(IN OUT aos_boot_params* params)
     CPUID_VERSION_INFO_ECX ml1ecx={.Uint32=ecx};
     AsmCpuidEx(CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS,
         CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_SUB_LEAF_INFO,&eax,&ebx,&ecx,&edx);
+    CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_EBX ml7ebx={.Uint32=ebx};
     CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_ECX ml7ecx={.Uint32=ecx};
     AsmCpuid(CPUID_EXTENDED_CPU_SIG, &eax,&ebx,&ecx,&edx);
     CPUID_EXTENDED_CPU_SIG_ECX el1ecx={.Uint32=ecx};
@@ -325,6 +361,14 @@ STATIC VOID EFIAPI boot_cpu_check(IN OUT aos_boot_params* params)
     {
         params->features.features|=AOS_FEATURES_MC;
     }
+    if(ml7ebx.Bits.SMAP)
+    {
+        params->features.features|=AOS_FEATURES_SMAP;
+    }
+    if(ml7ebx.Bits.SMEP)
+    {
+        params->features.features|=AOS_FEATURES_SMEP;
+    }
 
     /*MTRR属性检查*/
     MSR_IA32_MTRRCAP_REGISTER mtrrcap={.Uint64=AsmReadMsr64(MSR_IA32_MTRRCAP)};
@@ -342,7 +386,7 @@ STATIC VOID EFIAPI boot_cpu_check(IN OUT aos_boot_params* params)
 /**
  * 设置启动参数所需系统表。
  * 
- * @param parmas 启动参数。
+ * @param params 启动参数。
  * 
  * @return 无返回值。
  */
@@ -1061,6 +1105,11 @@ STATIC VOID EFIAPI boot_prepare_base(VOID)
 }
 
 /**
+ * 内核GDT物理基址。
+ */
+STATIC UINTN kernel_gdt=0;
+
+/**
  * 准备CPU运行数据。
  * 
  * @param params 启动参数。
@@ -1090,6 +1139,7 @@ STATIC VOID EFIAPI boot_prepare_cpu_data(IN aos_boot_params* params)
         AOS_BOOT_VMA_READ|AOS_BOOT_VMA_CACHE_UC|AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
 
     ZeroMem(gdt,EFI_PAGES_TO_SIZE(gdt_pages));
+    kernel_gdt=(UINTN)gdt;
     UINTN index;
     for(index=0;index<ARRAY_SIZE(AOS_FIXED_GDT);index++)
     {
@@ -1115,82 +1165,82 @@ STATIC VOID EFIAPI boot_prepare_cpu_data(IN aos_boot_params* params)
     ZeroMem(tss,sizeof(IA32_TASK_STATE_SEGMENT));
     tss->IOMapBaseAddress=sizeof(IA32_TASK_STATE_SEGMENT);
 
-    UINTN rsp0_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    UINTN rsp0_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_FIXED_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
     if(rsp0_stack==0)
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS RSP0 space.");
     }
-    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_4MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+    add_vma(AOS_BOOT_VMA_TYPE_FIXED_STACK,share_base+SIZE_4MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
         rsp0_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
         AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
     tss->RSP0=share_base+SIZE_4MB;
 
-    UINTN ist1_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    UINTN ist1_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_FIXED_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
     if(ist1_stack==0)
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST1 space.");
     }
-    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_4MB+SIZE_2MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+    add_vma(AOS_BOOT_VMA_TYPE_FIXED_STACK,share_base+SIZE_4MB+SIZE_2MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
         ist1_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
         AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
     tss->IST[0]=share_base+SIZE_4MB+SIZE_2MB;
 
-    UINTN ist2_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    UINTN ist2_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_FIXED_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
     if(ist2_stack==0)
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST2 space.");
     }
-    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_8MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+    add_vma(AOS_BOOT_VMA_TYPE_FIXED_STACK,share_base+SIZE_8MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
         ist2_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
         AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
     tss->IST[1]=share_base+SIZE_8MB;
 
-    UINTN ist3_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    UINTN ist3_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_FIXED_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
     if(ist3_stack==0)
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST3 space.");
     }
-    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_8MB+SIZE_2MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+    add_vma(AOS_BOOT_VMA_TYPE_FIXED_STACK,share_base+SIZE_8MB+SIZE_2MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
         ist3_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
         AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
     tss->IST[2]=share_base+SIZE_8MB+SIZE_2MB;
 
-    UINTN ist4_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    UINTN ist4_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_FIXED_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
     if(ist4_stack==0)
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST4 space.");
     }
-    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_8MB+SIZE_4MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+    add_vma(AOS_BOOT_VMA_TYPE_FIXED_STACK,share_base+SIZE_8MB+SIZE_4MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
         ist4_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
         AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
     tss->IST[3]=share_base+SIZE_8MB+SIZE_4MB;
 
-    UINTN ist5_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    UINTN ist5_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_FIXED_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
     if(ist5_stack==0)
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST5 space.");
     }
-    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_8MB+SIZE_4MB+SIZE_2MB-
+    add_vma(AOS_BOOT_VMA_TYPE_FIXED_STACK,share_base+SIZE_8MB+SIZE_4MB+SIZE_2MB-
         EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),ist5_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|
         AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
     tss->IST[4]=share_base+SIZE_8MB+SIZE_4MB+SIZE_2MB;
 
-    UINTN ist6_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    UINTN ist6_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_FIXED_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
     if(ist6_stack==0)
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST6 space.");
     }
-    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_16MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+    add_vma(AOS_BOOT_VMA_TYPE_FIXED_STACK,share_base+SIZE_16MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
         ist6_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
         AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
     tss->IST[5]=share_base+SIZE_16MB;
 
-    UINTN ist7_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
+    UINTN ist7_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_FIXED_STACK,AOS_SHARED_STACK,SIZE_4GB-1);
     if(ist7_stack==0)
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the TSS IST7 space.");
     }
-    add_vma(AOS_BOOT_VMA_TYPE_STACK,share_base+SIZE_16MB+SIZE_2MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
+    add_vma(AOS_BOOT_VMA_TYPE_FIXED_STACK,share_base+SIZE_16MB+SIZE_2MB-EFI_PAGES_TO_SIZE(AOS_SHARED_STACK),
         ist7_stack,AOS_SHARED_STACK,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
         AOS_BOOT_VMA_GLOBAL|AOS_BOOT_VMA_ALLOCATED);
     tss->IST[6]=share_base+SIZE_16MB+SIZE_2MB;
@@ -1215,6 +1265,7 @@ STATIC VOID EFIAPI boot_prepare_cpu_data(IN aos_boot_params* params)
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the IDT space.");
     }
+
     ZeroMem(idt,idt_size);
     add_vma(AOS_BOOT_VMA_TYPE_IDT,data_base+(UINTN)idt,(UINTN)idt,idt_pages,
         AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_UC|AOS_BOOT_VMA_ALLOCATED);
@@ -1230,6 +1281,8 @@ STATIC VOID EFIAPI boot_prepare_cpu_data(IN aos_boot_params* params)
         idt[index].Bits.OffsetHigh=(offset>>16)&0xFFFF;
         idt[index].Bits.OffsetUpper=(offset>>32)&0xFFFFFFFF;
     }
+
+    params->memory.data_base=data_base;
 }
 
 /**
@@ -1335,7 +1388,7 @@ STATIC asv_type EFIAPI boot_find_asv(IN OUT aos_boot_params* params,OUT VOID** i
 }
 
 /**
- * 准备加载内核。
+ * 准备验证并加载内核。
  * 
  * @param params 启动参数。
  * 
@@ -1365,7 +1418,632 @@ STATIC VOID EFIAPI boot_verify_and_load(IN OUT aos_boot_params* params)
     verify_kernel(signature,kernel);
     UINTN entry=load_kernel(kernel,kernel_base);
 
-    params->memory.kernel_entry=kernel_base+entry;
+    params->memory.kernel_base=kernel_base;
+    params->memory.kernel_entry=entry;
+}
+
+/**
+ * 获取单个像素所占位宽。
+ * 
+ * @param info 图形输出模式信息。
+ * 
+ * @return 位宽大小，不支持则返回最大值。
+ */
+STATIC UINT8 EFIAPI boot_get_pixel_bit_width(IN EFI_GRAPHICS_OUTPUT_MODE_INFORMATION* info)
+{
+    EFI_PIXEL_BITMASK* mask;
+    mask=&info->PixelInformation;
+    UINT8 width=0;
+    UINT32 mask_value=0;
+    switch(info->PixelFormat)
+    {
+        case PixelRedGreenBlueReserved8BitPerColor:
+        case PixelBlueGreenRedReserved8BitPerColor:
+            return 32;
+        case PixelBitMask:
+            mask_value=mask->BlueMask|mask->GreenMask|mask->RedMask|mask->ReservedMask;
+            if(mask_value==0)
+            {
+                width=0;
+            }
+            else
+            {
+                mask_value>>=(UINT8)LowBitSet32(mask_value);
+                width=0;
+                while(mask_value&BIT0)
+                {
+                    width++;
+                    mask_value>>=1;
+                }
+            }
+            return width;
+        case PixelBltOnly:
+        default:
+            /*意外情况*/
+            return MAX_UINT8;
+    }
+}
+
+/**
+ * EDID结构，下面仅对必要条目进行注释，详细解释看VESA文档。
+ */
+#pragma pack(1)
+typedef struct _boot_edid
+{
+    /*头部*/
+    UINT8  header[8];
+
+    /*厂家和生产厂商ID信息*/
+    UINT16 id_manufacturer_name;
+    UINT16 id_product_code;
+    UINT32 id_serial_number;
+    UINT8  week_of_manufacture;
+    UINT8  year_of_manufacture;
+
+    /*EDID结构版本和修订号*/
+    UINT8  version_number;
+    UINT8  revision_number;
+
+    /*基本显示参数和功能*/
+    UINT8  video_input_definition;
+    UINT8  horizontal_screen_size;
+    UINT8  vertical_screen_size;
+    UINT8  gamma;
+    UINT8  feature_support;
+
+    /*颜色*/
+    UINT8  red_green_low;
+    UINT8  blue_white_low;
+    UINT8  red_x_high;
+    UINT8  red_y_high;
+    UINT8  green_x_high;
+    UINT8  green_y_high;
+    UINT8  blue_x_high;
+    UINT8  blue_y_high;
+    UINT8  white_x_high;
+    UINT8  white_y_high;
+
+    /*既定时序*/
+    UINT8  established_timings_1;
+    UINT8  established_timings_2;
+    UINT8  manufacturer_reserved_timings;
+
+    /*标准时序*/
+    UINT16 standard_timings[8];
+
+    /*18字节数据块，仅在像素时钟有效情况下下面才有效*/
+    struct {
+        UINT16 pixel_clock;
+        UINT8  horizontal_active_low;
+        UINT8  horizontal_blanking_low;
+        UINT8  horizontal_high;
+        UINT8  vertical_active_low;
+        UINT8  vertical_blanking_low;
+        UINT8  vertical_high;
+        UINT8  horizontal_sync_offset_low;
+        UINT8  horizontal_sync_pulse_width_low;
+        UINT8  vertical_sync_low;
+        UINT8  sync_high;
+        UINT8  horizontal_image_size_low;
+        UINT8  vertical_image_size_low;
+        UINT8  image_size_high;
+        UINT8  horizontal_border;
+        UINT8  vertical_border;
+        UINT8  flags;
+    } detailed_timings[4];
+
+    /*扩展块计数*/
+    UINT8  extension_block_count;
+
+    /*校验码*/
+    UINT8  checksum;
+} boot_edid;
+#pragma pack()
+
+/**
+ * 获取EDID内含信息。
+ * 
+ * @param gop              含GOP的设备句柄。
+ * @param hres             水平分辨率。
+ * @param vres             竖直分辨率。
+ * @param pixel_clock      像素时钟。
+ * @param horizontal_total 水平总行数。
+ * @param vertical_total   竖直总列数。
+ * @param physical_width   物理屏幕宽度。
+ * @param physical_height  物理屏幕高度。
+ * 
+ * @return 如果EDID正常找到返回真。
+ */
+STATIC BOOLEAN EFIAPI boot_get_edid_info(IN EFI_HANDLE gop,OUT UINT32* hres,OUT UINT32* vres,OUT UINT32* pixel_clock,
+    OUT UINT32* horizontal_total,OUT UINT32* vertical_total,OUT UINT32* physical_width,OUT UINT32* physical_height)
+{
+    EFI_STATUS status;
+    /*协议分两种，第一活动，第二发现，不考虑其他渠道*/
+    EFI_EDID_ACTIVE_PROTOCOL* edid_active;
+    EFI_EDID_DISCOVERED_PROTOCOL* edid_discovered;
+    boot_edid* edid;
+
+    status=gBS->OpenProtocol(gop,&gEfiEdidActiveProtocolGuid,(VOID**)&edid_active,gImageHandle,NULL,
+        EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+    if(EFI_ERROR(status)||edid_active->SizeOfEdid<sizeof(boot_edid))
+    {
+        /*不支持或者EDID大小为0*/
+        status=gBS->OpenProtocol(gop,&gEfiEdidDiscoveredProtocolGuid,(VOID**)&edid_discovered,gImageHandle,NULL,
+            EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+        if(EFI_ERROR(status)||edid_discovered->SizeOfEdid<sizeof(boot_edid))
+        {
+            return FALSE;
+        }
+        else
+        {
+            edid=(boot_edid*)edid_discovered->Edid;
+        }
+    }
+    else
+    {
+        edid=(boot_edid*)edid_active->Edid;
+    }
+
+    UINT8 check=0;
+    UINT8* edid_value=(UINT8*)edid;
+    UINT8 index;
+    for(index=0;index<128;index++)
+    {
+        check+=edid_value[index];
+    }
+    if(check!=0||edid->version_number!=1||edid->detailed_timings[0].pixel_clock==0)
+    {
+        /*校验失败，版本不支持或者未定义最佳显示，版本号2开始的4k、8k屏幕暂未有EDID支持想法*/
+        return FALSE;
+    }
+    
+    *hres=edid->detailed_timings[0].horizontal_active_low|
+        (((UINT32)(edid->detailed_timings[0].horizontal_high&0xF0))<<4);
+    *vres=edid->detailed_timings[0].vertical_active_low|
+        (((UINT32)(edid->detailed_timings[0].vertical_high&0xF0))<<4);
+
+    /*像素时钟:EDID单位为10kHz，乘10换算为kHz*/
+    *pixel_clock=(UINT32)edid->detailed_timings[0].pixel_clock*10;
+
+    /*水平/竖直总量=有效+消隐，消隐高4位分别位于第4、7字节的低4位*/
+    *horizontal_total=*hres+(edid->detailed_timings[0].horizontal_blanking_low|
+        (((UINT32)(edid->detailed_timings[0].horizontal_high&0x0F))<<8));
+    *vertical_total=*vres+(edid->detailed_timings[0].vertical_blanking_low|
+        (((UINT32)(edid->detailed_timings[0].vertical_high&0x0F))<<8));
+
+    /*物理尺寸:优先取首选时序的图像尺寸(毫米),无效时回退基本显示参数(厘米)*/
+    UINT32 physical_w=edid->detailed_timings[0].horizontal_image_size_low|
+        (((UINT32)(edid->detailed_timings[0].image_size_high&0xF0))<<4);
+    UINT32 physical_h=edid->detailed_timings[0].vertical_image_size_low|
+        (((UINT32)(edid->detailed_timings[0].image_size_high&0x0F))<<8);
+    if(physical_w==0)
+    {
+        physical_w=(UINT32)edid->horizontal_screen_size*10;
+    }
+    if(physical_h==0)
+    {
+        physical_h=(UINT32)edid->vertical_screen_size*10;
+    }
+    *physical_width=physical_w;
+    *physical_height=physical_h;
+    return TRUE;
+}
+
+/**
+ * 获取图形输出信息。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI boot_get_graphics_info(IN OUT aos_boot_params* params)
+{
+    EFI_STATUS status;
+    EFI_HANDLE* gops=NULL;
+    UINTN count=0;
+
+    /* 
+     * 寻找显示当前屏幕的图形输出协议。仅支持GOP，EFI 1.X时代的UGA不考虑。
+     * 寻找逻辑为搜索所有拥有GOP的句柄，优先考虑带ConsoleOutDevice协议，其次考虑第一个GOP。
+     * 上述GOP中不存在仅Blt输出的，这种GOP视为无效。如果没找到GOP，说明不能图形显示，不属于设计目标，报错终止。
+     */
+    status=gBS->LocateHandle(ByProtocol,&gEfiGraphicsOutputProtocolGuid,NULL,&count,gops);
+    if(status==EFI_BUFFER_TOO_SMALL&&count>0)
+    {
+        gops=(EFI_HANDLE*)pool_alloc(count);
+        if(gops==NULL)
+        {
+            panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the Graphics Output Protocol array.");
+        }
+
+        status=gBS->LocateHandle(ByProtocol,&gEfiGraphicsOutputProtocolGuid,NULL,&count,gops);
+        if(EFI_ERROR(status))
+        {
+            panic(status,"Failed to get the Graphics Output Protocol array.");
+        }
+
+        count/=sizeof(EFI_HANDLE);
+    }
+    else
+    {
+        panic(status,"Failed to locate the Graphics Output Protocol.");
+    }
+
+    EFI_GRAPHICS_OUTPUT_PROTOCOL* gop=NULL;
+    EFI_HANDLE target;
+    for(UINTN index=0;index<count;index++)
+    {
+        EFI_GRAPHICS_OUTPUT_PROTOCOL* current=NULL;
+        status=gBS->OpenProtocol(gops[index],&gEfiGraphicsOutputProtocolGuid,(VOID**)&current,gImageHandle,NULL,
+            EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+        if(EFI_ERROR(status)||current==NULL)
+        {
+            continue;
+        }
+        
+        if(current->Mode->Info->PixelFormat==PixelBltOnly||current->Mode->Info->PixelFormat>=PixelFormatMax)
+        {
+            /*非目标GOP*/
+            continue;
+        }
+
+        status=gBS->OpenProtocol(gops[index],&gEfiConsoleOutDeviceGuid,NULL,gImageHandle,NULL,
+            EFI_OPEN_PROTOCOL_TEST_PROTOCOL);
+        if(status==EFI_SUCCESS)
+        {
+            gop=current;
+            target=gops[index];
+            break;
+        }
+
+        if(gop==NULL)
+        {
+            gop=current;
+            target=gops[index];
+        }
+    }
+
+    pool_free(gops);
+    if(gop==NULL)
+    {
+        panic(EFI_UNSUPPORTED,"The supported Graphics Output Protocol is not found.");
+    }
+
+    EFI_DEVICE_PATH_PROTOCOL* device=NULL;
+    status=gBS->OpenProtocol(target,&gEfiDevicePathProtocolGuid,(VOID**)&device,gImageHandle,NULL,
+        EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+    if(EFI_ERROR(status))
+    {
+        panic(EFI_UNSUPPORTED,"The Device Path Protocol is not found within the handle corresponding to"
+            " the Graphics Output Protocol.");
+    }
+    else
+    {
+        UINTN size=GetDevicePathSize(device);
+        if(size==0)
+        {
+            panic(EFI_DEVICE_ERROR,"The Device Path Protocol is null or invalid.");
+        }
+
+        VOID* buffer=pool_alloc(size);
+        if(buffer==NULL)
+        {
+            panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the Device Path Protocol space.");
+        }
+
+        CopyMem(buffer,device,size);
+        params->graphics_device=(aos_efi_device_path*)buffer;
+    }
+
+    /* 
+     * 寻找适合屏幕的最大最佳模式，这一阶段我们相信模式是安全的。查找方式按如下操作：
+     * 首先查找EDID信息，如果能找到EDID信息直接按信息搜索模式设置。
+     * 其次检查当前显示分辨率，如果当前大小非VGA则保持。（VBox对策）
+     * 接着检测0号模式，如果大小为非VGA则设置。（QEMU对策）
+     * 最后找模式列表中最大最佳模式。（物理硬件对策）
+     */
+    UINT32 hlim=MAX_UINT32,vlim=MAX_UINT32,clock=0,htotal=0,vtotal=0,pwidth=0,pheight=0;
+    BOOLEAN edid=boot_get_edid_info(target,&hlim,&vlim,&clock,&htotal,
+        &vtotal,&pwidth,&pheight);
+    params->graphics.pixel_clock=clock;
+    params->graphics.horizontal_total=htotal;
+    params->graphics.vertical_total=vtotal;
+    params->graphics.physical_width=pwidth;
+    params->graphics.physical_height=pheight;
+
+    if(!edid)
+    {
+        if(gop->Mode->Info->HorizontalResolution>BOOT_SVGA_HORIZONTAL_RESOLUTION&&
+            gop->Mode->Info->VerticalResolution>BOOT_SVGA_VERTICAL_RESOLUTION)
+        {
+            hlim=gop->Mode->Info->HorizontalResolution;
+            vlim=gop->Mode->Info->VerticalResolution;
+        }
+        else
+        {
+            UINTN size;
+            EFI_GRAPHICS_OUTPUT_MODE_INFORMATION* info=NULL;
+            status=gop->QueryMode(gop,0,&size,&info);
+            if(status==EFI_SUCCESS)
+            {
+                if(!((info->HorizontalResolution==BOOT_VGA_HORIZONTAL_RESOLUTION&&
+                    info->VerticalResolution==BOOT_VGA_VERTICAL_RESOLUTION)||
+                    (info->HorizontalResolution==BOOT_SVGA_HORIZONTAL_RESOLUTION&&
+                    info->VerticalResolution==BOOT_SVGA_VERTICAL_RESOLUTION)))
+                {
+                    hlim=info->HorizontalResolution;
+                    vlim=info->VerticalResolution;
+                }
+                gBS->FreePool(info);
+            }
+            else
+            {
+                panic(status,"Failed to get the output mode 0 information.");
+            }
+        }
+    }
+
+    UINT32 max=gop->Mode->MaxMode;
+    UINT32 mode=max;
+    UINT32 hres;
+    UINT32 vres;
+    UINT8 depth;
+    UINTN size;
+    for(UINT32 index=0;index<max;index++)
+    {
+        EFI_GRAPHICS_OUTPUT_MODE_INFORMATION* info;
+        status=gop->QueryMode(gop,index,&size,&info);
+        if(EFI_ERROR(status))
+        {
+            continue;
+        }
+        if(info->HorizontalResolution>hlim||info->VerticalResolution>vlim||info->PixelFormat==PixelBltOnly)
+        {
+            gBS->FreePool(info);
+            continue;
+        }
+        UINT8 d=boot_get_pixel_bit_width(info);
+        if(d==MAX_UINT8)
+        {
+            gBS->FreePool(info);
+            continue;
+        }
+
+        if(mode==max)
+        {
+            mode=index;
+            hres=info->HorizontalResolution;
+            vres=info->VerticalResolution;
+            depth=d;
+        }
+        else
+        {
+            if(hres<info->HorizontalResolution)
+            {
+                mode=index;
+                hres=info->HorizontalResolution;
+                vres=info->VerticalResolution;
+                depth=d;
+            }
+            else if(hres==info->HorizontalResolution&&vres<info->VerticalResolution)
+            {
+                mode=index;
+                vres=info->VerticalResolution;
+                depth=d;
+            }
+            else if(hres==info->HorizontalResolution&&vres==info->VerticalResolution&&depth<d)
+            {
+                mode=index;
+                depth=d;
+            }
+        }
+        gBS->FreePool(info);
+    }
+
+    if(mode==max)
+    {
+        mode=gop->Mode->Mode;
+    }
+
+    /*设置模式与输出信息*/
+    if(mode!=gop->Mode->Mode)
+    {
+        status=gop->SetMode(gop,mode);
+    }
+
+    params->graphics.hres=gop->Mode->Info->HorizontalResolution;
+    params->graphics.vres=gop->Mode->Info->VerticalResolution;
+    params->graphics.scan_line=gop->Mode->Info->PixelsPerScanLine;
+    params->graphics.framebuffer_base=gop->Mode->FrameBufferBase;
+    params->graphics.framebuffer_size=gop->Mode->FrameBufferSize;
+
+    if(!(gop->Mode->Info->PixelFormat==PixelBitMask||
+        gop->Mode->Info->PixelFormat==PixelBlueGreenRedReserved8BitPerColor||
+        gop->Mode->Info->PixelFormat==PixelRedGreenBlueReserved8BitPerColor))
+    {
+        panic(EFI_UNSUPPORTED,"Failed to get the color information.");
+    }
+
+    if(gop->Mode->Info->PixelFormat==PixelBitMask)
+    {
+        params->graphics.red_mask=gop->Mode->Info->PixelInformation.RedMask;
+        params->graphics.green_mask=gop->Mode->Info->PixelInformation.GreenMask;
+        params->graphics.blue_mask=gop->Mode->Info->PixelInformation.BlueMask;
+        params->graphics.reserved_mask=gop->Mode->Info->PixelInformation.ReservedMask;
+    }
+    else if(gop->Mode->Info->PixelFormat==PixelBlueGreenRedReserved8BitPerColor)
+    {
+        params->graphics.red_mask=0xFF0000;
+        params->graphics.green_mask=0xFF00;
+        params->graphics.blue_mask=0xFF;
+        params->graphics.reserved_mask=0xFF000000;
+    }
+    else
+    {
+        params->graphics.red_mask=0xFF;
+        params->graphics.green_mask=0xFF00;
+        params->graphics.blue_mask=0xFF0000;
+        params->graphics.reserved_mask=0xFF000000;
+    }
+}
+
+/**
+ * 设置BSP功能。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI boot_bsp_set(IN OUT aos_boot_params* params)
+{
+    DisableInterrupts();
+    AsmDisableCache();
+
+    IA32_CR0 cr0={.UintN=AsmReadCr0()};
+    cr0.Bits.NW=0;
+    cr0.Bits.TS=0;
+    cr0.Bits.EM=0;
+    cr0.Bits.AM=1;
+    cr0.Bits.WP=1;
+    cr0.Bits.NE=1;
+    cr0.Bits.MP=1;
+    AsmWriteCr0(cr0.UintN);
+
+    IA32_CR4 cr4={.UintN=AsmReadCr4()};
+
+    if(cr4.Bits.LA57)
+    {
+        params->state.state|=AOS_STATE_LA57;
+    }
+
+    cr4.Bits.OSFXSR=1;
+    cr4.Bits.OSXMMEXCPT=1;
+    cr4.Bits.PGE=0;
+
+    if(params->features.features&AOS_FEATURES_MC)
+    {
+        params->state.state|=AOS_STATE_MCE;
+        cr4.Bits.MCE=1;
+    }
+    if(params->features.features&AOS_FEATURES_SMEP)
+    {
+        params->state.state|=AOS_STATE_SMEP;
+        cr4.Bits.SMEP=1;
+    }
+    if(params->features.features&AOS_FEATURES_SMAP)
+    {
+        params->state.state|=AOS_STATE_SMAP;
+        cr4.Bits.SMAP=1;
+    }
+    
+    AsmWriteCr4(cr4.UintN);
+    CpuFlushTlb();
+
+    MSR_IA32_MTRR_DEF_TYPE_REGISTER mtrrdef={.Uint64=AsmReadMsr64(MSR_IA32_MTRR_DEF_TYPE)};
+    mtrrdef.Bits.E=0;
+    AsmWriteMsr64(MSR_IA32_MTRR_DEF_TYPE,mtrrdef.Uint64);
+
+    if(params->state.state&AOS_STATE_FIXED_MTRR)
+    {
+        mtrrdef.Bits.FE=1;
+        /**
+         * 环境使用的固定MTRR内存类型。
+         */
+        #define BOOT_FIXED_MTRR_TYPE ((UINT64)SIGNATURE_64(MSR_IA32_MTRR_CACHE_WRITE_BACK,\
+            MSR_IA32_MTRR_CACHE_WRITE_BACK,MSR_IA32_MTRR_CACHE_WRITE_BACK,MSR_IA32_MTRR_CACHE_WRITE_BACK,\
+            MSR_IA32_MTRR_CACHE_WRITE_BACK,MSR_IA32_MTRR_CACHE_WRITE_BACK,MSR_IA32_MTRR_CACHE_WRITE_BACK,\
+            MSR_IA32_MTRR_CACHE_WRITE_BACK))
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX64K_00000,BOOT_FIXED_MTRR_TYPE);
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX16K_80000,BOOT_FIXED_MTRR_TYPE);
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX16K_A0000,BOOT_FIXED_MTRR_TYPE);
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX4K_C0000,BOOT_FIXED_MTRR_TYPE);
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX4K_C8000,BOOT_FIXED_MTRR_TYPE);
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX4K_D0000,BOOT_FIXED_MTRR_TYPE);
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX4K_D8000,BOOT_FIXED_MTRR_TYPE);
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX4K_E0000,BOOT_FIXED_MTRR_TYPE);
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX4K_E8000,BOOT_FIXED_MTRR_TYPE);
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX4K_F0000,BOOT_FIXED_MTRR_TYPE);
+        AsmWriteMsr64(MSR_IA32_MTRR_FIX4K_F8000,BOOT_FIXED_MTRR_TYPE);
+        #undef BOOT_FIXED_MTRR_TYPE
+    }
+
+    for(UINT8 index=0;index<params->state.vmtrr;index++)
+    {
+        AsmWriteMsr64(MSR_IA32_MTRR_PHYSBASE0+(index<<1),0);
+        AsmWriteMsr64(MSR_IA32_MTRR_PHYSMASK0+(index<<1),0);
+    }
+
+    /*PAT设置，替换PAT4与PAT5为WC与WP*/
+    MSR_IA32_PAT_REGISTER pat={.Uint64=0};
+    pat.Bits.PA0=6;
+    pat.Bits.PA1=4;
+    pat.Bits.PA2=7;
+    pat.Bits.PA3=0;
+    pat.Bits.PA4=1;
+    pat.Bits.PA5=5;
+    pat.Bits.PA6=7;
+    pat.Bits.PA7=0;
+    AsmWriteMsr64(MSR_IA32_PAT,pat.Uint64);
+
+    MSR_IA32_EFER_REGISTER efer={.Uint64=AsmReadMsr64(MSR_IA32_EFER)};
+    if(params->features.features&AOS_FEATURES_NX)
+    {
+        efer.Bits.NXE=1;
+    }
+    efer.Bits.SCE=1;
+    AsmWriteMsr64(MSR_IA32_EFER,efer.Uint64);
+
+    mtrrdef.Bits.E=1;
+    mtrrdef.Bits.Type=MSR_IA32_MTRR_CACHE_WRITE_BACK;
+    AsmWriteMsr64(MSR_IA32_MTRR_DEF_TYPE,mtrrdef.Uint64);
+
+    CpuFlushTlb();
+    AsmEnableCache();
+    cr4.Bits.PGE=1;
+    AsmWriteCr4(cr4.UintN);
+
+    if(params->features.vendor==AOS_VENDOR_INTEL)
+    {
+        MSR_IA32_MISC_ENABLE_REGISTER misc={.Uint64=AsmReadMsr64(MSR_IA32_MISC_ENABLE)};
+        misc.Bits.FastStrings=1;
+        AsmWriteMsr64(MSR_IA32_MISC_ENABLE,misc.Uint64);
+    }
+}
+
+/**
+ * 转成内核页表。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI boot_use_kernel_page_table(IN aos_boot_params* params)
+{
+    IA32_CR4 cr4={.UintN=AsmReadCr4()};
+    cr4.Bits.PGE=0;
+    AsmWriteCr4(cr4.UintN);
+
+    AsmWriteCr3(params->memory.page_table);
+
+    cr4.Bits.PGE=1;
+    AsmWriteCr4(cr4.UintN);
+
+    IA32_DESCRIPTOR gdtr;
+    gdtr.Base=data_base+kernel_gdt;
+    gdtr.Limit=sizeof(AOS_FIXED_GDT)+sizeof(IA32_TSS_DESCRIPTOR)-1;
+    AsmWriteGdtr(&gdtr);
+
+    set_cs(24);
+    set_ds(32);
+    AsmWriteTr(64);
+
+    gdtr.Base=share_base;
+    AsmWriteGdtr(&gdtr);
+
+    IA32_DESCRIPTOR idtr;
+    idtr.Base=share_base+SIZE_8KB;
+    idtr.Limit=sizeof(IA32_IDT_GATE_DESCRIPTOR)*256-1;
+    AsmWriteIdtr(&idtr);
 }
 
 /**
@@ -1393,6 +2071,7 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     {
         panic(EFI_OUT_OF_RESOURCES,"Failed to allocate AOS boot parameters from bootstrap pool.");
     }
+    ZeroMem(params,sizeof(aos_boot_params));
 
     /*CPU检查*/
     boot_cpu_check(params);
@@ -1417,97 +2096,96 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
     /*准备基址*/
     boot_prepare_base();
 
+    /*准备CPU数据*/
     boot_prepare_cpu_data(params);
 
+    /*验证并载入内核*/
     boot_verify_and_load(params);
 
-    UINTN EFIAPI page_table_pool_base(VOID);
-    aos_boot_vma* EFIAPI vma_head(VOID);
-    aos_boot_memory* EFIAPI memory_head(VOID);
+    /*获取图形信息*/
+    boot_get_graphics_info(params);
 
+    /*准备处理映射表*/
+    EFI_MEMORY_DESCRIPTOR* memmap=NULL;
+    UINTN map_size=0,desc_size,map_key;
+    UINT32 desc_ver;
 
-    /*统计页表池位图占用情况*/
-    UINTN pt_pages=params->memory.pt_pool_pages;
-    CONST UINT8* pt_map=(CONST UINT8*)params->memory.pt_pool_map;
-    UINTN pt_used=0;
-    UINTN pt_first_free=pt_pages; /*首个空闲位；池满时等于页数*/
-    for(UINTN i=0;i<pt_pages;i++)
+    EFI_STATUS status=gBS->GetMemoryMap(&map_size,memmap,&map_key,&desc_size,&desc_ver);
+    if(status!=EFI_BUFFER_TOO_SMALL)
     {
-        if(pt_map[i>>3]&(UINT8)(1U<<(i&7)))
-        {
-            pt_used++;
-        }
-        else if(pt_first_free==pt_pages)
-        {
-            pt_first_free=i;
-        }
+        panic(status,"Failed to retrieve UEFI Memory Map.");
+    }
+    memmap=pool_alloc(map_size+3*desc_size);
+    if(memmap==NULL)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate UEFI Memory Map from bootstrap pool.");
+    }
+    panic_if_error(gBS->GetMemoryMap(&map_size,memmap,&map_key,&desc_size,&desc_ver),
+        "Failed to retrieve UEFI Memory Map.");
+    if(desc_ver!=EFI_MEMORY_DESCRIPTOR_VERSION)
+    {
+        panic(EFI_DEVICE_ERROR,"UEFI Memory Map descriptor version mismatch.");
+    }
+    if(desc_size<sizeof(EFI_MEMORY_DESCRIPTOR))
+    {
+        panic(EFI_DEVICE_ERROR,"UEFI Memory Map descriptor size mismatch.");
     }
 
-    CHAR8 report[768];
-    AsciiSPrint(report,sizeof(report),
-        "pool=0x%lX\n"
-        "features: magic=0x%02X baseline=%u vendor=%u bits=0x%02X\n"
-        "state: magic=0x%02X state=0x%02X vmtrr=%u apic=%u\n"
-        "table: acpi=0x%lX smbios=0x%lX\n"
-        "cpus: total=%lu enabled=%lu\n"
-        "pt: base=0x%lX root=0x%lX pages=%lu bitmap=0x%lX used=%lu first_free=%lu\n"
-        "size: params=%lu kinfo=%lu vma=%lu mem=%lu\n"
-        "base: share=0x%lX fw=0x%lX kern=0x%lX data=0x%lX stack=0x%lX\n",
-        (UINT64)bpbase,
-        (UINTN)params->features.magic,(UINTN)params->features.baseline,
-        (UINTN)params->features.vendor,(UINTN)params->features.features,
-        (UINTN)params->state.magic,(UINTN)params->state.state,
-        (UINTN)params->state.vmtrr,(UINTN)params->state.apic,
-        (UINT64)params->acpi,(UINT64)params->smbios,
-        (UINT64)params->cpu_count,(UINT64)params->enabled_count,
-        (UINT64)page_table_pool_base(),(UINT64)params->memory.page_table,
-        (UINT64)pt_pages,(UINT64)params->memory.pt_pool_map,
-        (UINT64)pt_used,(UINT64)pt_first_free,
-        (UINT64)sizeof(aos_boot_params),(UINT64)sizeof(aos_kernel_memory_info),
-        (UINT64)sizeof(aos_boot_vma),(UINT64)sizeof(aos_boot_memory),
-        (UINT64)share_base,(UINT64)firmware_base,(UINT64)kernel_base,
-        (UINT64)data_base,(UINT64)stack_base);
-    for(UINTN i=0;report[i]!=0;i++)
+    params->memory.kernel_vma=fill_firmware_vma(firmware_base,memmap,map_size,desc_size);
+    params->memory.memory_map=fill_memory_map(memmap,map_size,desc_size,bpbase);
+
+    UINTN free_pages=0;
+    aos_boot_memory* node=params->memory.memory_map;
+    while(node!=NULL)
     {
-        IoWrite8(0x402,(UINT8)report[i]);
+        if(node->type==AOS_BOOT_MEMORY_FREE)
+        {
+            free_pages+=EFI_SIZE_TO_PAGES(node->size);
+        }
+        node=node->next;
     }
 
-    /*CPU列表(有多少打多少)*/
-    for(UINTN i=0;i<params->cpu_count;i++)
+    if(free_pages<CONFIG_MINIMUM_FREE_PAGES)
     {
-        AsciiSPrint(report,sizeof(report),"cpu[%lu]=%u\n",(UINT64)i,(UINTN)params->cpus[i]);
-        for(UINTN j=0;report[j]!=0;j++)
-        {
-            IoWrite8(0x402,(UINT8)report[j]);
-        }
+        panic(EFI_OUT_OF_RESOURCES,"The system is low on free memory.");
     }
 
-    /*内存图输出*/
-    aos_boot_memory* mem_node=memory_head();
-    for(UINTN i=0;mem_node!=NULL;i++)
+    status=gBS->ExitBootServices(gImageHandle,map_key);
+    if(EFI_ERROR(status))
     {
-        AsciiSPrint(report,sizeof(report),"mem[%lu] start=0x%lX size=0x%lX type=%lu\n",
-            (UINT64)i,(UINT64)mem_node->start,(UINT64)mem_node->size,(UINT64)mem_node->type);
-        for(UINTN j=0;report[j]!=0;j++)
-        {
-            IoWrite8(0x402,(UINT8)report[j]);
-        }
-        mem_node=mem_node->next;
+        gRT->ResetSystem(EfiResetShutdown,status,0,NULL);
+        return status;
     }
 
-    /*线性区输出*/
-    aos_boot_vma* vma_node=vma_head();
-    for(UINTN i=0;vma_node!=NULL;i++)
+    boot_bsp_set(params);
+    boot_use_kernel_page_table(params);
+
+    status=gRT->SetVirtualAddressMap(map_size,desc_size,desc_ver,memmap);
+    if(EFI_ERROR(status))
     {
-        AsciiSPrint(report,sizeof(report),"vma[%lu] start=0x%lX end=0x%lX flags=0x%lX type=%lu\n",
-            (UINT64)i,(UINT64)vma_node->start,(UINT64)vma_node->end,
-            (UINT64)vma_node->flags,(UINT64)vma_node->type);
-        for(UINTN j=0;report[j]!=0;j++)
-        {
-            IoWrite8(0x402,(UINT8)report[j]);
-        }
-        vma_node=vma_node->next;
+        gRT->ResetSystem(EfiResetShutdown,status,0,NULL);
+        return status;
     }
-    panic_if_error(EFI_DEVICE_ERROR,"Hello? %u",bpbase);
-    return EFI_SUCCESS;
+    params->system_table=(aos_efi_system_table*)(firmware_base+(UINTN)system_table);
+
+    /*令其他AP初始化*/
+    if(params->state.apic==AOS_APIC_XAPIC)
+    {
+        MSR_IA32_APIC_BASE_REGISTER apic={.Uint64=AsmReadMsr64(MSR_IA32_APIC_BASE)};
+        UINTN base=((UINTN)apic.Bits.ApicBase<<12)|((UINTN)apic.Bits.ApicBaseHi<<32);
+        MmioWrite32(base+0x310,0);
+        MmioWrite32(base+0x300,0xC4500);
+    }
+    else if(params->state.apic==AOS_APIC_X2APIC)
+    {
+        AsmWriteMsr64(0x830,0xC4500);
+    }
+
+    /*进入内核*/
+    aos_kernel_trampoline trampoline=(aos_kernel_trampoline)(kernel_base+params->memory.kernel_entry);
+    trampoline(params,stack_base+EFI_PAGES_TO_SIZE(CONFIG_KERNEL_STACK));
+    
+    UNREACHABLE();
+    gRT->ResetSystem(EfiResetShutdown,EFI_DEVICE_ERROR,0,NULL);
+    return EFI_DEVICE_ERROR;
 }

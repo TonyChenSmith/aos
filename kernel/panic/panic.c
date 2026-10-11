@@ -238,7 +238,7 @@ void set_panic_managed_output(panic_output_handler output)
  */
 void noreturn panic(const char8* format,...)
 {
-    x86_disable_interrupts();
+    x86_disable_interrupt();
 
     /*多核通知恐慌，这里还未实现*/
 
