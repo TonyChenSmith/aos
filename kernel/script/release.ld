@@ -40,6 +40,8 @@ SECTIONS
         *(.data*)
     } :data
 
+    . += 0x1000;
+
     .bss ALIGN(0x10) (NOLOAD) :
     {
         *(.bss*)
@@ -47,7 +49,6 @@ SECTIONS
 
     /DISCARD/ :
     {
-        /*
         *(.note*)
         *(.eh_frame*)
         *(.eh_frame_hdr)
@@ -59,6 +60,5 @@ SECTIONS
         *(.gnu.hash)
         *(.symtab)
         *(.strtab)
-        */
     }
 }

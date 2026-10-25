@@ -10,16 +10,16 @@
 #include <Guid/SmBios.h>
 #include <IndustryStandard/Acpi.h>
 #include <IndustryStandard/SmBios.h>
+#include <Library/BaseCryptLib.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/BaseCryptLib.h>
 #include <Library/CpuLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/IoLib.h>
 #include <Library/PrintLib.h>
 #include <Library/RngLib.h>
-#include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Library/UefiLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Protocol/EdidActive.h>
 #include <Protocol/EdidDiscovered.h>
@@ -384,6 +384,11 @@ STATIC VOID EFIAPI boot_cpu_check(IN OUT aos_boot_params* params)
 }
 
 /**
+ * 运行时描述符占据页数。
+ */
+static UINTN runtime_pages=0;
+
+/**
  * 设置启动参数所需系统表。
  * 
  * @param params 启动参数。
@@ -442,6 +447,10 @@ STATIC VOID EFIAPI boot_set_table(OUT aos_boot_params* params)
     while((UINTN)desc<end)
     {
         UINTN desc_end=EFI_PAGES_TO_SIZE(desc->NumberOfPages)+desc->PhysicalStart;
+        if(desc->Attribute&EFI_MEMORY_RUNTIME)
+        {
+            runtime_pages+=desc->NumberOfPages;
+        }
         if(desc->PhysicalStart<=rsdp_start&&rsdp_end<=desc_end)
         {
             if(desc->Type!=EfiACPIReclaimMemory)
@@ -552,6 +561,7 @@ STATIC VOID EFIAPI boot_set_table(OUT aos_boot_params* params)
         CopyMem(copy,(VOID*)smbios_entry_base,sizeof(SMBIOS_TABLE_ENTRY_POINT));
         CopyMem(smcopy,(VOID*)((UINTN)copy->TableAddress),smbios_size);
         copy->TableAddress=(UINT32)((UINTN)smcopy&MAX_UINT32);
+        copy->TableLength=(UINT16)smbios_size;
         copy->EntryPointStructureChecksum=0;
         checksum=0,index=0;
         UINT8* copydata=(UINT8*)copy;
@@ -647,12 +657,13 @@ STATIC VOID EFIAPI boot_set_table(OUT aos_boot_params* params)
         }
 
         SMBIOS_TABLE_3_0_ENTRY_POINT* copy=(SMBIOS_TABLE_3_0_ENTRY_POINT*)allocate_page(AOS_BOOT_MEMORY_SMBIOS,
-            EFI_SIZE_TO_PAGES(sizeof(SMBIOS_TABLE_ENTRY_POINT)+smbios_size),SIZE_4GB-1);
+            EFI_SIZE_TO_PAGES(sizeof(SMBIOS_TABLE_3_0_ENTRY_POINT)+smbios_size),SIZE_4GB-1);
         SMBIOS_STRUCTURE* smcopy=(SMBIOS_STRUCTURE*)((UINTN)copy+sizeof(SMBIOS_TABLE_3_0_ENTRY_POINT));
         CopyMem(copy,(VOID*)smbios_entry_base,
             sizeof(SMBIOS_TABLE_3_0_ENTRY_POINT));
         CopyMem(smcopy,(VOID*)copy->TableAddress,smbios_size);
         copy->TableAddress=(UINT64)smcopy;
+        copy->TableMaximumSize=(UINT32)smbios_size;
         copy->EntryPointStructureChecksum=0;
         checksum=0,index=0;
         UINT8* copydata=(UINT8*)copy;
@@ -1011,6 +1022,7 @@ STATIC UINT64 EFIAPI boot_random(IN OUT UINT64* a,IN OUT UINT64* b,IN OUT UINT64
     UINT64 ra,rb,rc;
     UINT64 fresh;
 
+    /*返回值无需检查，按实现路径应为恒成功*/
     RandomBytes((UINT8*)&ra,sizeof(ra));
     RandomBytes((UINT8*)&rb,sizeof(rb));
     RandomBytes((UINT8*)&rc,sizeof(rc));
@@ -1065,9 +1077,24 @@ STATIC UINTN stack_base=-(3*SIZE_512GB-SIZE_256GB);
  */
 STATIC VOID EFIAPI boot_prepare_base(VOID)
 {
+    if(runtime_pages<EFI_SIZE_TO_PAGES(SIZE_4GB))
+    {
+        runtime_pages=EFI_SIZE_TO_PAGES(SIZE_4GB);
+    }
+
+    UINTN runtime_space=ALIGN_VALUE(EFI_PAGES_TO_SIZE(runtime_pages),SIZE_2MB);
+
+    if(runtime_space>SIZE_64GB)
+    {
+        panic(EFI_UNSUPPORTED,"The firmware requires more than 64 GiB of runtime memory.");
+    }
+
+    UINTN min_base=firmware_base+SIZE_8GB+SIZE_4GB;
+    UINTN max_base=firmware_base+SIZE_512GB-SIZE_4GB-runtime_space;
+
     if(!CONFIG_RANDOMIZE_BASE)
     {
-        firmware_base+=SIZE_4GB;
+        firmware_base+=SIZE_8GB+SIZE_4GB;
         kernel_base+=SIZE_2GB;
         data_base+=SIZE_2GB;
         stack_base+=SIZE_2GB;
@@ -1076,8 +1103,7 @@ STATIC VOID EFIAPI boot_prepare_base(VOID)
 
     UINT64 a=AOS_UEFI_VERSION,b=AOS_UEFI_VERSION_0_0_1,c=AOS_UEFI_VERSION_0_1_3;
     UINT64 random=boot_random(&a,&b,&c);
-    UINTN min_base=firmware_base+SIZE_4GB;
-    UINTN max_base=firmware_base+SIZE_512GB-SIZE_8GB;
+
     UINTN slots=(max_base-min_base)/SIZE_2MB;
     UINTN offset=(UINTN)(random%slots);
     firmware_base=min_base+offset*SIZE_2MB;
@@ -1116,8 +1142,18 @@ STATIC UINTN kernel_gdt=0;
  * 
  * @return 无返回值。
  */
-STATIC VOID EFIAPI boot_prepare_cpu_data(IN aos_boot_params* params)
+STATIC VOID EFIAPI boot_prepare_cpu_data(OUT aos_boot_params* params)
 {
+    UINTN kernel_pool=(UINTN)allocate_page(AOS_BOOT_MEMORY_KERNEL_POOL,CONFIG_KERNEL_POOL,SIZE_4GB-1);
+    if(kernel_pool==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the kernel pool space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_POOL,data_base+kernel_pool,kernel_pool,CONFIG_KERNEL_POOL,
+        AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|AOS_BOOT_VMA_ALLOCATED);
+    params->memory.kernel_pool=data_base+kernel_pool;
+    params->memory.kernel_pool_pages=CONFIG_KERNEL_POOL;
+
     UINTN kernel_stack=(UINTN)allocate_page(AOS_BOOT_MEMORY_STACK,CONFIG_KERNEL_STACK,SIZE_4GB-1);
     if(kernel_stack==0)
     {
@@ -1253,7 +1289,7 @@ STATIC VOID EFIAPI boot_prepare_cpu_data(IN aos_boot_params* params)
     }
     SetMem(idt_handler,EFI_PAGES_TO_SIZE(idt_handler_pages),0xCC);
     CopyMem(idt_handler,AOS_BOOT_IDT_DATA,AOS_BOOT_IDT_DATA_SIZE);
-    UINTN idt_handler_base=firmware_base+(UINTN)idt_handler;
+    UINTN idt_handler_base=firmware_base-SIZE_8GB;
     add_vma(AOS_BOOT_VMA_TYPE_FIRMWARE,idt_handler_base,(UINTN)idt_handler,
         idt_handler_pages,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_EXECUTE|AOS_BOOT_VMA_CACHE_WB|
         AOS_BOOT_VMA_ALLOCATED);
@@ -1281,8 +1317,6 @@ STATIC VOID EFIAPI boot_prepare_cpu_data(IN aos_boot_params* params)
         idt[index].Bits.OffsetHigh=(offset>>16)&0xFFFF;
         idt[index].Bits.OffsetUpper=(offset>>32)&0xFFFFFFFF;
     }
-
-    params->memory.data_base=data_base;
 }
 
 /**
@@ -1423,6 +1457,25 @@ STATIC VOID EFIAPI boot_verify_and_load(IN OUT aos_boot_params* params)
 }
 
 /**
+ * 判断颜色掩码是否为 0、单个 1 或一段连续的 1。
+ * 
+ * @param mask 颜色掩码。
+ * 
+ * @return 合法返回真。
+ */
+STATIC BOOLEAN EFIAPI boot_mask_is_contiguous(IN UINT32 mask)
+{
+    if(mask==0)
+    {
+        /*0 个 1，合法。*/
+        return TRUE;
+    }
+
+    UINT32 shifted=mask>>(UINT8)LowBitSet32(mask);
+    return (shifted&(shifted+1))==0;
+}
+
+/**
  * 获取单个像素所占位宽。
  * 
  * @param info 图形输出模式信息。
@@ -1442,19 +1495,17 @@ STATIC UINT8 EFIAPI boot_get_pixel_bit_width(IN EFI_GRAPHICS_OUTPUT_MODE_INFORMA
             return 32;
         case PixelBitMask:
             mask_value=mask->BlueMask|mask->GreenMask|mask->RedMask|mask->ReservedMask;
-            if(mask_value==0)
+            if(mask_value==0||mask->BlueMask&mask->GreenMask||mask->BlueMask&mask->RedMask||
+                mask->BlueMask&mask->ReservedMask||mask->GreenMask&mask->RedMask||mask->GreenMask&mask->ReservedMask||
+                mask->RedMask&mask->ReservedMask||!boot_mask_is_contiguous(mask->BlueMask)||
+                !boot_mask_is_contiguous(mask->GreenMask)||!boot_mask_is_contiguous(mask->RedMask)||
+                !boot_mask_is_contiguous(mask->ReservedMask))
             {
-                width=0;
+                width=MAX_UINT8;
             }
             else
             {
-                mask_value>>=(UINT8)LowBitSet32(mask_value);
-                width=0;
-                while(mask_value&BIT0)
-                {
-                    width++;
-                    mask_value>>=1;
-                }
+                width=HighBitSet32(mask_value)+1;
             }
             return width;
         case PixelBltOnly:
@@ -1845,9 +1896,9 @@ STATIC VOID EFIAPI boot_get_graphics_info(IN OUT aos_boot_params* params)
         mode=gop->Mode->Mode;
     }
 
-    /*设置模式与输出信息*/
     if(mode!=gop->Mode->Mode)
     {
+        /*设置模式与输出信息，失败就算了*/
         status=gop->SetMode(gop,mode);
     }
 
@@ -1885,6 +1936,41 @@ STATIC VOID EFIAPI boot_get_graphics_info(IN OUT aos_boot_params* params)
         params->graphics.blue_mask=0xFF0000;
         params->graphics.reserved_mask=0xFF000000;
     }
+
+    depth=boot_get_pixel_bit_width(gop->Mode->Info);
+    if(depth==MAX_UINT8)
+    {
+        panic(EFI_UNSUPPORTED,"The pixel bit width is unsupported.");
+    }
+
+    if(gop->Mode->FrameBufferBase&EFI_PAGE_MASK)
+    {
+        panic(EFI_UNSUPPORTED,"The frame base address is not 4K-aligned.");
+    }
+
+    UINT8 bytes=(UINT8)((depth+7)/8);
+    UINT64 required=(UINT64)gop->Mode->Info->PixelsPerScanLine*gop->Mode->Info->VerticalResolution*bytes;
+    if(required>=SIZE_4GB||required>gop->Mode->FrameBufferSize)
+    {
+        panic(EFI_UNSUPPORTED,"The frame buffer size is invalid.");
+    }
+
+    params->graphics.kernel_copy_size=EFI_SIZE_TO_PAGES((UINTN)required);
+    UINTN fb_copy=(UINTN)allocate_page(AOS_BOOT_MEMORY_FRAME_BUFFER_COPY,params->graphics.kernel_copy_size,
+        SIZE_4GB-1);
+    if(fb_copy==0)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the frame buffer copy space.");
+    }
+    add_vma(AOS_BOOT_VMA_TYPE_FRAME_BUFFER_COPY,data_base+fb_copy,fb_copy,
+        params->graphics.kernel_copy_size,AOS_BOOT_VMA_READ|AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WB|
+        AOS_BOOT_VMA_ALLOCATED);
+    add_vma(AOS_BOOT_VMA_TYPE_FRAME_BUFFER,firmware_base-SIZE_4GB,
+        gop->Mode->FrameBufferBase,params->graphics.kernel_copy_size,AOS_BOOT_VMA_READ|
+        AOS_BOOT_VMA_WRITE|AOS_BOOT_VMA_CACHE_WC|AOS_BOOT_VMA_ALLOCATED);
+    params->graphics.kernel_copy_base=data_base+fb_copy;
+    params->graphics.kernel_copy_size=EFI_PAGES_TO_SIZE(params->graphics.kernel_copy_size);
+    params->graphics.kernel_fb_base=firmware_base-SIZE_4GB;
 }
 
 /**
@@ -2131,8 +2217,17 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
         panic(EFI_DEVICE_ERROR,"UEFI Memory Map descriptor size mismatch.");
     }
 
-    params->memory.kernel_vma=fill_firmware_vma(firmware_base,memmap,map_size,desc_size);
+    UINTN runtime_system_table=(UINTN)gST;
+    params->memory.kernel_vma=fill_firmware_vma(firmware_base,memmap,map_size,desc_size,
+        &runtime_system_table);
     params->memory.memory_map=fill_memory_map(memmap,map_size,desc_size,bpbase);
+
+    if(runtime_system_table<firmware_base||runtime_system_table>=firmware_base+SIZE_64GB)
+    {
+        panic(EFI_DEVICE_ERROR,"The EFI system table address is not found in the memory map.");
+    }
+    params->system_table=(aos_efi_system_table*)(runtime_system_table);
+    params->version=AOS_UEFI_VERSION;
 
     UINTN free_pages=0;
     aos_boot_memory* node=params->memory.memory_map;
@@ -2166,7 +2261,6 @@ EFI_STATUS EFIAPI aos_uefi_entry(IN EFI_HANDLE image_handle,IN EFI_SYSTEM_TABLE*
         gRT->ResetSystem(EfiResetShutdown,status,0,NULL);
         return status;
     }
-    params->system_table=(aos_efi_system_table*)(firmware_base+(UINTN)system_table);
 
     /*令其他AP初始化*/
     if(params->state.apic==AOS_APIC_XAPIC)

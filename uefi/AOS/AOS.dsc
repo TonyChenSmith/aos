@@ -35,7 +35,7 @@
     BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
     BaseMemoryLib|MdePkg/Library/BaseMemoryLib/BaseMemoryLib.inf
     CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
-    DebugPrintErrorLevelLib|MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.inf
+    DebugLib|MdePkg/Library/BaseDebugLibNull/BaseDebugLibNull.inf
     DevicePathLib|MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
     FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
     IntrinsicLib|CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
@@ -54,14 +54,6 @@
     UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
     UefiLib|MdePkg/Library/UefiLib/UefiLib.inf
     UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
-    
-!if $(TARGET) == RELEASE
-    DebugLib|MdePkg/Library/BaseDebugLibNull/BaseDebugLibNull.inf
-!else
-    DebugLib|OvmfPkg/Library/PlatformDebugLibIoPort/PlatformDebugLibIoPort.inf
-!endif
-
-[LibraryClasses.common.UEFI_APPLICATION]
 
 [Components.X64]
     AOS/uefi.inf

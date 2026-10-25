@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: MIT
  */
 #include <Guid/MemoryAttributesTable.h>
+#include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
 
 #include "page.h"
@@ -300,7 +301,7 @@ STATIC UINT64 EFIAPI vma_attrs_to_flags(IN UINT64 attrs,IN UINT64 mat)
 STATIC VOID EFIAPI vma_set_runtime_vma(IN OUT EFI_MEMORY_DESCRIPTOR* runtime,IN EFI_MEMORY_ATTRIBUTES_TABLE* mat,
     IN UINTN base)
 {
-    runtime->VirtualStart=base+runtime->PhysicalStart;
+    runtime->VirtualStart=base;
     if(mat!=NULL&&(runtime->Type==EfiRuntimeServicesCode||runtime->Type==EfiRuntimeServicesData))
     {
         EFI_MEMORY_DESCRIPTOR* mat_map=(EFI_MEMORY_DESCRIPTOR*)((UINTN)mat+sizeof(EFI_MEMORY_ATTRIBUTES_TABLE));
@@ -330,16 +331,27 @@ STATIC VOID EFIAPI vma_set_runtime_vma(IN OUT EFI_MEMORY_DESCRIPTOR* runtime,IN 
 
                 if(bl<=al&&br>=ar)
                 {
-                    add_vma(AOS_BOOT_VMA_TYPE_FIRMWARE,a->PhysicalStart+base,a->PhysicalStart,
-                        a->NumberOfPages,vma_attrs_to_flags(runtime->Attribute,a->Attribute));
+                    add_vma(AOS_BOOT_VMA_TYPE_FIRMWARE,base+a->PhysicalStart-runtime->PhysicalStart,
+                        a->PhysicalStart,a->NumberOfPages,
+                        vma_attrs_to_flags(runtime->Attribute,a->Attribute));
                 }
             }
             return;
         }
     }
 
-    add_vma(AOS_BOOT_VMA_TYPE_FIRMWARE,runtime->VirtualStart,runtime->PhysicalStart,
-        runtime->NumberOfPages,vma_attrs_to_flags(runtime->Attribute,runtime->Attribute));
+    if(runtime->Type==EfiRuntimeServicesCode)
+    {
+        add_vma(AOS_BOOT_VMA_TYPE_FIRMWARE,runtime->VirtualStart,runtime->PhysicalStart,
+            runtime->NumberOfPages,vma_attrs_to_flags(runtime->Attribute,
+            (runtime->Attribute&EFI_MEMORY_WB)|EFI_MEMORY_RO));
+    }
+    else
+    {
+        add_vma(AOS_BOOT_VMA_TYPE_FIRMWARE,runtime->VirtualStart,runtime->PhysicalStart,
+            runtime->NumberOfPages,vma_attrs_to_flags(runtime->Attribute,
+            (runtime->Attribute&EFI_MEMORY_WB)|EFI_MEMORY_XP));
+    }
 }
 
 /**
@@ -349,16 +361,18 @@ STATIC VOID EFIAPI vma_set_runtime_vma(IN OUT EFI_MEMORY_DESCRIPTOR* runtime,IN 
  * @param map       EFI内存图。
  * @param map_size  内存图大小。
  * @param desc_size 描述符大小。
+ * @param table     EFI系统表基址。
  * 
  * @return 已完成的线性区头节点。
  */
 aos_boot_vma* EFIAPI fill_firmware_vma(IN UINTN base,IN OUT EFI_MEMORY_DESCRIPTOR* map,IN UINTN map_size,
-    IN UINTN desc_size)
+    IN UINTN desc_size,OUT UINTN* table)
 {
-    if(map==NULL||map_size==0||desc_size<sizeof(EFI_MEMORY_DESCRIPTOR))
+    if(map==NULL||map_size==0||desc_size<sizeof(EFI_MEMORY_DESCRIPTOR)||table==NULL)
     {
         panic(EFI_INVALID_PARAMETER,"Invalid EFI memory map parameters.");
     }
+    *table=(UINTN)gST;
 
     EFI_MEMORY_ATTRIBUTES_TABLE* mat=NULL;
     EFI_STATUS status=EfiGetSystemConfigurationTable(&gEfiMemoryAttributesTableGuid,(VOID**)&mat);
@@ -395,7 +409,13 @@ aos_boot_vma* EFIAPI fill_firmware_vma(IN UINTN base,IN OUT EFI_MEMORY_DESCRIPTO
     {
         if(node->Attribute&EFI_MEMORY_RUNTIME)
         {
+            if((UINTN)gST>=node->PhysicalStart&&(UINTN)gST<node->PhysicalStart+EFI_PAGES_TO_SIZE(node->NumberOfPages))
+            {
+                *table=(UINTN)gST-node->PhysicalStart+base;
+            }
+
             vma_set_runtime_vma(node,mat,base);
+            base+=EFI_PAGES_TO_SIZE(node->NumberOfPages);
         }
         node=(EFI_MEMORY_DESCRIPTOR*)((UINTN)node+desc_size);
     }

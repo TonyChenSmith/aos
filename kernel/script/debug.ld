@@ -40,6 +40,8 @@ SECTIONS
         *(.data*)
     } :data
 
+    . += 0x1000;
+
     .bss ALIGN(0x10) (NOLOAD) :
     {
         *(.bss*)

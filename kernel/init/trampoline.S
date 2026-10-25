@@ -34,8 +34,10 @@
 aos_kernel_trampoline:
     movq %rcx,%rdi
     movq %rdx,%rsp
-    subq $8,%rsp
     cli
     cld
-    jmp  aos_kernel_entry
+    call aos_kernel_entry
+.Laos_kernel_trampoline_loop:
+    int3
+    jmp .Laos_kernel_trampoline_loop
 .size aos_kernel_trampoline,.-aos_kernel_trampoline

@@ -42,6 +42,9 @@
         "editor.renderWhitespace": "all",
         "editor.rulers": [
             120
-        ]
+        ],
+        "cmake.enableAutomaticKitScan": false,
+        "cmake.showSystemKits": false,
+        "cmake.useVsDeveloperEnvironment": "never"
     }
 }

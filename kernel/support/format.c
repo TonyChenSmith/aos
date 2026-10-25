@@ -203,6 +203,13 @@ static bool format_process_char(output_writer* writer,void* context,char32 c)
         c=0xFFFD;
     }
 
+    if(c==0)
+    {
+        /*U+0000的UTF-8编码就是一个0字节，不能按空串处理。*/
+        char8 zero=0;
+        return writer->put_string(context,&zero,1);
+    }
+
     char32 src[2]={c,0};
     char8 buffer[5];
     uintn length=string_convert8_char32(buffer,src,5)-1;
@@ -590,7 +597,10 @@ uintn format_print_valist(io_handle* handle,const char8* format,va_list args)
     output_writer writer={format_io_put_char,format_io_put_string,format_io_put_repeat,format_io_get_written_chars};
     io_writer_context context={handle,IO_STATUS_SUCCESS,0};
     
-    format_engine(&writer,&context,format,(va_list*)&args);
+    va_list list;
+    va_copy(list,args);
+    format_engine(&writer,&context,format,&list);
+    va_end(list);
     
     if(context.status!=IO_STATUS_SUCCESS)
     {
@@ -735,7 +745,11 @@ uintn format_string_valist(char8* buffer,uintn size,const char8* format,va_list 
         format_buffer_get_written_chars};
     buffer_writer_context context={buffer,size-1,0};
     
-    format_engine(&writer, &context,format,(va_list*)&args);
+    va_list list;
+    va_copy(list,args);
+    format_engine(&writer,&context,format,&list);
+    va_end(list);
+
     buffer[context.used]='\0';
 
     return context.used+1;

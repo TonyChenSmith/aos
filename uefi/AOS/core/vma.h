@@ -40,10 +40,11 @@ VOID EFIAPI remove_vma(IN UINTN vaddr);
  * @param map       EFI内存图。
  * @param map_size  内存图大小。
  * @param desc_size 描述符大小。
+ * @param table     EFI系统表基址。
  * 
  * @return 已完成的线性区头节点。
  */
 aos_boot_vma* EFIAPI fill_firmware_vma(IN UINTN base,IN OUT EFI_MEMORY_DESCRIPTOR* map,IN UINTN map_size,
-    IN UINTN desc_size);
+    IN UINTN desc_size,OUT UINTN* table);
 
 #endif /*__AOS_UEFI_VMA_H__*/

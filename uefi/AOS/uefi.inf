@@ -43,11 +43,16 @@
     BaseLib
     BaseMemoryLib
     CpuLib
+    DevicePathLib
     FileHandleLib
     IoLib
+    MemoryAllocationLib
+    PrintLib
+    RngLib
     UefiApplicationEntryPoint
     UefiBootServicesTableLib
     UefiLib
+    UefiRuntimeServicesTableLib
 
 [Protocols]
     gEfiBlockIoProtocolGuid
@@ -64,4 +69,3 @@
     gEfiMemoryAttributesTableGuid
     gEfiSmbios3TableGuid
     gEfiSmbiosTableGuid
-    gEfiFileInfoGuid

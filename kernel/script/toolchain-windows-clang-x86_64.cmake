@@ -10,10 +10,14 @@
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR x86_64)
 
-set(CMAKE_ASM_COMPILER_ID Clang)
-set(CMAKE_ASM_COMPILER_TARGET x86_64-pc-unknown-unknown)
+find_program(AOS_CLANG NAMES clang clang.exe REQUIRED)
+set(CMAKE_C_COMPILER "${AOS_CLANG}")
+set(CMAKE_ASM_COMPILER "${AOS_CLANG}")
 
-set(CMAKE_C_COMPILER_ID Clang)
+find_program(AOS_LLD NAMES ld.lld ld.lld.exe REQUIRED)
+set(CMAKE_LINKER "${AOS_LLD}")
+
+set(CMAKE_ASM_COMPILER_TARGET x86_64-pc-unknown-unknown)
 set(CMAKE_C_COMPILER_TARGET x86_64-pc-unknown-unknown)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
@@ -66,7 +70,7 @@ add_link_options(
 
 if(CMAKE_BUILD_TYPE MATCHES "Release")
     add_link_options(-O3)
-    add_compile_options(-g)
+    # add_compile_options(-g)
 else()
     add_link_options(-O0)
 endif()

@@ -75,6 +75,33 @@ typedef struct _load_elf64_dyn
 } load_elf64_dyn;
 
 /**
+ * 节头。
+ */
+typedef struct _load_elf64_shdr
+{
+    load_elf64_word  sh_name;      /*名称索引。*/
+    load_elf64_word  sh_type;      /*类型。*/
+    load_elf64_xword sh_flags;     /*标志。*/
+    load_elf64_addr  sh_addr;      /*虚拟地址。*/
+    load_elf64_off   sh_offset;    /*文件偏移。*/
+    load_elf64_xword sh_size;      /*大小。*/
+    load_elf64_word  sh_link;      /*链接节索引。*/
+    load_elf64_word  sh_info;      /*附加信息。*/
+    load_elf64_xword sh_addralign; /*对齐。*/
+    load_elf64_xword sh_entsize;   /*条目大小。*/
+} load_elf64_shdr;
+
+/**
+ * 重定位表项。
+ */
+typedef struct _load_elf64_rela
+{
+    load_elf64_addr  r_offset; /*重定位位置，虚拟偏移。*/
+    load_elf64_xword r_info;   /*低32位类型，高32位符号索引。*/
+    load_elf64_xword r_addend; /*加数，链接地址。*/
+} load_elf64_rela;
+
+/**
  * ELF标识索引。
  */
 #define LOAD_EI_MAG0 0
@@ -278,6 +305,17 @@ typedef struct _load_elf64_dyn
 #define LOAD_DF_P1_EXISTING 0x8
 
 /**
+ * 节头类型。
+ */
+#define LOAD_SHT_RELA 4
+
+/**
+ * x86-64重定位类型。
+ */
+#define LOAD_R_X86_64_NONE 0
+#define LOAD_R_X86_64_RELATIVE 8
+
+/**
  * 内核可加载段线性区域大小上限。
  */
 #define LOAD_KERNEL_MAX_SIZE SIZE_2GB
@@ -364,6 +402,120 @@ STATIC UINT64 EFIAPI load_elf_check_phdrs(IN load_elf64_phdr* phdrs,IN UINT16 ph
 }
 
 /**
+ * 应用内核的重定位项。
+ * 
+ * @param kernel 内核镜像句柄。
+ * @param header ELF头。
+ * @param phdrs  程序头数组。
+ * @param paddrs 各程序头对应的物理基址，非加载段为0。
+ * @param base   内核加载基址。
+ * 
+ * @return 无返回值。
+ */
+STATIC VOID EFIAPI load_apply_relocations(IN asv_file* kernel,IN load_elf64_ehdr* header,IN load_elf64_phdr* phdrs,
+    IN UINTN* paddrs,IN UINTN base)
+{
+    if(header->e_shoff==0||header->e_shnum==0)
+    {
+        return;
+    }
+
+    if(header->e_shentsize!=sizeof(load_elf64_shdr))
+    {
+        panic(EFI_UNSUPPORTED,"The kernel section header size mismatch.");
+    }
+
+    UINT64 file_size=asv_get_size(kernel);
+    UINT64 table_bytes=(UINT64)header->e_shnum*sizeof(load_elf64_shdr);
+
+    if(header->e_shoff>file_size||table_bytes>file_size-header->e_shoff)
+    {
+        panic(EFI_UNSUPPORTED,"The kernel section header table is out of range.");
+    }
+
+    load_elf64_shdr* sections=pool_alloc(table_bytes);
+    if(sections==NULL)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Not enough memory to read the kernel sections.");
+    }
+
+    if(asv_read_at(kernel,header->e_shoff,sections,table_bytes)!=table_bytes)
+    {
+        panic(EFI_DEVICE_ERROR,"Failed to read the kernel sections.");
+    }
+
+    for(UINT16 i=0;i<header->e_shnum;i++)
+    {
+        if(sections[i].sh_type!=LOAD_SHT_RELA||sections[i].sh_size==0)
+        {
+            continue;
+        }
+
+        if(sections[i].sh_entsize!=sizeof(load_elf64_rela)||(sections[i].sh_size%sizeof(load_elf64_rela))!=0)
+        {
+            panic(EFI_UNSUPPORTED,"The kernel relocation table is invalid.");
+        }
+
+        if(sections[i].sh_offset>file_size||sections[i].sh_size>file_size-sections[i].sh_offset)
+        {
+            panic(EFI_UNSUPPORTED,"The kernel relocation table is out of range.");
+        }
+
+        load_elf64_rela* items=pool_alloc(sections[i].sh_size);
+        if(items==NULL)
+        {
+            panic(EFI_OUT_OF_RESOURCES,"Not enough memory to read the kernel relocations.");
+        }
+
+        if(asv_read_at(kernel,sections[i].sh_offset,items,sections[i].sh_size)!=
+            sections[i].sh_size)
+        {
+            panic(EFI_DEVICE_ERROR,"Failed to read the kernel relocations.");
+        }
+
+        UINTN count=sections[i].sh_size/sizeof(load_elf64_rela);
+        for(UINTN j=0;j<count;j++)
+        {
+            UINT32 type=(UINT32)items[j].r_info;
+            UINTN target=0;
+
+            if(type==LOAD_R_X86_64_NONE)
+            {
+                continue;
+            }
+
+            if(type!=LOAD_R_X86_64_RELATIVE)
+            {
+                panic(EFI_UNSUPPORTED,"The kernel requires an unsupported relocation type.");
+            }
+
+            for(UINT16 p=0;p<header->e_phnum;p++)
+            {
+                if(phdrs[p].p_type!=LOAD_PT_LOAD||paddrs[p]==0)
+                {
+                    continue;
+                }
+
+                if(items[j].r_offset>=phdrs[p].p_vaddr&&items[j].r_offset<phdrs[p].p_vaddr+phdrs[p].p_memsz)
+                {
+                    target=paddrs[p]+(phdrs[p].p_vaddr&0xFFF)+(UINTN)(items[j].r_offset-phdrs[p].p_vaddr);
+                    break;
+                }
+            }
+
+            if(target==0)
+            {
+                panic(EFI_UNSUPPORTED,"The kernel relocation target is outside the loaded segments.");
+            }
+
+            *(UINT64*)target=base+items[j].r_addend;
+        }
+        pool_free(items);
+    }
+    pool_free(sections);
+}
+
+/**
  * 加载并映射内核文件。内核必须已完成签名验证。
  * 
  * @param kernel 内核文件句柄。
@@ -407,6 +559,13 @@ UINTN EFIAPI load_kernel(IN asv_file* kernel,IN UINTN base)
     }
     load_elf_check_phdrs(phdrs,ehdr->e_phnum,size,ehdr->e_entry);
 
+    UINTN* paddrs=pool_alloc((UINT64)ehdr->e_phnum*sizeof(UINTN));
+    if(paddrs==NULL)
+    {
+        panic(EFI_OUT_OF_RESOURCES,"Not enough memory to load the kernel.");
+    }
+    ZeroMem(paddrs,(UINT64)ehdr->e_phnum*sizeof(UINTN));
+
     for(UINT16 i=0;i<ehdr->e_phnum;i++)
     {
         if(phdrs[i].p_type!=LOAD_PT_LOAD||(phdrs[i].p_filesz==0&&phdrs[i].p_memsz==0))
@@ -420,6 +579,7 @@ UINTN EFIAPI load_kernel(IN asv_file* kernel,IN UINTN base)
         {
             panic(EFI_OUT_OF_RESOURCES,"Failed to allocate the kernel segment space.");
         }
+        paddrs[i]=paddr;
 
         UINT64 flags=AOS_BOOT_VMA_READ|AOS_BOOT_VMA_CACHE_WB;
         if(phdrs[i].p_flags&LOAD_PF_W)
@@ -450,8 +610,10 @@ UINTN EFIAPI load_kernel(IN asv_file* kernel,IN UINTN base)
         add_vma(AOS_BOOT_VMA_TYPE_KERNEL,(vaddr>>EFI_PAGE_SHIFT)<<EFI_PAGE_SHIFT,paddr,pages,flags);
     }
 
+    load_apply_relocations(kernel,ehdr,phdrs,paddrs,base);
     UINTN result=ehdr->e_entry;
 
+    pool_free(paddrs);
     pool_free(ehdr);
     pool_free(phdrs);
 
