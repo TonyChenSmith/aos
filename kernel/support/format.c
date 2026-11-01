@@ -596,6 +596,11 @@ uintn format_print_valist(io_handle* handle,const char8* format,va_list args)
     
     output_writer writer={format_io_put_char,format_io_put_string,format_io_put_repeat,format_io_get_written_chars};
     io_writer_context context={handle,IO_STATUS_SUCCESS,0};
+    handle->flush(handle);
+    if(context.status!=IO_STATUS_SUCCESS)
+    {
+        return context.status;
+    }
     
     va_list list;
     va_copy(list,args);

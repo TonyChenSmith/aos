@@ -28,7 +28,12 @@ SECTIONS
 
     . += 0x1000;
 
-    .rodata ALIGN(0x10)  :
+    .rela.dyn ALIGN(0x10) :
+    {
+        KEEP(*(.rela.dyn))
+    } :rodata
+
+    .rodata ALIGN(0x10) :
     {
         *(.rodata*)
     } :rodata

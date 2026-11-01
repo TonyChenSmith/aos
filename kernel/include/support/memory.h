@@ -45,6 +45,28 @@ void* memory_move(void* dest,const void* src,uintn n);
 void* memory_set(void* m,uint8 value,uintn n);
 
 /**
+ * 将内存m前n个16位设置成固定值。
+ * 
+ * @param m     内存m。
+ * @param value 填充值。
+ * @param n     操作的16位单元数。
+ * 
+ * @return 返回内存m的起始地址，便于进行链式处理。
+ */
+void* memory_set16(void* m,uint16 value,uintn n);
+
+/**
+ * 将内存m前n个32位设置成固定值。
+ * 
+ * @param m     内存m。
+ * @param value 填充值。
+ * @param n     操作的32位单元数。
+ * 
+ * @return 返回内存m的起始地址，便于进行链式处理。
+ */
+void* memory_set32(void* m,uint32 value,uintn n);
+
+/**
  * 对内存a与内存b的前n个字节进行比较。
  * 
  * @param a 内存a。

@@ -21,9 +21,6 @@ add_subdirectory(support)
 add_executable(aos.kernel
     init/entry.c
     init/trampoline.S
-
-    init/kfonts.S
-    init/display.c
 )
 
 # 模块链接

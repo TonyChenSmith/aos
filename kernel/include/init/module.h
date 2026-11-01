@@ -12,6 +12,15 @@
 #include "params.h"
 
 /**
+ * 初始化控制台输出。
+ * 
+ * @param params 启动参数。
+ * 
+ * @return 成功初始化返回真。
+ */
+bool kernel_console_output_init(const aos_boot_params* params);
+
+/**
  * 通过启动参数初始化内存管理模块。
  * 
  * @param params 启动参数。

@@ -52,7 +52,7 @@
 /**
  * 模块“aos.kernel” 0.0.1版本。
  */
-#define AOS_KERNEL_VERSION_0_0_1 0x20261025
+#define AOS_KERNEL_VERSION_0_0_1 0x20261102
 
 /**
  * 模块“aos.kernel”当前版本。
